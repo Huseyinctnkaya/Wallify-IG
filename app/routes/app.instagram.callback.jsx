@@ -30,7 +30,7 @@ export async function loader({ request }) {
         return redirect("/app?error=Server misconfiguration");
     }
 
-    const redirectUri = `${appUrl}/app/instagram/callback`;
+    const redirectUri = "https://innocent-exam-peripherals-areas.trycloudflare.com/app/instagram/callback";
 
     try {
         // 1. Exchange Code for Short-lived Token
@@ -42,11 +42,13 @@ export async function loader({ request }) {
         // longData: { access_token, expires_in, token_type }
 
         // 3. Save to DB
+        // Business Login tokens often wrap the user ID differently or we might need to fetch 'me' first. 
+        // Our updated 'saveInstagramAccount' handles fetching details if username is missing.
         await saveInstagramAccount({
             shop,
             accessToken: longData.access_token,
-            userId: shortData.user_id, // Instagram Basic Display returns ID here
-            username: "" // We actually need to fetch the username separately if we want it, but let's skip for speed or do it later
+            userId: shortData.user_id || 0, // Fallback if ID is not immediately present
+            username: null // Let the service fetch it
         });
 
         return redirect("/app");
