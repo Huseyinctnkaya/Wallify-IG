@@ -14,11 +14,11 @@ export async function loader({ request }) {
 
     if (error) {
         console.error("Instagram Auth Error:", errorReason, errorDescription);
-        return redirect("/app/settings?error=" + encodeURIComponent(errorDescription || "Authorization failed"));
+        return redirect("/app?error=" + encodeURIComponent(errorDescription || "Authorization failed"));
     }
 
     if (!code) {
-        return redirect("/app/settings?error=No code returned");
+        return redirect("/app?error=No code returned");
     }
 
     const clientId = process.env.INSTAGRAM_CLIENT_ID;
@@ -27,7 +27,7 @@ export async function loader({ request }) {
 
     if (!clientId || !clientSecret || !appUrl) {
         console.error("Missing ENV variables for Instagram");
-        return redirect("/app/settings?error=Server misconfiguration");
+        return redirect("/app?error=Server misconfiguration");
     }
 
     const redirectUri = `${appUrl}/app/instagram/callback`;
@@ -49,10 +49,10 @@ export async function loader({ request }) {
             username: "" // We actually need to fetch the username separately if we want it, but let's skip for speed or do it later
         });
 
-        return redirect("/app/settings");
+        return redirect("/app");
 
     } catch (err) {
         console.error("Callback Error:", err);
-        return redirect("/app/settings?error=" + encodeURIComponent(err.message));
+        return redirect("/app?error=" + encodeURIComponent(err.message));
     }
 }

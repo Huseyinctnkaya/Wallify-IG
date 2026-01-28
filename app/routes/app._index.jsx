@@ -1,328 +1,169 @@
-import { useEffect } from "react";
-import { useFetcher } from "@remix-run/react";
+import { json } from "@remix-run/node";
+import { useLoaderData, useFetcher, useActionData, Form } from "@remix-run/react";
 import {
-  Page,
-  Layout,
-  Text,
-  Card,
-  Button,
-  BlockStack,
-  Box,
-  List,
-  Link,
-  InlineStack,
+    Page,
+    Layout,
+    Card,
+    TextField,
+    Button,
+    BlockStack,
+    Text,
+    Banner,
+    Link,
 } from "@shopify/polaris";
-import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
+import { prisma } from "../db.server";
+import { getInstagramAuthUrl, getInstagramAccount, disconnectInstagramAccount } from "../models/instagram.server";
 
-export const loader = async ({ request }) => {
-  await authenticate.admin(request);
+export async function loader({ request }) {
+    const { session } = await authenticate.admin(request);
+    const { shop } = session;
 
-  return null;
-};
+    const instagramAccount = await getInstagramAccount(shop);
 
-export const action = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
-  const color = ["Red", "Orange", "Yellow", "Green"][
-    Math.floor(Math.random() * 4)
-  ];
-  const response = await admin.graphql(
-    `#graphql
-      mutation populateProduct($product: ProductCreateInput!) {
-        productCreate(product: $product) {
-          product {
-            id
-            title
-            handle
-            status
-            variants(first: 10) {
-              edges {
-                node {
-                  id
-                  price
-                  barcode
-                  createdAt
-                }
-              }
-            }
-          }
+    // In a real app, Client ID/Secret might be stored in a Settings table or Env vars.
+    // For this "Simple" app, we'll let the user input them or load if saved (optional).
+    // For now, let's assume we want the user to provide them to "connect".
+
+    // Also check URL for error params (returned from callback usually)
+    const url = new URL(request.url);
+    const error = url.searchParams.get("error");
+
+    return json({
+        instagramAccount,
+        shop,
+        error,
+        appUrl: process.env.SHOPIFY_APP_URL || ""
+    });
+}
+
+export async function action({ request }) {
+    const { session } = await authenticate.admin(request);
+    const { shop } = session;
+    const formData = await request.formData();
+    const actionType = formData.get("actionType");
+
+    if (actionType === "connect") {
+        const clientId = formData.get("clientId");
+        const clientSecret = formData.get("clientSecret");
+
+        if (!clientId || !clientSecret) {
+            return json({ error: "Client ID and Secret are required" }, { status: 400 });
         }
-      }`,
-    {
-      variables: {
-        product: {
-          title: `${color} Snowboard`,
-        },
-      },
-    },
-  );
-  const responseJson = await response.json();
-  const product = responseJson.data.productCreate.product;
-  const variantId = product.variants.edges[0].node.id;
-  const variantResponse = await admin.graphql(
-    `#graphql
-    mutation shopifyRemixTemplateUpdateVariant($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-      productVariantsBulkUpdate(productId: $productId, variants: $variants) {
-        productVariants {
-          id
-          price
-          barcode
-          createdAt
+
+        // Save temporary credentials to session or DB to use in callback? 
+        // For simplicity, we might just pass them or rely on ENV if this was a fixed app.
+        // BUT since user inputs them, we should probably save them to a Settings model first.
+
+        await prisma.settings.upsert({
+            where: { shop },
+            update: {
+                // We'll misuse titleText/showTitle for now or rely on a new field?
+                // Actually, let's just rely on passing them via state or simpler:
+                // The user inputs 'Client ID' -> we generate URL.
+                // But wait, the callback needs the Secret to exchange token.
+                // So we MUST save them to DB first.
+            },
+            create: { shop }
+        });
+
+        // We need to support custom fields in Settings or just assume user puts them in env?
+        // User asked for "Simple". 
+        // Let's UPDATE prisma schema to store credentials if we want a "SaaS" style where they use their own App.
+        // OR we provide the App and they just click "Connect"?
+        // "piyasada araştırma yaptım... sayfanın adını giriyorsun otomatik bağlanıp direkt çekiyor"
+        // This implies WE (the app dev) own the Instagram App and keys.
+        // The user just authenticates.
+
+        // IF WE own the keys, they should be in .env. 
+        // I will assume for this "roadmap" that WE own the keys.
+        // So the stored procedure is:
+        // 1. User clicks "Connect".
+        // 2. We use OUR env keys.
+        // 3. Authorization URL is generated.
+
+        const ENV_CLIENT_ID = process.env.INSTAGRAM_CLIENT_ID;
+
+        if (!ENV_CLIENT_ID) {
+            return json({ error: "App is not configured with Instagram Client ID. Please check .env" }, { status: 500 });
         }
-      }
-    }`,
-    {
-      variables: {
-        productId: product.id,
-        variants: [{ id: variantId, price: "100.00" }],
-      },
-    },
-  );
-  const variantResponseJson = await variantResponse.json();
 
-  return {
-    product: responseJson.data.productCreate.product,
-    variant: variantResponseJson.data.productVariantsBulkUpdate.productVariants,
-  };
-};
+        const redirectUri = `${process.env.SHOPIFY_APP_URL}/app/instagram/callback`;
+        const authUrl = await getInstagramAuthUrl(shop, redirectUri, ENV_CLIENT_ID);
 
-export default function Index() {
-  const fetcher = useFetcher();
-  const shopify = useAppBridge();
-  const isLoading =
-    ["loading", "submitting"].includes(fetcher.state) &&
-    fetcher.formMethod === "POST";
-  const productId = fetcher.data?.product?.id.replace(
-    "gid://shopify/Product/",
-    "",
-  );
-
-  useEffect(() => {
-    if (productId) {
-      shopify.toast.show("Product created");
+        return json({ authUrl });
     }
-  }, [productId, shopify]);
-  const generateProduct = () => fetcher.submit({}, { method: "POST" });
 
-  return (
-    <Page>
-      <TitleBar title="Remix app template">
-        <button variant="primary" onClick={generateProduct}>
-          Generate a product
-        </button>
-      </TitleBar>
-      <BlockStack gap="500">
-        <Layout>
-          <Layout.Section>
-            <Card>
-              <BlockStack gap="500">
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">
-                    Congrats on creating a new Shopify app 🎉
-                  </Text>
-                  <Text variant="bodyMd" as="p">
-                    This embedded app template uses{" "}
-                    <Link
-                      url="https://shopify.dev/docs/apps/tools/app-bridge"
-                      target="_blank"
-                      removeUnderline
-                    >
-                      App Bridge
-                    </Link>{" "}
-                    interface examples like an{" "}
-                    <Link url="/app/additional" removeUnderline>
-                      additional page in the app nav
-                    </Link>
-                    , as well as an{" "}
-                    <Link
-                      url="https://shopify.dev/docs/api/admin-graphql"
-                      target="_blank"
-                      removeUnderline
-                    >
-                      Admin GraphQL
-                    </Link>{" "}
-                    mutation demo, to provide a starting point for app
-                    development.
-                  </Text>
-                </BlockStack>
-                <BlockStack gap="200">
-                  <Text as="h3" variant="headingMd">
-                    Get started with products
-                  </Text>
-                  <Text as="p" variant="bodyMd">
-                    Generate a product with GraphQL and get the JSON output for
-                    that product. Learn more about the{" "}
-                    <Link
-                      url="https://shopify.dev/docs/api/admin-graphql/latest/mutations/productCreate"
-                      target="_blank"
-                      removeUnderline
-                    >
-                      productCreate
-                    </Link>{" "}
-                    mutation in our API references.
-                  </Text>
-                </BlockStack>
-                <InlineStack gap="300">
-                  <Button loading={isLoading} onClick={generateProduct}>
-                    Generate a product
-                  </Button>
-                  {fetcher.data?.product && (
-                    <Button
-                      url={`shopify:admin/products/${productId}`}
-                      target="_blank"
-                      variant="plain"
-                    >
-                      View product
-                    </Button>
-                  )}
-                </InlineStack>
-                {fetcher.data?.product && (
-                  <>
-                    <Text as="h3" variant="headingMd">
-                      {" "}
-                      productCreate mutation
-                    </Text>
-                    <Box
-                      padding="400"
-                      background="bg-surface-active"
-                      borderWidth="025"
-                      borderRadius="200"
-                      borderColor="border"
-                      overflowX="scroll"
-                    >
-                      <pre style={{ margin: 0 }}>
-                        <code>
-                          {JSON.stringify(fetcher.data.product, null, 2)}
-                        </code>
-                      </pre>
-                    </Box>
-                    <Text as="h3" variant="headingMd">
-                      {" "}
-                      productVariantsBulkUpdate mutation
-                    </Text>
-                    <Box
-                      padding="400"
-                      background="bg-surface-active"
-                      borderWidth="025"
-                      borderRadius="200"
-                      borderColor="border"
-                      overflowX="scroll"
-                    >
-                      <pre style={{ margin: 0 }}>
-                        <code>
-                          {JSON.stringify(fetcher.data.variant, null, 2)}
-                        </code>
-                      </pre>
-                    </Box>
-                  </>
-                )}
-              </BlockStack>
-            </Card>
-          </Layout.Section>
-          <Layout.Section variant="oneThird">
+    if (actionType === "disconnect") {
+        await disconnectInstagramAccount(shop);
+        return json({ success: true });
+    }
+
+    return null;
+}
+
+export default function Settings() {
+    const { instagramAccount, error } = useLoaderData();
+    const fetcher = useFetcher();
+
+    const handleConnect = () => {
+        fetcher.submit({ actionType: "connect" }, { method: "POST" });
+    };
+
+    const handleDisconnect = () => {
+        fetcher.submit({ actionType: "disconnect" }, { method: "POST" });
+    };
+
+    const handleSync = () => {
+        fetcher.submit({ actionType: "sync" }, { method: "POST" });
+    };
+
+    const isLoading = fetcher.state === "submitting" || fetcher.state === "loading";
+
+    // If fetcher returned authUrl, redirect there
+    if (fetcher.data?.authUrl) {
+        window.location.href = fetcher.data.authUrl;
+    }
+
+    return (
+        <Page title="Instagram Feed Settings">
             <BlockStack gap="500">
-              <Card>
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">
-                    App template specs
-                  </Text>
-                  <BlockStack gap="200">
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        Framework
-                      </Text>
-                      <Link
-                        url="https://remix.run"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        Remix
-                      </Link>
-                    </InlineStack>
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        Database
-                      </Text>
-                      <Link
-                        url="https://www.prisma.io/"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        Prisma
-                      </Link>
-                    </InlineStack>
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        Interface
-                      </Text>
-                      <span>
-                        <Link
-                          url="https://polaris.shopify.com"
-                          target="_blank"
-                          removeUnderline
-                        >
-                          Polaris
-                        </Link>
-                        {", "}
-                        <Link
-                          url="https://shopify.dev/docs/apps/tools/app-bridge"
-                          target="_blank"
-                          removeUnderline
-                        >
-                          App Bridge
-                        </Link>
-                      </span>
-                    </InlineStack>
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        API
-                      </Text>
-                      <Link
-                        url="https://shopify.dev/docs/api/admin-graphql"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        GraphQL API
-                      </Link>
-                    </InlineStack>
-                  </BlockStack>
-                </BlockStack>
-              </Card>
-              <Card>
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">
-                    Next steps
-                  </Text>
-                  <List>
-                    <List.Item>
-                      Build an{" "}
-                      <Link
-                        url="https://shopify.dev/docs/apps/getting-started/build-app-example"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        {" "}
-                        example app
-                      </Link>{" "}
-                      to get started
-                    </List.Item>
-                    <List.Item>
-                      Explore Shopify’s API with{" "}
-                      <Link
-                        url="https://shopify.dev/docs/apps/tools/graphiql-admin-api"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        GraphiQL
-                      </Link>
-                    </List.Item>
-                  </List>
-                </BlockStack>
-              </Card>
+                {error && (
+                    <Banner tone="critical">
+                        <p>Error: {error}</p>
+                    </Banner>
+                )}
+
+                <Card>
+                    <BlockStack gap="400">
+                        <Text variant="headingMd" as="h2">
+                            Instagram Connection
+                        </Text>
+
+                        {instagramAccount ? (
+                            <Banner tone="success">
+                                <BlockStack gap="200">
+                                    <p>Connected as <strong>@{instagramAccount.username || "User"}</strong></p>
+                                    <BlockStack inlineAlign="start" gap="200">
+                                        <Button onClick={handleSync} loading={isLoading} variant="primary">Sync Media Now</Button>
+                                        <Button variant="plain" onClick={handleDisconnect} disabled={isLoading}>Disconnect</Button>
+                                    </BlockStack>
+                                </BlockStack>
+                            </Banner>
+                        ) : (
+                            <BlockStack gap="200">
+                                <p>Connect your Instagram account to start displaying posts.</p>
+                                <Banner tone="info" title="Configuration">
+                                    <p>Ensure `INSTAGRAM_CLIENT_ID` and `INSTAGRAM_CLIENT_SECRET` are set in your `.env` file.</p>
+                                </Banner>
+                                <Button variant="primary" onClick={handleConnect} loading={fetcher.state === "submitting"}>
+                                    Connect Instagram
+                                </Button>
+                            </BlockStack>
+                        )}
+                    </BlockStack>
+                </Card>
             </BlockStack>
-          </Layout.Section>
-        </Layout>
-      </BlockStack>
-    </Page>
-  );
+        </Page>
+    );
 }
