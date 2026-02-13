@@ -30,7 +30,7 @@ export async function loader({ request }) {
         return redirect("/app?error=Server misconfiguration");
     }
 
-    const redirectUri = "https://innocent-exam-peripherals-areas.trycloudflare.com/app/instagram/callback";
+    const redirectUri = `${appUrl}/app/instagram/callback`;
 
     try {
         // 1. Exchange Code for Short-lived Token
