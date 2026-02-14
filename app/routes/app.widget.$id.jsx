@@ -20,7 +20,7 @@ import {
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { getWidget, updateWidget, publishWidget } from "../models/widget.server";
-import { getInstagramAccount } from "../models/instagram.server";
+import { getInstagramAccount } from "../models/instagram.server"; // Removed fetchInstagramMedia here to import dynamically if needed or just use import
 
 export async function loader({ request, params }) {
     const { session, admin } = await authenticate.admin(request);
@@ -108,12 +108,12 @@ export default function WidgetEditor() {
     ];
 
     return (
-        <Page>
-            <ui-title-bar title={config.title || "Edit Feed"}>
-                <button variant="primary" onClick={handlePublish} disabled={isPublishing}>Publish</button>
-                <button onClick={handleSave} disabled={isSaving}>Save</button>
-            </ui-title-bar>
-
+        <Page
+            title={config.title || "Edit Feed"}
+            backAction={{ url: "/app" }}
+            primaryAction={{ content: "Publish", onAction: handlePublish, loading: isPublishing }}
+            secondaryActions={[{ content: "Save", onAction: handleSave, loading: isSaving }]}
+        >
             <Layout>
                 <Layout.Section variant="oneThird">
                     <Card padding="0">
