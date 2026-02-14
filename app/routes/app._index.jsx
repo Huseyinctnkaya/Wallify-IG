@@ -217,6 +217,7 @@ export default function Dashboard() {
     const [showAttachedProducts, setShowAttachedProducts] = useState(settings?.showAttachedProducts ?? true);
     const [previewMode, setPreviewMode] = useState("desktop"); // desktop | mobile
     const [currentSlide, setCurrentSlide] = useState(0);
+    const [selectedMedia, setSelectedMedia] = useState(null);
 
     // ... (mock images)
 
@@ -634,8 +635,18 @@ export default function Dashboard() {
                                                                     borderRadius: radiusMap[borderRadius] || '12px',
                                                                     border: "1px solid #e1e3e5",
                                                                     boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                                                                    position: "relative"
-                                                                }}>
+                                                                    position: "relative",
+                                                                    cursor: onClick === 'popup' ? 'pointer' : 'default'
+                                                                }}
+                                                                    onClick={() => {
+                                                                        if (onClick === 'popup') {
+                                                                            setSelectedMedia(item);
+                                                                        } else if (onClick === 'instagram') {
+                                                                            const url = typeof item === 'string' ? 'https://instagram.com' : (item.permalink || 'https://instagram.com');
+                                                                            window.open(url, '_blank');
+                                                                        }
+                                                                    }}
+                                                                >
                                                                     <div style={{ position: "absolute", top: 10, left: 10, display: "flex", alignItems: "center", gap: "5px" }}>
                                                                         <div style={{ width: 20, height: 20, background: "black", borderRadius: "50%" }}></div>
                                                                         <span style={{ color: "white", fontSize: "12px", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>@{instagramAccount?.username || "username"}</span>
@@ -655,6 +666,100 @@ export default function Dashboard() {
                     </BlockStack>
                 </Layout.Section>
             </Layout>
+
+            {/* Popup Preview Overlay */}
+            {selectedMedia && (
+                <div style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    backgroundColor: "rgba(0,0,0,0.9)",
+                    zIndex: 1000,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}>
+                    <button
+                        onClick={() => setSelectedMedia(null)}
+                        style={{
+                            position: "absolute",
+                            top: "20px",
+                            right: "20px",
+                            background: "none",
+                            border: "none",
+                            color: "white",
+                            fontSize: "30px",
+                            cursor: "pointer",
+                            zIndex: 1001
+                        }}
+                    >
+                        ✕
+                    </button>
+
+                    <div style={{
+                        position: "relative",
+                        maxWidth: "90%",
+                        maxHeight: "90%",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "20px"
+                    }}>
+                        {/* Header info */}
+                        <div style={{
+                            position: "absolute",
+                            top: "20px",
+                            left: "20px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            zIndex: 1002
+                        }}>
+                            <div style={{ width: 40, height: 40, background: "black", borderRadius: "50%", border: "1px solid white" }}></div>
+                            <span style={{ color: "white", fontSize: "16px", fontWeight: "bold" }}>
+                                @{instagramAccount?.username || "username"}
+                            </span>
+                        </div>
+
+                        {/* Large Media Content */}
+                        {typeof selectedMedia === 'string' ? (
+                            <img
+                                src={selectedMedia}
+                                alt="Instagram Preview"
+                                style={{ maxHeight: "70vh", objectFit: "contain", borderRadius: "8px" }}
+                            />
+                        ) : (
+                            selectedMedia.media_type === 'VIDEO' ? (
+                                <video
+                                    src={selectedMedia.media_url}
+                                    controls
+                                    autoPlay
+                                    style={{ maxHeight: "70vh", objectFit: "contain", borderRadius: "8px" }}
+                                />
+                            ) : (
+                                <img
+                                    src={selectedMedia.media_url}
+                                    alt="Instagram Preview"
+                                    style={{ maxHeight: "70vh", objectFit: "contain", borderRadius: "8px" }}
+                                />
+                            )
+                        )}
+
+                        {/* Footer button */}
+                        <Button
+                            icon={null}
+                            onClick={() => {
+                                const url = typeof selectedMedia === 'string' ? 'https://instagram.com' : (selectedMedia.permalink || 'https://instagram.com');
+                                window.open(url, '_blank');
+                            }}
+                        >
+                            Open in Instagram
+                        </Button>
+                    </div>
+                </div>
+            )}
         </Page>
     );
 }
