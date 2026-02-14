@@ -19,7 +19,7 @@ import {
     PinIcon,
     HideIcon,
 } from "@shopify/polaris-icons";
-import { ResourcePicker } from "@shopify/app-bridge-react";
+import { Modal } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { getInstagramAccount, fetchInstagramMedia, syncInstagramToMetafields } from "../models/instagram.server";
 import { getSettings } from "../models/settings.server";
@@ -349,36 +349,47 @@ export default function PostsPage() {
     const { posts, isPremium } = useLoaderData();
     const fetcher = useFetcher();
 
-    const [selectedPost, setSelectedPost] = useState(null);
-    const [showProductPicker, setShowProductPicker] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
     const handleEditProducts = (post) => {
-        setSelectedPost(post);
-        setShowProductPicker(true);
-    };
+        if (!isPremium) {
+            setShowUpgradeModal(true);
+            return;
+        }
 
-    const handleProductSelection = (resources) => {
-        if (!resources || !resources.selection || !selectedPost) return;
+        // Open Shopify product selector
+        const productSelector = window.shopify?.resourcePicker || null;
 
-        const products = resources.selection.map(product => ({
-            id: product.id,
-            title: product.title,
-            handle: product.handle,
-            image: product.images?.[0]?.originalSrc || null
-        }));
+        if (productSelector) {
+            productSelector({
+                type: 'product',
+                multiple: true,
+                action: 'select',
+            }).then((selection) => {
+                if (selection && selection.length > 0) {
+                    const products = selection.map(product => ({
+                        id: product.id,
+                        title: product.title,
+                        handle: product.handle,
+                        image: product.images?.[0]?.src || null
+                    }));
 
-        fetcher.submit(
-            {
-                actionType: "updateProducts",
-                mediaId: selectedPost.id,
-                products: JSON.stringify(products)
-            },
-            { method: "post" }
-        );
-
-        setShowProductPicker(false);
-        setSelectedPost(null);
+                    fetcher.submit(
+                        {
+                            actionType: "updateProducts",
+                            mediaId: post.id,
+                            products: JSON.stringify(products)
+                        },
+                        { method: "post" }
+                    );
+                }
+            }).catch((error) => {
+                console.error("Product selection error:", error);
+            });
+        } else {
+            // Fallback: Show a message to add products manually
+            alert("Product picker is not available. Please ensure you're running in Shopify admin.");
+        }
     };
 
     const handleShowUpgrade = () => {
@@ -422,20 +433,6 @@ export default function PostsPage() {
                 </Layout.Section>
             </Layout>
             <Box paddingBlockEnd="800" />
-
-            {/* Product Picker Modal */}
-            {showProductPicker && (
-                <ResourcePicker
-                    resourceType="Product"
-                    open={showProductPicker}
-                    onSelection={handleProductSelection}
-                    onCancel={() => {
-                        setShowProductPicker(false);
-                        setSelectedPost(null);
-                    }}
-                    selectMultiple={true}
-                />
-            )}
 
             {/* Upgrade Modal */}
             {showUpgradeModal && (
