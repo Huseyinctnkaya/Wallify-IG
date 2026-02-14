@@ -97,7 +97,7 @@ export default function Dashboard() {
     const submit = useSubmit();
 
     const handleCreateWidget = () => {
-        submit(null, { method: "post", action: "/app/widget/new" });
+        window.location.href = "/app/widget/new";
     };
 
     const handleDeleteWidget = (id) => {
