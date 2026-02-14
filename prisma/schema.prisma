@@ -84,6 +84,8 @@ model PostAnalytics {
   id        String   @id @default(uuid())
   shop      String
   mediaId   String
+  mediaUrl  String?
+  permalink String?
   views     Int      @default(0)
   clicks    Int      @default(0)
   updatedAt DateTime @updatedAt

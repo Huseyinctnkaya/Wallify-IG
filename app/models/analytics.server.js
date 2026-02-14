@@ -45,7 +45,7 @@ export async function getTopPostsAnalytics(shop, limit = 5) {
     });
 }
 
-export async function trackMetric(shop, type, mediaId = null) {
+export async function trackMetric(shop, type, { mediaId = null, mediaUrl = null, permalink = null } = {}) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -81,10 +81,14 @@ export async function trackMetric(shop, type, mediaId = null) {
             update: {
                 views: type === 'view' ? { increment: 1 } : undefined,
                 clicks: type === 'click' ? { increment: 1 } : undefined,
+                mediaUrl: mediaUrl || undefined,
+                permalink: permalink || undefined,
             },
             create: {
                 shop,
                 mediaId,
+                mediaUrl,
+                permalink,
                 views: type === 'view' ? 1 : 0,
                 clicks: type === 'click' ? 1 : 0,
             }

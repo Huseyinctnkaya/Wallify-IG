@@ -14,6 +14,7 @@ import {
     Badge,
     Icon,
     EmptyState,
+    Button,
 } from "@shopify/polaris";
 import {
     ViewIcon,
@@ -43,11 +44,46 @@ export const loader = async ({ request }) => {
     ];
 
     const mockTopPosts = [
-        { id: '1', mediaId: '17841401234567890', views: 1250, clicks: 185 },
-        { id: '2', mediaId: '17841409876543210', views: 980, clicks: 142 },
-        { id: '3', mediaId: '17841405556667778', views: 850, clicks: 110 },
-        { id: '4', mediaId: '17841401112223334', views: 720, clicks: 95 },
-        { id: '5', mediaId: '17841409998887776', views: 600, clicks: 58 },
+        {
+            id: '1',
+            mediaId: '17841401234567890',
+            mediaUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=100&auto=format&fit=crop',
+            permalink: 'https://instagram.com',
+            views: 1250,
+            clicks: 185
+        },
+        {
+            id: '2',
+            mediaId: '17841409876543210',
+            mediaUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=100&auto=format&fit=crop',
+            permalink: 'https://instagram.com',
+            views: 980,
+            clicks: 142
+        },
+        {
+            id: '3',
+            mediaId: '17841405556667778',
+            mediaUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=100&auto=format&fit=crop',
+            permalink: 'https://instagram.com',
+            views: 850,
+            clicks: 110
+        },
+        {
+            id: '4',
+            mediaId: '17841401112223334',
+            mediaUrl: 'https://images.unsplash.com/photo-1526170315870-efffd0ad46b4?q=80&w=100&auto=format&fit=crop',
+            permalink: 'https://instagram.com',
+            views: 720,
+            clicks: 95
+        },
+        {
+            id: '5',
+            mediaId: '17841409998887776',
+            mediaUrl: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=100&auto=format&fit=crop',
+            permalink: 'https://instagram.com',
+            views: 600,
+            clicks: 58
+        },
     ];
 
     const displayAnalytics = analytics.dailyStats.length > 0 ? analytics : {
@@ -205,24 +241,77 @@ export default function AnalyticsPage() {
                                 resourceName={resourceName}
                                 itemCount={topPosts.length}
                                 headings={[
+                                    { title: 'Post' },
                                     { title: 'Media ID' },
                                     { title: 'Views' },
                                     { title: 'Clicks' },
                                     { title: 'CTR' },
+                                    { title: 'Link', alignment: 'end' },
                                 ]}
                                 selectable={false}
                             >
                                 {topPosts.map((post, index) => (
                                     <IndexTable.Row id={post.id} key={post.id} position={index}>
                                         <IndexTable.Cell>
-                                            <Text variant="bodyMd" fontWeight="bold" as="span">
+                                            <div style={{ padding: '8px 0' }}>
+                                                {post.mediaUrl ? (
+                                                    <img
+                                                        src={post.mediaUrl}
+                                                        alt="Post preview"
+                                                        style={{
+                                                            width: '40px',
+                                                            height: '40px',
+                                                            objectFit: 'cover',
+                                                            borderRadius: '4px',
+                                                            border: '1px solid #e1e3e5'
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div style={{
+                                                        width: '40px',
+                                                        height: '40px',
+                                                        background: '#f1f1f1',
+                                                        borderRadius: '4px',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center'
+                                                    }}>
+                                                        <Icon source={ViewIcon} tone="subdued" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </IndexTable.Cell>
+                                        <IndexTable.Cell>
+                                            <Text variant="bodyMd" tone="subdued" as="span">
                                                 {post.mediaId}
                                             </Text>
                                         </IndexTable.Cell>
-                                        <IndexTable.Cell>{post.views.toLocaleString()}</IndexTable.Cell>
-                                        <IndexTable.Cell>{post.clicks.toLocaleString()}</IndexTable.Cell>
                                         <IndexTable.Cell>
-                                            {post.views > 0 ? ((post.clicks / post.views) * 100).toFixed(2) : '0.00'}%
+                                            <Text variant="bodyMd" as="span" fontWeight="medium">
+                                                {post.views.toLocaleString()}
+                                            </Text>
+                                        </IndexTable.Cell>
+                                        <IndexTable.Cell>
+                                            <Text variant="bodyMd" as="span" fontWeight="medium">
+                                                {post.clicks.toLocaleString()}
+                                            </Text>
+                                        </IndexTable.Cell>
+                                        <IndexTable.Cell>
+                                            <Badge tone={parseFloat(((post.clicks / post.views) * 100).toFixed(2)) > 15 ? 'success' : 'info'}>
+                                                {post.views > 0 ? ((post.clicks / post.views) * 100).toFixed(2) : '0.00'}%
+                                            </Badge>
+                                        </IndexTable.Cell>
+                                        <IndexTable.Cell>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <Button
+                                                    variant="tertiary"
+                                                    icon={ArrowRightIcon}
+                                                    url={post.permalink || '#'}
+                                                    external
+                                                >
+                                                    View
+                                                </Button>
+                                            </div>
                                         </IndexTable.Cell>
                                     </IndexTable.Row>
                                 ))}
