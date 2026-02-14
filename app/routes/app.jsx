@@ -22,8 +22,8 @@ export default function App() {
         <Link to="/app" rel="home">
           DevsApiG
         </Link>
-        <Link to="/app/plans">Plans</Link>
         <Link to="/app/analytics">Analytics</Link>
+        <Link to="/app/plans">Plans</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>
