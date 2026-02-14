@@ -49,8 +49,10 @@ model Settings {
   subheading      String   @default("Daha Fazlası İçin Bizi Takip Edebilirsiniz")
   feedType        String   @default("slider") // slider, grid
   showPinnedReels Boolean  @default(false)
-  desktopColumns  Int      @default(4)
-  mobileColumns   Int      @default(2)
+  gridDesktopColumns  Int      @default(4)
+  gridMobileColumns   Int      @default(2)
+  sliderDesktopColumns Int     @default(4)
+  sliderMobileColumns  Int     @default(2)
   showArrows      Boolean  @default(true)
   onClick         String   @default("popup")
   postSpacing     String   @default("medium")

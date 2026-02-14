@@ -69,8 +69,10 @@ export async function action({ request }) {
             subheading: formData.get("subheading"),
             feedType: formData.get("feedType"),
             showPinnedReels: formData.get("showPinnedReels") === "true",
-            desktopColumns: parseInt(formData.get("desktopColumns")),
-            mobileColumns: parseInt(formData.get("mobileColumns")),
+            gridDesktopColumns: parseInt(formData.get("gridDesktopColumns")),
+            gridMobileColumns: parseInt(formData.get("gridMobileColumns")),
+            sliderDesktopColumns: parseInt(formData.get("sliderDesktopColumns")),
+            sliderMobileColumns: parseInt(formData.get("sliderMobileColumns")),
             showArrows: formData.get("showArrows") === "true",
             onClick: formData.get("onClick"),
             postSpacing: formData.get("postSpacing"),
@@ -89,7 +91,7 @@ export async function action({ request }) {
             cardBadgeIconColor: formData.get("cardBadgeIconColor"),
         };
 
-        await saveSettings(shop, settings);
+        await saveSettings(shop, settings, admin);
         return json({ success: true, message: "Settings saved successfully!" });
     }
 
@@ -242,8 +244,10 @@ export default function Dashboard() {
         formData.append("subheading", subheading);
         formData.append("feedType", feedType);
         formData.append("showPinnedReels", showPinnedReels);
-        formData.append("desktopColumns", desktopColumns);
-        formData.append("mobileColumns", mobileColumns);
+        formData.append("gridDesktopColumns", gridDesktopColumns);
+        formData.append("gridMobileColumns", gridMobileColumns);
+        formData.append("sliderDesktopColumns", sliderDesktopColumns);
+        formData.append("sliderMobileColumns", sliderMobileColumns);
         formData.append("showArrows", showArrows);
         formData.append("onClick", onClick);
         formData.append("postSpacing", postSpacing);
@@ -269,8 +273,10 @@ export default function Dashboard() {
     const [subheading, setSubheading] = useState(settings?.subheading || "Daha Fazlası İçin Bizi Takip Edebilirsiniz");
     const [feedType, setFeedType] = useState(settings?.feedType || "slider");
     const [showPinnedReels, setShowPinnedReels] = useState(settings?.showPinnedReels || false);
-    const [desktopColumns, setDesktopColumns] = useState(settings?.desktopColumns?.toString() || "4");
-    const [mobileColumns, setMobileColumns] = useState(settings?.mobileColumns?.toString() || "2");
+    const [gridDesktopColumns, setGridDesktopColumns] = useState(settings?.gridDesktopColumns?.toString() || "4");
+    const [gridMobileColumns, setGridMobileColumns] = useState(settings?.gridMobileColumns?.toString() || "2");
+    const [sliderDesktopColumns, setSliderDesktopColumns] = useState(settings?.sliderDesktopColumns?.toString() || "4");
+    const [sliderMobileColumns, setSliderMobileColumns] = useState(settings?.sliderMobileColumns?.toString() || "2");
     const [showArrows, setShowArrows] = useState(settings?.showArrows || true);
     const [onClick, setOnClick] = useState(settings?.onClick || "popup");
     const [postSpacing, setPostSpacing] = useState(settings?.postSpacing || "medium");
@@ -358,8 +364,10 @@ export default function Dashboard() {
         subheading !== (settings?.subheading || "Daha Fazlası İçin Bizi Takip Edebilirsiniz") ||
         feedType !== (settings?.feedType || "slider") ||
         showPinnedReels !== (settings?.showPinnedReels || false) ||
-        desktopColumns !== (settings?.desktopColumns?.toString() || "4") ||
-        mobileColumns !== (settings?.mobileColumns?.toString() || "2") ||
+        gridDesktopColumns !== (settings?.gridDesktopColumns?.toString() || "4") ||
+        gridMobileColumns !== (settings?.gridMobileColumns?.toString() || "2") ||
+        sliderDesktopColumns !== (settings?.sliderDesktopColumns?.toString() || "4") ||
+        sliderMobileColumns !== (settings?.sliderMobileColumns?.toString() || "2") ||
         showArrows !== (settings?.showArrows || true) ||
         onClick !== (settings?.onClick || "popup") ||
         postSpacing !== (settings?.postSpacing || "medium") ||
@@ -535,27 +543,46 @@ export default function Dashboard() {
 
                                             <Card>
                                                 <BlockStack gap="400">
-                                                    <Text variant="headingMd" as="h3">Slider settings</Text>
+                                                    <Text variant="headingMd" as="h3">Grid settings</Text>
                                                     <TextField
                                                         label="Columns (Desktop)"
                                                         type="number"
-                                                        value={desktopColumns}
-                                                        onChange={setDesktopColumns}
+                                                        value={gridDesktopColumns}
+                                                        onChange={setGridDesktopColumns}
                                                         autoComplete="off"
                                                     />
                                                     <TextField
                                                         label="Columns (Mobile)"
                                                         type="number"
-                                                        value={mobileColumns}
-                                                        onChange={setMobileColumns}
+                                                        value={gridMobileColumns}
+                                                        onChange={setGridMobileColumns}
+                                                        autoComplete="off"
+                                                    />
+                                                </BlockStack>
+                                            </Card>
+
+                                            <Card>
+                                                <BlockStack gap="400">
+                                                    <Text variant="headingMd" as="h3">Slider settings</Text>
+                                                    <TextField
+                                                        label="Columns (Desktop)"
+                                                        type="number"
+                                                        value={sliderDesktopColumns}
+                                                        onChange={setSliderDesktopColumns}
+                                                        autoComplete="off"
+                                                    />
+                                                    <TextField
+                                                        label="Columns (Mobile)"
+                                                        type="number"
+                                                        value={sliderMobileColumns}
+                                                        onChange={setSliderMobileColumns}
                                                         autoComplete="off"
                                                     />
                                                     <Checkbox
-                                                        label="Show arrows to slide left/right"
+                                                        label="Show arrows"
                                                         checked={showArrows}
                                                         onChange={setShowArrows}
                                                     />
-                                                    <div style={{ marginTop: "10px" }}></div>
                                                 </BlockStack>
                                             </Card>
 
@@ -787,10 +814,14 @@ export default function Dashboard() {
                                                                     </button>
                                                                     <button
                                                                         onClick={() => {
-                                                                            const cols = previewMode === 'desktop' ? parseInt(desktopColumns) : parseInt(mobileColumns);
-                                                                            setCurrentSlide(prev => Math.min(Math.max(0, displayMedia.length - cols), prev + 1));
+                                                                            const activeCols = feedType === 'grid'
+                                                                                ? (previewMode === 'desktop' ? parseInt(gridDesktopColumns) : parseInt(gridMobileColumns))
+                                                                                : (previewMode === 'desktop' ? parseInt(sliderDesktopColumns) : parseInt(sliderMobileColumns));
+                                                                            setCurrentSlide(prev => Math.min(Math.max(0, displayMedia.length - activeCols), prev + 1));
                                                                         }}
-                                                                        disabled={currentSlide >= Math.max(0, displayMedia.length - (previewMode === 'desktop' ? parseInt(desktopColumns) : parseInt(mobileColumns)))}
+                                                                        disabled={currentSlide >= Math.max(0, displayMedia.length - (feedType === 'grid'
+                                                                            ? (previewMode === 'desktop' ? parseInt(gridDesktopColumns) : parseInt(gridMobileColumns))
+                                                                            : (previewMode === 'desktop' ? parseInt(sliderDesktopColumns) : parseInt(sliderMobileColumns))))}
                                                                         style={{
                                                                             position: "absolute",
                                                                             right: "10px",
@@ -805,8 +836,12 @@ export default function Dashboard() {
                                                                             display: "flex",
                                                                             alignItems: "center",
                                                                             justifyContent: "center",
-                                                                            cursor: currentSlide >= Math.max(0, displayMedia.length - (previewMode === 'desktop' ? parseInt(desktopColumns) : parseInt(mobileColumns))) ? "not-allowed" : "pointer",
-                                                                            opacity: currentSlide >= Math.max(0, displayMedia.length - (previewMode === 'desktop' ? parseInt(desktopColumns) : parseInt(mobileColumns))) ? 0.3 : 1,
+                                                                            cursor: currentSlide >= Math.max(0, displayMedia.length - (feedType === 'grid'
+                                                                                ? (previewMode === 'desktop' ? parseInt(gridDesktopColumns) : parseInt(gridMobileColumns))
+                                                                                : (previewMode === 'desktop' ? parseInt(sliderDesktopColumns) : parseInt(sliderMobileColumns)))) ? "not-allowed" : "pointer",
+                                                                            opacity: currentSlide >= Math.max(0, displayMedia.length - (feedType === 'grid'
+                                                                                ? (previewMode === 'desktop' ? parseInt(gridDesktopColumns) : parseInt(gridMobileColumns))
+                                                                                : (previewMode === 'desktop' ? parseInt(sliderDesktopColumns) : parseInt(sliderMobileColumns)))) ? 0.3 : 1,
                                                                             color: arrowColor,
                                                                             boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
                                                                         }}
@@ -823,7 +858,7 @@ export default function Dashboard() {
                                                                 flexWrap: feedType === "grid" ? "wrap" : "nowrap",
                                                                 transition: "transform 0.3s ease-in-out",
                                                                 transform: feedType === 'slider'
-                                                                    ? `translateX(-${currentSlide * (100 / (previewMode === 'desktop' ? parseInt(desktopColumns) : parseInt(mobileColumns)))}%)`
+                                                                    ? `translateX(-${currentSlide * (100 / (previewMode === 'desktop' ? parseInt(sliderDesktopColumns) : parseInt(sliderMobileColumns)))}%)`
                                                                     : "none"
                                                             }}>
                                                                 {displayMedia.map((item, index) => {
@@ -831,8 +866,8 @@ export default function Dashboard() {
                                                                     return (
                                                                         <div key={index} style={{
                                                                             width: feedType === 'grid'
-                                                                                ? (previewMode === 'mobile' ? '45%' : `calc(${(100 / parseInt(desktopColumns))}% - ${spacingMap[postSpacing] || '12px'})`)
-                                                                                : `calc(${(100 / (previewMode === 'desktop' ? parseInt(desktopColumns) : parseInt(mobileColumns)))}% - ${spacingMap[postSpacing] || '12px'})`,
+                                                                                ? (previewMode === 'mobile' ? `calc(${(100 / parseInt(gridMobileColumns))}% - ${spacingMap[postSpacing] || '12px'})` : `calc(${(100 / parseInt(gridDesktopColumns))}% - ${spacingMap[postSpacing] || '12px'})`)
+                                                                                : `calc(${(100 / (previewMode === 'desktop' ? parseInt(sliderDesktopColumns) : parseInt(sliderMobileColumns)))}% - ${spacingMap[postSpacing] || '12px'})`,
                                                                             flexShrink: 0,
                                                                             aspectRatio: "2/3",
                                                                             backgroundImage: `url(${src})`,

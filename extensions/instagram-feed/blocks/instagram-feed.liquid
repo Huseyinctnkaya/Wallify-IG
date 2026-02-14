@@ -1,5 +1,15 @@
 {% assign media_json = shop.metafields.instagram_feed.media %}
 {% assign media_items = media_json.value %}
+{% assign settings_metafield = shop.metafields.instagram_feed.settings.value %}
+{% assign feed_type = settings_metafield.feedType | default: 'slider' %}
+
+{% if feed_type == 'grid' %}
+  {% assign desktop_cols = settings_metafield.gridDesktopColumns | default: block.settings.columns_desktop %}
+  {% assign mobile_cols = settings_metafield.gridMobileColumns | default: block.settings.columns_mobile %}
+{% else %}
+  {% assign desktop_cols = settings_metafield.sliderDesktopColumns | default: block.settings.columns_desktop %}
+  {% assign mobile_cols = settings_metafield.sliderMobileColumns | default: block.settings.columns_mobile %}
+{% endif %}
 
 {% if media_items %}
   <div class="instagram-feed-container" style="padding: {{ block.settings.padding }}px;">
@@ -16,7 +26,7 @@
       class="instagram-feed-grid"
       style="
         display: grid;
-        grid-template-columns: repeat({{ block.settings.columns_desktop }}, 1fr);
+        grid-template-columns: repeat({{ desktop_cols }}, 1fr);
         gap: {{ block.settings.grid_gap }}px;
       "
     >
@@ -95,8 +105,11 @@
     }
     .instagram-feed-overlay {
       position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.3);
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.3);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -111,7 +124,7 @@
 
     @media (max-width: 768px) {
       .instagram-feed-grid {
-        grid-template-columns: repeat({{ block.settings.columns_mobile }}, 1fr) !important;
+        grid-template-columns: repeat({{mobile_cols}}, 1fr) !important;
       }
     }
   </style>

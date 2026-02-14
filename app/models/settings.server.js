@@ -11,8 +11,10 @@ export async function getSettings(shop) {
             subheading: "Daha Fazlası İçin Bizi Takip Edebilirsiniz",
             feedType: "slider",
             showPinnedReels: false,
-            desktopColumns: 4,
-            mobileColumns: 2,
+            gridDesktopColumns: 4,
+            gridMobileColumns: 2,
+            sliderDesktopColumns: 4,
+            sliderMobileColumns: 2,
             showArrows: true,
             onClick: "popup",
             postSpacing: "medium",
@@ -35,8 +37,8 @@ export async function getSettings(shop) {
     return settings;
 }
 
-export async function saveSettings(shop, settings) {
-    return prisma.settings.upsert({
+export async function saveSettings(shop, settings, admin = null) {
+    const updatedSettings = await prisma.settings.upsert({
         where: { shop },
         update: {
             ...settings,
@@ -47,4 +49,75 @@ export async function saveSettings(shop, settings) {
             ...settings,
         },
     });
+
+    if (admin) {
+        try {
+            await syncSettingsToMetafields(shop, admin, updatedSettings);
+        } catch (error) {
+            console.error("Failed to sync settings to metafields:", error);
+        }
+    }
+
+    return updatedSettings;
+}
+
+export async function syncSettingsToMetafields(shop, admin, settings) {
+    // If settings not provided, fetch them
+    const currentSettings = settings || await getSettings(shop);
+
+    // Remove database specific fields
+    const { id, shop: _, createdAt, updatedAt, ...cleanSettings } = currentSettings;
+
+    const jsonValue = JSON.stringify(cleanSettings);
+
+    // Get shop ID for metafield owner
+    const shopIdResponse = await admin.graphql(`
+        query {
+            shop {
+                id
+            }
+        }
+    `);
+    const shopIdData = await shopIdResponse.json();
+    const shopId = shopIdData.data.shop.id;
+
+    // Save to metafield
+    const response = await admin.graphql(
+        `#graphql
+        mutation MetafieldsSet($metafields: [MetafieldsSetInput!]!) {
+            metafieldsSet(metafields: $metafields) {
+                metafields {
+                    id
+                    key
+                    namespace
+                    value
+                }
+                userErrors {
+                    field
+                    message
+                }
+            }
+        }`,
+        {
+            variables: {
+                metafields: [
+                    {
+                        namespace: "instagram_feed",
+                        key: "settings",
+                        type: "json",
+                        value: jsonValue,
+                        ownerId: shopId
+                    }
+                ]
+            },
+        }
+    );
+
+    const result = await response.json();
+
+    if (result.data.metafieldsSet.userErrors.length > 0) {
+        throw new Error(result.data.metafieldsSet.userErrors[0].message);
+    }
+
+    return result.data.metafieldsSet;
 }
