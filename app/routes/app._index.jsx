@@ -141,11 +141,8 @@ export async function action({ request }) {
 
             const { syncInstagramToMetafields } = await import("../models/instagram.server");
 
-            // Re-fetch media from Instagram API
-            const media = await fetchInstagramMedia(account.userId, account.accessToken, settings.mediaLimit);
-
-            // Update media in database/metafields
-            await syncInstagramToMetafields(shop, admin, media);
+            // Sync Instagram media to metafields
+            await syncInstagramToMetafields(shop, admin);
 
             return json({ success: true, message: "Media synced successfully!" });
         } catch (error) {
