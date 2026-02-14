@@ -2,7 +2,7 @@
 
 client_id = "e0471fb4646d0d4281ce490c807e6b91"
 name = "DevsApiG"
-application_url = "https://continuous-brochures-martial-ethernet.trycloudflare.com"
+application_url = "https://individuals-whole-music-convinced.trycloudflare.com"
 embedded = true
 
 [build]
@@ -24,4 +24,4 @@ api_version = "2026-04"
 scopes = "write_products"
 
 [auth]
-redirect_urls = [ "https://continuous-brochures-martial-ethernet.trycloudflare.com/auth/callback", "https://continuous-brochures-martial-ethernet.trycloudflare.com/auth/shopify/callback", "https://continuous-brochures-martial-ethernet.trycloudflare.com/api/auth/callback" ]
+redirect_urls = [ "https://individuals-whole-music-convinced.trycloudflare.com/auth/callback", "https://individuals-whole-music-convinced.trycloudflare.com/auth/shopify/callback", "https://individuals-whole-music-convinced.trycloudflare.com/api/auth/callback" ]
