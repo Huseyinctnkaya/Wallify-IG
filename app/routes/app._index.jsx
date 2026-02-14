@@ -15,6 +15,8 @@ import {
     Select,
     Checkbox,
     Box,
+    Popover,
+    ColorPicker,
 } from "@shopify/polaris";
 import { MobileIcon, DesktopIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
@@ -78,6 +80,13 @@ export async function action({ request }) {
             showViewsCount: formData.get("showViewsCount") === "true",
             showAuthorProfile: formData.get("showAuthorProfile") === "true",
             showAttachedProducts: formData.get("showAttachedProducts") === "true",
+            titleColor: formData.get("titleColor"),
+            subheadingColor: formData.get("subheadingColor"),
+            arrowColor: formData.get("arrowColor"),
+            arrowBackgroundColor: formData.get("arrowBackgroundColor"),
+            cardUserNameColor: formData.get("cardUserNameColor"),
+            cardBadgeBackgroundColor: formData.get("cardBadgeBackgroundColor"),
+            cardBadgeIconColor: formData.get("cardBadgeIconColor"),
         };
 
         await saveSettings(shop, settings);
@@ -145,6 +154,55 @@ export async function action({ request }) {
     return null;
 }
 
+const ColorSetting = ({ label, color, onChange, hexToHsb, hsbToHex }) => {
+    const [popoverActive, setPopoverActive] = useState(false);
+
+    const activator = (
+        <Button onClick={() => setPopoverActive(prev => !prev)}>
+            <InlineStack gap="200" align="center">
+                <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '4px',
+                    backgroundColor: color,
+                    border: '1px solid #dfe3e8'
+                }} />
+                <Text variant="bodyMd" as="span">Change</Text>
+            </InlineStack>
+        </Button>
+    );
+
+    return (
+        <InlineStack align="space-between" blockAlign="center">
+            <Text variant="bodyMd" as="p">{label}</Text>
+            <Popover
+                active={popoverActive}
+                activator={activator}
+                onClose={() => setPopoverActive(false)}
+            >
+                <div style={{ padding: '15px' }}>
+                    <BlockStack gap="300">
+                        <ColorPicker
+                            onChange={(hsb) => onChange(hsbToHex(hsb))}
+                            color={hexToHsb(color)}
+                        />
+                        <TextField
+                            label="Hex"
+                            value={color}
+                            onChange={(val) => {
+                                if (/^#([0-9A-F]{3}){1,2}$/i.test(val) || /^rgba/.test(val)) {
+                                    onChange(val);
+                                }
+                            }}
+                            autoComplete="off"
+                        />
+                    </BlockStack>
+                </div>
+            </Popover>
+        </InlineStack>
+    );
+};
+
 export default function Dashboard() {
     const { instagramAccount, hasCredentials, media, settings } = useLoaderData();
     const fetcher = useFetcher();
@@ -195,6 +253,13 @@ export default function Dashboard() {
         formData.append("showViewsCount", showViewsCount);
         formData.append("showAuthorProfile", showAuthorProfile);
         formData.append("showAttachedProducts", showAttachedProducts);
+        formData.append("titleColor", titleColor);
+        formData.append("subheadingColor", subheadingColor);
+        formData.append("arrowColor", arrowColor);
+        formData.append("arrowBackgroundColor", arrowBackgroundColor);
+        formData.append("cardUserNameColor", cardUserNameColor);
+        formData.append("cardBadgeBackgroundColor", cardBadgeBackgroundColor);
+        formData.append("cardBadgeIconColor", cardBadgeIconColor);
 
         fetcher.submit(formData, { method: "post" });
     };
@@ -215,9 +280,76 @@ export default function Dashboard() {
     const [showViewsCount, setShowViewsCount] = useState(settings?.showViewsCount || false);
     const [showAuthorProfile, setShowAuthorProfile] = useState(settings?.showAuthorProfile ?? true);
     const [showAttachedProducts, setShowAttachedProducts] = useState(settings?.showAttachedProducts ?? true);
+    const [titleColor, setTitleColor] = useState(settings?.titleColor || "#000000");
+    const [subheadingColor, setSubheadingColor] = useState(settings?.subheadingColor || "#6d7175");
+    const [arrowColor, setArrowColor] = useState(settings?.arrowColor || "#000000");
+    const [arrowBackgroundColor, setArrowBackgroundColor] = useState(settings?.arrowBackgroundColor || "#ffffff");
+    const [cardUserNameColor, setCardUserNameColor] = useState(settings?.cardUserNameColor || "#ffffff");
+    const [cardBadgeBackgroundColor, setCardBadgeBackgroundColor] = useState(settings?.cardBadgeBackgroundColor || "rgba(0,0,0,0.5)");
+    const [cardBadgeIconColor, setCardBadgeIconColor] = useState(settings?.cardBadgeIconColor || "#ffffff");
     const [previewMode, setPreviewMode] = useState("desktop"); // desktop | mobile
     const [currentSlide, setCurrentSlide] = useState(0);
     const [selectedMedia, setSelectedMedia] = useState(null);
+
+    // Color conversion helpers
+    const hexToHsb = (hex) => {
+        if (!hex || typeof hex !== 'string') return { hue: 0, saturation: 0, brightness: 0 };
+
+        if (hex.startsWith('rgba')) {
+            // Very basic fallback if we encounter rgba (since Polaris Picker is HSB)
+            return { hue: 0, saturation: 0, brightness: 0 };
+        }
+
+        let hexVal = hex.replace(/^#/, '');
+        if (hexVal.length === 3) hexVal = hexVal.split('').map(c => c + c).join('');
+
+        const r = parseInt(hexVal.substring(0, 2), 16) / 255;
+        const g = parseInt(hexVal.substring(2, 4), 16) / 255;
+        const b = parseInt(hexVal.substring(4, 6), 16) / 255;
+
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const d = max - min;
+
+        let h;
+        const s = max === 0 ? 0 : d / max;
+        const v = max;
+
+        if (max === min) {
+            h = 0;
+        } else {
+            if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+            else if (max === g) h = (b - r) / d + 2;
+            else h = (r - g) / d + 4;
+            h /= 6;
+        }
+
+        return { hue: h * 360, saturation: s, brightness: v };
+    };
+
+    const hsbToHex = (hsb) => {
+        const { hue: h, saturation: s, brightness: v } = hsb;
+        const i = Math.floor(h / 60);
+        const f = h / 60 - i;
+        const p = v * (1 - s);
+        const q = v * (1 - f * s);
+        const t = v * (1 - (1 - f) * s);
+        let r, g, b;
+        switch (i % 6) {
+            case 0: r = v; g = t; b = p; break;
+            case 1: r = q; g = v; b = p; break;
+            case 2: r = p; g = v; b = t; break;
+            case 3: r = p; g = q; b = v; break;
+            case 4: r = t; g = p; b = v; break;
+            case 5: r = v; g = p; b = q; break;
+            default: r = v; g = t; b = p; break;
+        }
+        const toHex = (x) => {
+            const val = Math.round(x * 255).toString(16);
+            return val.length === 1 ? '0' + val : val;
+        };
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    };
 
     // ... (mock images)
 
@@ -236,7 +368,14 @@ export default function Dashboard() {
         showThumbnail !== (settings?.showThumbnail || false) ||
         showViewsCount !== (settings?.showViewsCount || false) ||
         showAuthorProfile !== (settings?.showAuthorProfile ?? true) ||
-        showAttachedProducts !== (settings?.showAttachedProducts ?? true)
+        showAttachedProducts !== (settings?.showAttachedProducts ?? true) ||
+        titleColor !== (settings?.titleColor || "#000000") ||
+        subheadingColor !== (settings?.subheadingColor || "#6d7175") ||
+        arrowColor !== (settings?.arrowColor || "#000000") ||
+        arrowBackgroundColor !== (settings?.arrowBackgroundColor || "#ffffff") ||
+        cardUserNameColor !== (settings?.cardUserNameColor || "#ffffff") ||
+        cardBadgeBackgroundColor !== (settings?.cardBadgeBackgroundColor || "rgba(0,0,0,0.5)") ||
+        cardBadgeIconColor !== (settings?.cardBadgeIconColor || "#ffffff")
     );
 
     const spacingMap = { none: '0px', low: '4px', medium: '12px', high: '24px' };
@@ -497,6 +636,63 @@ export default function Dashboard() {
                                                     </BlockStack>
                                                 </BlockStack>
                                             </Card>
+
+                                            <Card>
+                                                <BlockStack gap="400">
+                                                    <Text variant="headingMd" as="h3">Color settings</Text>
+                                                    <BlockStack gap="300">
+                                                        <ColorSetting
+                                                            label="Title Color"
+                                                            color={titleColor}
+                                                            onChange={setTitleColor}
+                                                            hexToHsb={hexToHsb}
+                                                            hsbToHex={hsbToHex}
+                                                        />
+                                                        <ColorSetting
+                                                            label="Subheading Color"
+                                                            color={subheadingColor}
+                                                            onChange={setSubheadingColor}
+                                                            hexToHsb={hexToHsb}
+                                                            hsbToHex={hsbToHex}
+                                                        />
+                                                        <ColorSetting
+                                                            label="Arrow Icon Color"
+                                                            color={arrowColor}
+                                                            onChange={setArrowColor}
+                                                            hexToHsb={hexToHsb}
+                                                            hsbToHex={hsbToHex}
+                                                        />
+                                                        <ColorSetting
+                                                            label="Arrow Background"
+                                                            color={arrowBackgroundColor}
+                                                            onChange={setArrowBackgroundColor}
+                                                            hexToHsb={hexToHsb}
+                                                            hsbToHex={hsbToHex}
+                                                        />
+                                                        <ColorSetting
+                                                            label="Card Username Color"
+                                                            color={cardUserNameColor}
+                                                            onChange={setCardUserNameColor}
+                                                            hexToHsb={hexToHsb}
+                                                            hsbToHex={hsbToHex}
+                                                        />
+                                                        <ColorSetting
+                                                            label="Badge Background"
+                                                            color={cardBadgeBackgroundColor}
+                                                            onChange={setCardBadgeBackgroundColor}
+                                                            hexToHsb={hexToHsb}
+                                                            hsbToHex={hsbToHex}
+                                                        />
+                                                        <ColorSetting
+                                                            label="Badge Icon Color"
+                                                            color={cardBadgeIconColor}
+                                                            onChange={setCardBadgeIconColor}
+                                                            hexToHsb={hexToHsb}
+                                                            hsbToHex={hsbToHex}
+                                                        />
+                                                    </BlockStack>
+                                                </BlockStack>
+                                            </Card>
                                             <Button
                                                 variant="primary"
                                                 onClick={handleSave}
@@ -553,8 +749,8 @@ export default function Dashboard() {
                                                         position: "relative"
                                                     }}>
                                                         <BlockStack gap="200">
-                                                            {title && <Text variant="headingXl" as="h2">{title}</Text>}
-                                                            {subheading && <Text variant="bodyLg" as="p" tone="subdued">{subheading}</Text>}
+                                                            {title && <div style={{ color: titleColor }}><Text variant="headingXl" as="h2">{title}</Text></div>}
+                                                            {subheading && <div style={{ color: subheadingColor }}><Text variant="bodyLg" as="p">{subheading}</Text></div>}
                                                         </BlockStack>
 
                                                         <div style={{ marginTop: "20px", position: "relative", overflow: "hidden" }}>
@@ -570,7 +766,7 @@ export default function Dashboard() {
                                                                             top: "50%",
                                                                             transform: "translateY(-50%)",
                                                                             zIndex: 10,
-                                                                            background: "white",
+                                                                            background: arrowBackgroundColor,
                                                                             border: "1px solid #e1e3e5",
                                                                             borderRadius: "50%",
                                                                             width: "32px",
@@ -579,7 +775,8 @@ export default function Dashboard() {
                                                                             alignItems: "center",
                                                                             justifyContent: "center",
                                                                             cursor: currentSlide === 0 ? "not-allowed" : "pointer",
-                                                                            opacity: currentSlide === 0 ? 0.5 : 1,
+                                                                            opacity: currentSlide === 0 ? 0.3 : 1,
+                                                                            color: arrowColor,
                                                                             boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
                                                                         }}
                                                                     >
@@ -597,7 +794,7 @@ export default function Dashboard() {
                                                                             top: "50%",
                                                                             transform: "translateY(-50%)",
                                                                             zIndex: 10,
-                                                                            background: "white",
+                                                                            background: arrowBackgroundColor,
                                                                             border: "1px solid #e1e3e5",
                                                                             borderRadius: "50%",
                                                                             width: "32px",
@@ -606,7 +803,8 @@ export default function Dashboard() {
                                                                             alignItems: "center",
                                                                             justifyContent: "center",
                                                                             cursor: currentSlide >= Math.max(0, displayMedia.length - (previewMode === 'desktop' ? parseInt(desktopColumns) : parseInt(mobileColumns))) ? "not-allowed" : "pointer",
-                                                                            opacity: currentSlide >= Math.max(0, displayMedia.length - (previewMode === 'desktop' ? parseInt(desktopColumns) : parseInt(mobileColumns))) ? 0.5 : 1,
+                                                                            opacity: currentSlide >= Math.max(0, displayMedia.length - (previewMode === 'desktop' ? parseInt(desktopColumns) : parseInt(mobileColumns))) ? 0.3 : 1,
+                                                                            color: arrowColor,
                                                                             boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
                                                                         }}
                                                                     >
@@ -655,19 +853,19 @@ export default function Dashboard() {
                                                                             {showAuthorProfile && (
                                                                                 <div style={{ position: "absolute", top: 10, left: 10, display: "flex", alignItems: "center", gap: "5px" }}>
                                                                                     <div style={{ width: 20, height: 20, background: "black", borderRadius: "50%", border: "1px solid rgba(255,255,255,0.3)" }}></div>
-                                                                                    <span style={{ color: "white", fontSize: "12px", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>@{instagramAccount?.username || "username"}</span>
+                                                                                    <span style={{ color: cardUserNameColor, fontSize: "12px", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>@{instagramAccount?.username || "username"}</span>
                                                                                 </div>
                                                                             )}
 
                                                                             <div style={{ position: "absolute", bottom: 10, right: 10, display: "flex", gap: "8px" }}>
                                                                                 {showViewsCount && (
-                                                                                    <div style={{ display: "flex", alignItems: "center", gap: "4px", background: "rgba(0,0,0,0.5)", padding: "2px 6px", borderRadius: "4px" }}>
-                                                                                        <span style={{ color: "white", fontSize: "10px" }}>👁️ 1.2k</span>
+                                                                                    <div style={{ display: "flex", alignItems: "center", gap: "4px", background: cardBadgeBackgroundColor, padding: "2px 6px", borderRadius: "4px" }}>
+                                                                                        <span style={{ color: cardBadgeIconColor, fontSize: "10px" }}>👁️ 1.2k</span>
                                                                                     </div>
                                                                                 )}
                                                                                 {showAttachedProducts && (
-                                                                                    <div style={{ display: "flex", alignItems: "center", background: "rgba(0,0,0,0.5)", padding: "2px 6px", borderRadius: "4px" }}>
-                                                                                        <span style={{ color: "white", fontSize: "10px" }}>🛍️</span>
+                                                                                    <div style={{ display: "flex", alignItems: "center", background: cardBadgeBackgroundColor, padding: "2px 6px", borderRadius: "4px" }}>
+                                                                                        <span style={{ color: cardBadgeIconColor, fontSize: "10px" }}>🛍️</span>
                                                                                     </div>
                                                                                 )}
                                                                             </div>
@@ -687,100 +885,102 @@ export default function Dashboard() {
                         )}
                     </BlockStack>
                 </Layout.Section>
-            </Layout>
+            </Layout >
 
             {/* Popup Preview Overlay */}
-            {selectedMedia && (
-                <div style={{
-                    position: "fixed",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%",
-                    backgroundColor: "rgba(0,0,0,0.9)",
-                    zIndex: 1000,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                }}>
-                    <button
-                        onClick={() => setSelectedMedia(null)}
-                        style={{
-                            position: "absolute",
-                            top: "20px",
-                            right: "20px",
-                            background: "none",
-                            border: "none",
-                            color: "white",
-                            fontSize: "30px",
-                            cursor: "pointer",
-                            zIndex: 1001
-                        }}
-                    >
-                        ✕
-                    </button>
-
+            {
+                selectedMedia && (
                     <div style={{
-                        position: "relative",
-                        maxWidth: "90%",
-                        maxHeight: "90%",
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        backgroundColor: "rgba(0,0,0,0.9)",
+                        zIndex: 1000,
                         display: "flex",
-                        flexDirection: "column",
                         alignItems: "center",
-                        gap: "20px"
+                        justifyContent: "center",
                     }}>
-                        {/* Header info */}
-                        <div style={{
-                            position: "absolute",
-                            top: "20px",
-                            left: "20px",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "10px",
-                            zIndex: 1002
-                        }}>
-                            <div style={{ width: 40, height: 40, background: "black", borderRadius: "50%", border: "1px solid white" }}></div>
-                            <span style={{ color: "white", fontSize: "16px", fontWeight: "bold" }}>
-                                @{instagramAccount?.username || "username"}
-                            </span>
-                        </div>
+                        <button
+                            onClick={() => setSelectedMedia(null)}
+                            style={{
+                                position: "absolute",
+                                top: "20px",
+                                right: "20px",
+                                background: "none",
+                                border: "none",
+                                color: "white",
+                                fontSize: "30px",
+                                cursor: "pointer",
+                                zIndex: 1001
+                            }}
+                        >
+                            ✕
+                        </button>
 
-                        {/* Large Media Content */}
-                        {typeof selectedMedia === 'string' ? (
-                            <img
-                                src={selectedMedia}
-                                alt="Instagram Preview"
-                                style={{ maxHeight: "70vh", objectFit: "contain", borderRadius: "8px" }}
-                            />
-                        ) : (
-                            selectedMedia.media_type === 'VIDEO' ? (
-                                <video
-                                    src={selectedMedia.media_url}
-                                    controls
-                                    autoPlay
-                                    style={{ maxHeight: "70vh", objectFit: "contain", borderRadius: "8px" }}
-                                />
-                            ) : (
+                        <div style={{
+                            position: "relative",
+                            maxWidth: "90%",
+                            maxHeight: "90%",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: "20px"
+                        }}>
+                            {/* Header info */}
+                            <div style={{
+                                position: "absolute",
+                                top: "20px",
+                                left: "20px",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "10px",
+                                zIndex: 1002
+                            }}>
+                                <div style={{ width: 40, height: 40, background: "black", borderRadius: "50%", border: "1px solid white" }}></div>
+                                <span style={{ color: "white", fontSize: "16px", fontWeight: "bold" }}>
+                                    @{instagramAccount?.username || "username"}
+                                </span>
+                            </div>
+
+                            {/* Large Media Content */}
+                            {typeof selectedMedia === 'string' ? (
                                 <img
-                                    src={selectedMedia.media_url}
+                                    src={selectedMedia}
                                     alt="Instagram Preview"
                                     style={{ maxHeight: "70vh", objectFit: "contain", borderRadius: "8px" }}
                                 />
-                            )
-                        )}
+                            ) : (
+                                selectedMedia.media_type === 'VIDEO' ? (
+                                    <video
+                                        src={selectedMedia.media_url}
+                                        controls
+                                        autoPlay
+                                        style={{ maxHeight: "70vh", objectFit: "contain", borderRadius: "8px" }}
+                                    />
+                                ) : (
+                                    <img
+                                        src={selectedMedia.media_url}
+                                        alt="Instagram Preview"
+                                        style={{ maxHeight: "70vh", objectFit: "contain", borderRadius: "8px" }}
+                                    />
+                                )
+                            )}
 
-                        {/* Footer button */}
-                        <Button
-                            onClick={() => {
-                                const url = typeof selectedMedia === 'string' ? 'https://instagram.com' : (selectedMedia.permalink || 'https://instagram.com');
-                                window.open(url, '_blank');
-                            }}
-                        >
-                            Open in Instagram
-                        </Button>
+                            {/* Footer button */}
+                            <Button
+                                onClick={() => {
+                                    const url = typeof selectedMedia === 'string' ? 'https://instagram.com' : (selectedMedia.permalink || 'https://instagram.com');
+                                    window.open(url, '_blank');
+                                }}
+                            >
+                                Open in Instagram
+                            </Button>
+                        </div>
                     </div>
-                </div>
-            )}
-        </Page>
+                )
+            }
+        </Page >
     );
 }

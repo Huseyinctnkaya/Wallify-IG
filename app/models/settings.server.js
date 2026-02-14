@@ -22,6 +22,13 @@ export async function getSettings(shop) {
             showViewsCount: false,
             showAuthorProfile: true,
             showAttachedProducts: true,
+            titleColor: "#000000",
+            subheadingColor: "#6d7175",
+            arrowColor: "#000000",
+            arrowBackgroundColor: "#ffffff",
+            cardUserNameColor: "#ffffff",
+            cardBadgeBackgroundColor: "rgba(0,0,0,0.5)",
+            cardBadgeIconColor: "#ffffff",
         };
     }
 
