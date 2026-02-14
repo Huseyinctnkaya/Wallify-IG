@@ -1,11 +1,45 @@
+// Last Sync: 2026-02-14 23:12
 import { prisma } from "../db.server";
 
 export async function getSettings(shop) {
-    const settings = await prisma.settings.findUnique({
-        where: { shop },
-    });
+    try {
+        const settings = await prisma.settings.findUnique({
+            where: { shop },
+        });
 
-    if (!settings) {
+        if (!settings) {
+            return {
+                title: "INSTAGRAM'DA BİZ",
+                subheading: "Daha Fazlası İçin Bizi Takip Edebilirsiniz",
+                feedType: "slider",
+                showPinnedReels: false,
+                gridDesktopColumns: 4,
+                gridMobileColumns: 2,
+                sliderDesktopColumns: 4,
+                sliderMobileColumns: 2,
+                showArrows: true,
+                onClick: "popup",
+                postSpacing: "medium",
+                borderRadius: "medium",
+                playVideoOnHover: false,
+                showThumbnail: false,
+                showViewsCount: false,
+                showAuthorProfile: true,
+                showAttachedProducts: true,
+                titleColor: "#000000",
+                subheadingColor: "#6d7175",
+                arrowColor: "#000000",
+                arrowBackgroundColor: "#ffffff",
+                cardUserNameColor: "#ffffff",
+                cardBadgeBackgroundColor: "rgba(0,0,0,0.5)",
+                cardBadgeIconColor: "#ffffff",
+            };
+        }
+
+        return settings;
+    } catch (error) {
+        console.error("Settings fetch failed (likely schema mismatch):", error);
+        // Return defaults as fallback to prevent app crash
         return {
             title: "INSTAGRAM'DA BİZ",
             subheading: "Daha Fazlası İçin Bizi Takip Edebilirsiniz",
@@ -33,8 +67,6 @@ export async function getSettings(shop) {
             cardBadgeIconColor: "#ffffff",
         };
     }
-
-    return settings;
 }
 
 export async function saveSettings(shop, settings, admin = null) {
