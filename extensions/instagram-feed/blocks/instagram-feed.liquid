@@ -82,39 +82,22 @@
                   data-products='{{ item.products | json }}'
                   data-username="{{ item.username }}"
                   data-has-carousel="{{ item.children.size | default: 0 }}"
+                  data-children='{{ item.children | json }}'
                   style="border-radius: {{ radius_value }};"
                 >
-                  {% if item.children.size > 0 %}
-                    {%- comment -%} Carousel post with multiple images {%- endcomment -%}
-                    <div class="instagram-carousel-container">
-                      <div class="instagram-carousel-track">
-                        {% for child in item.children %}
-                          <div class="instagram-carousel-slide">
-                            <img src="{{ child.thumbnail_url | default: child.media_url }}" alt="{{ item.caption }}" loading="lazy">
-                          </div>
-                        {% endfor %}
-                      </div>
-                      <div class="instagram-carousel-dots">
-                        {% for child in item.children %}
-                          <span class="instagram-carousel-dot"></span>
-                        {% endfor %}
-                      </div>
-                      {% if item.children.size > 1 %}
-                        <button class="instagram-carousel-prev" aria-label="Previous image">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                            <polyline points="15 18 9 12 15 6"></polyline>
-                          </svg>
-                        </button>
-                        <button class="instagram-carousel-next" aria-label="Next image">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                          </svg>
-                        </button>
-                      {% endif %}
+                  {%- comment -%} Always show just the first image in feed {%- endcomment -%}
+                  {%- comment -%} Carousel slider will be in popup only {%- endcomment -%}
+                  <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy">
+
+                  {% if item.children.size > 1 %}
+                    <div class="instagram-carousel-indicator">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                        <rect x="3" y="3" width="7" height="7" rx="1"/>
+                        <rect x="14" y="3" width="7" height="7" rx="1"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1"/>
+                        <rect x="14" y="14" width="7" height="7" rx="1"/>
+                      </svg>
                     </div>
-                  {% else %}
-                    {%- comment -%} Single image/video post {%- endcomment -%}
-                    <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy">
                   {% endif %}
 
                   {% if item.products.size > 0 %}
@@ -171,39 +154,22 @@
                 data-products='{{ item.products | json }}'
                 data-username="{{ item.username }}"
                 data-has-carousel="{{ item.children.size | default: 0 }}"
+                data-children='{{ item.children | json }}'
                 style="border-radius: {{ radius_value }};"
               >
-                {% if item.children.size > 0 %}
-                  {%- comment -%} Carousel post with multiple images {%- endcomment -%}
-                  <div class="instagram-carousel-container">
-                    <div class="instagram-carousel-track">
-                      {% for child in item.children %}
-                        <div class="instagram-carousel-slide">
-                          <img src="{{ child.thumbnail_url | default: child.media_url }}" alt="{{ item.caption }}" loading="lazy">
-                        </div>
-                      {% endfor %}
-                    </div>
-                    <div class="instagram-carousel-dots">
-                      {% for child in item.children %}
-                        <span class="instagram-carousel-dot"></span>
-                      {% endfor %}
-                    </div>
-                    {% if item.children.size > 1 %}
-                      <button class="instagram-carousel-prev" aria-label="Previous image">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                          <polyline points="15 18 9 12 15 6"></polyline>
-                        </svg>
-                      </button>
-                      <button class="instagram-carousel-next" aria-label="Next image">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                          <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                      </button>
-                    {% endif %}
+                {%- comment -%} Always show just the first image in feed {%- endcomment -%}
+                {%- comment -%} Carousel slider will be in popup only {%- endcomment -%}
+                <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy">
+
+                {% if item.children.size > 1 %}
+                  <div class="instagram-carousel-indicator">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                      <rect x="3" y="3" width="7" height="7" rx="1"/>
+                      <rect x="14" y="3" width="7" height="7" rx="1"/>
+                      <rect x="3" y="14" width="7" height="7" rx="1"/>
+                      <rect x="14" y="14" width="7" height="7" rx="1"/>
+                    </svg>
                   </div>
-                {% else %}
-                  {%- comment -%} Single image/video post {%- endcomment -%}
-                  <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy">
                 {% endif %}
 
                 {% if item.products.size > 0 %}
@@ -252,7 +218,24 @@
         </button>
         <div class="instagram-popup-inner">
           <div class="instagram-popup-image">
-            <img src="" alt="">
+            {%- comment -%} Single image (will be updated via JS) {%- endcomment -%}
+            <img src="" alt="" class="popup-single-image">
+
+            {%- comment -%} Carousel for multi-image posts (will be populated via JS) {%- endcomment -%}
+            <div class="popup-carousel-container" style="display: none;">
+              <div class="popup-carousel-track"></div>
+              <div class="popup-carousel-dots"></div>
+              <button class="popup-carousel-prev" aria-label="Previous">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+              <button class="popup-carousel-next" aria-label="Next">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
           </div>
           <div class="instagram-popup-info">
             <div class="instagram-popup-username"></div>
@@ -356,6 +339,7 @@
         const caption = item.dataset.caption || '';
         const username = item.dataset.username || 'Instagram';
         let products = [];
+        let children = [];
 
         try {
           products = JSON.parse(item.dataset.products || '[]');
@@ -363,7 +347,13 @@
           products = [];
         }
 
-        modal.querySelector('.instagram-popup-image img').src = mediaUrl;
+        try {
+          children = JSON.parse(item.dataset.children || '[]');
+        } catch (e) {
+          children = [];
+        }
+
+        // Update info section
         modal.querySelector('.instagram-popup-username').textContent = `@${username}`;
         modal.querySelector('.instagram-popup-caption').textContent = caption;
         modal.querySelector('.instagram-popup-link').href = permalink;
@@ -375,6 +365,72 @@
           productsContainer.style.display = 'block';
         } else {
           productsContainer.style.display = 'none';
+        }
+
+        // Handle carousel vs single image
+        const singleImage = modal.querySelector('.popup-single-image');
+        const carouselContainer = modal.querySelector('.popup-carousel-container');
+
+        if (children && children.length > 0) {
+          // Show carousel
+          singleImage.style.display = 'none';
+          carouselContainer.style.display = 'block';
+
+          // Populate carousel
+          const track = carouselContainer.querySelector('.popup-carousel-track');
+          const dotsContainer = carouselContainer.querySelector('.popup-carousel-dots');
+
+          track.innerHTML = children.map((child, idx) => `
+            <div class="popup-carousel-slide">
+              <img src="${child.thumbnail_url || child.media_url}" alt="${caption}">
+            </div>
+          `).join('');
+
+          dotsContainer.innerHTML = children.map((_, idx) => `
+            <span class="popup-carousel-dot ${idx === 0 ? 'active' : ''}"></span>
+          `).join('');
+
+          // Initialize carousel
+          let currentSlide = 0;
+          const slides = track.querySelectorAll('.popup-carousel-slide');
+          const dots = dotsContainer.querySelectorAll('.popup-carousel-dot');
+
+          function updatePopupCarousel() {
+            track.style.transform = `translateX(-${currentSlide * 100}%)`;
+            dots.forEach((dot, idx) => {
+              dot.classList.toggle('active', idx === currentSlide);
+            });
+          }
+
+          const prevBtn = carouselContainer.querySelector('.popup-carousel-prev');
+          const nextBtn = carouselContainer.querySelector('.popup-carousel-next');
+
+          prevBtn.onclick = (e) => {
+            e.stopPropagation();
+            currentSlide = Math.max(0, currentSlide - 1);
+            updatePopupCarousel();
+          };
+
+          nextBtn.onclick = (e) => {
+            e.stopPropagation();
+            currentSlide = Math.min(slides.length - 1, currentSlide + 1);
+            updatePopupCarousel();
+          };
+
+          dots.forEach((dot, idx) => {
+            dot.onclick = (e) => {
+              e.stopPropagation();
+              currentSlide = idx;
+              updatePopupCarousel();
+            };
+          });
+
+          updatePopupCarousel();
+        } else {
+          // Show single image
+          singleImage.style.display = 'block';
+          carouselContainer.style.display = 'none';
+          singleImage.src = mediaUrl;
         }
 
         modal.style.display = 'block';
@@ -814,6 +870,108 @@
       height: auto;
       max-height: 90vh;
       object-fit: contain;
+    }
+
+    /* Popup Carousel Styles */
+    .popup-carousel-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .popup-carousel-track {
+      display: flex;
+      height: 100%;
+      transition: transform 0.3s ease;
+    }
+
+    .popup-carousel-slide {
+      flex: 0 0 100%;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .popup-carousel-slide img {
+      width: 100%;
+      height: auto;
+      max-height: 90vh;
+      object-fit: contain;
+    }
+
+    .popup-carousel-dots {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .popup-carousel-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .popup-carousel-dot.active {
+      background: white;
+      width: 10px;
+      height: 10px;
+    }
+
+    .popup-carousel-prev,
+    .popup-carousel-next {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.2s ease;
+    }
+
+    .popup-carousel-prev:hover,
+    .popup-carousel-next:hover {
+      background: white;
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .popup-carousel-prev {
+      left: 20px;
+    }
+
+    .popup-carousel-next {
+      right: 20px;
+    }
+
+    .popup-carousel-prev svg,
+    .popup-carousel-next svg {
+      color: #333;
+    }
+
+    /* Carousel indicator on feed items */
+    .instagram-carousel-indicator {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 2;
+      opacity: 0.9;
+      filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));
     }
 
     .instagram-popup-info {
