@@ -557,7 +557,7 @@ export default function Dashboard() {
 
                                                 <div style={{ marginTop: "20px", position: "relative", overflow: "hidden" }}>
                                                     {/* Navigation Arrows */}
-                                                    {showArrows && feedType === 'slider' && previewMode === 'desktop' && (
+                                                    {showArrows && feedType === 'slider' && (
                                                         <>
                                                             <button
                                                                 onClick={() => setCurrentSlide(prev => Math.max(0, prev - 1))}
@@ -584,8 +584,11 @@ export default function Dashboard() {
                                                                 &lt;
                                                             </button>
                                                             <button
-                                                                onClick={() => setCurrentSlide(prev => Math.min(Math.max(0, displayMedia.length - parseInt(desktopColumns)), prev + 1))}
-                                                                disabled={currentSlide >= Math.max(0, displayMedia.length - parseInt(desktopColumns))}
+                                                                onClick={() => {
+                                                                    const cols = previewMode === 'desktop' ? parseInt(desktopColumns) : parseInt(mobileColumns);
+                                                                    setCurrentSlide(prev => Math.min(Math.max(0, displayMedia.length - cols), prev + 1));
+                                                                }}
+                                                                disabled={currentSlide >= Math.max(0, displayMedia.length - (previewMode === 'desktop' ? parseInt(desktopColumns) : parseInt(mobileColumns)))}
                                                                 style={{
                                                                     position: "absolute",
                                                                     right: "10px",
@@ -600,8 +603,8 @@ export default function Dashboard() {
                                                                     display: "flex",
                                                                     alignItems: "center",
                                                                     justifyContent: "center",
-                                                                    cursor: currentSlide >= Math.max(0, displayMedia.length - parseInt(desktopColumns)) ? "not-allowed" : "pointer",
-                                                                    opacity: currentSlide >= Math.max(0, displayMedia.length - parseInt(desktopColumns)) ? 0.5 : 1,
+                                                                    cursor: currentSlide >= Math.max(0, displayMedia.length - (previewMode === 'desktop' ? parseInt(desktopColumns) : parseInt(mobileColumns))) ? "not-allowed" : "pointer",
+                                                                    opacity: currentSlide >= Math.max(0, displayMedia.length - (previewMode === 'desktop' ? parseInt(desktopColumns) : parseInt(mobileColumns))) ? 0.5 : 1,
                                                                     boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
                                                                 }}
                                                             >
@@ -616,17 +619,17 @@ export default function Dashboard() {
                                                         justifyContent: feedType === "grid" ? "center" : "flex-start",
                                                         flexWrap: feedType === "grid" ? "wrap" : "nowrap",
                                                         transition: "transform 0.3s ease-in-out",
-                                                        transform: (feedType === 'slider' && previewMode === 'desktop')
-                                                            ? `translateX(-${currentSlide * (100 / parseInt(desktopColumns))}%)`
+                                                        transform: feedType === 'slider'
+                                                            ? `translateX(-${currentSlide * (100 / (previewMode === 'desktop' ? parseInt(desktopColumns) : parseInt(mobileColumns)))}%)`
                                                             : "none"
                                                     }}>
                                                         {displayMedia.map((item, index) => {
                                                             const src = typeof item === 'string' ? item : (item.media_type === 'VIDEO' ? (item.thumbnail_url || item.media_url) : item.media_url);
                                                             return (
                                                                 <div key={index} style={{
-                                                                    width: previewMode === 'mobile'
-                                                                        ? (feedType === 'grid' ? '45%' : '80%')
-                                                                        : `calc(${(100 / parseInt(desktopColumns))}% - ${spacingMap[postSpacing] || '12px'})`,
+                                                                    width: feedType === 'grid'
+                                                                        ? (previewMode === 'mobile' ? '45%' : `calc(${(100 / parseInt(desktopColumns))}% - ${spacingMap[postSpacing] || '12px'})`)
+                                                                        : `calc(${(100 / (previewMode === 'desktop' ? parseInt(desktopColumns) : parseInt(mobileColumns)))}% - ${spacingMap[postSpacing] || '12px'})`,
                                                                     flexShrink: 0,
                                                                     aspectRatio: "2/3",
                                                                     backgroundImage: `url(${src})`,
@@ -647,9 +650,24 @@ export default function Dashboard() {
                                                                         }
                                                                     }}
                                                                 >
-                                                                    <div style={{ position: "absolute", top: 10, left: 10, display: "flex", alignItems: "center", gap: "5px" }}>
-                                                                        <div style={{ width: 20, height: 20, background: "black", borderRadius: "50%" }}></div>
-                                                                        <span style={{ color: "white", fontSize: "12px", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>@{instagramAccount?.username || "username"}</span>
+                                                                    {showAuthorProfile && (
+                                                                        <div style={{ position: "absolute", top: 10, left: 10, display: "flex", alignItems: "center", gap: "5px" }}>
+                                                                            <div style={{ width: 20, height: 20, background: "black", borderRadius: "50%", border: "1px solid rgba(255,255,255,0.3)" }}></div>
+                                                                            <span style={{ color: "white", fontSize: "12px", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>@{instagramAccount?.username || "username"}</span>
+                                                                        </div>
+                                                                    )}
+
+                                                                    <div style={{ position: "absolute", bottom: 10, right: 10, display: "flex", gap: "8px" }}>
+                                                                        {showViewsCount && (
+                                                                            <div style={{ display: "flex", alignItems: "center", gap: "4px", background: "rgba(0,0,0,0.5)", padding: "2px 6px", borderRadius: "4px" }}>
+                                                                                <span style={{ color: "white", fontSize: "10px" }}>👁️ 1.2k</span>
+                                                                            </div>
+                                                                        )}
+                                                                        {showAttachedProducts && (
+                                                                            <div style={{ display: "flex", alignItems: "center", background: "rgba(0,0,0,0.5)", padding: "2px 6px", borderRadius: "4px" }}>
+                                                                                <span style={{ color: "white", fontSize: "10px" }}>🛍️</span>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             )
