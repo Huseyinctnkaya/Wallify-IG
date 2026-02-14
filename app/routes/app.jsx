@@ -20,7 +20,7 @@ export default function App() {
     <AppProvider isEmbeddedApp apiKey={apiKey}>
       <NavMenu>
         <Link to="/app" rel="home">
-          Instagram Feed
+          DevsApiG
         </Link>
         <Link to="/app/plans">Plans</Link>
       </NavMenu>

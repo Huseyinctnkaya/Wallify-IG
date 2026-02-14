@@ -119,7 +119,7 @@ export default function Dashboard() {
     };
 
     return (
-        <Page title="Instagram Feed">
+        <Page title="DevsApiG">
             <Layout>
                 <Layout.Section>
                     <BlockStack gap="400">
