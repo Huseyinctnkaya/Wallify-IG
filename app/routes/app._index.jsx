@@ -1,5 +1,6 @@
 import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
+import { Modal } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import {
     Page,
@@ -23,7 +24,7 @@ import {
 } from "@shopify/polaris-icons";
 import { useState, useEffect } from "react";
 import { getInstagramAccount, connectInstagramAccount } from "../models/instagram.server";
-import { getWidgets, deleteWidget } from "../models/widget.server"; // syncInstagramMedia removed? We need to call it via action
+import { getWidgets, deleteWidget } from "../models/widget.server";
 import { WidgetEditor } from "../components/WidgetEditor";
 
 export async function loader({ request }) {
@@ -44,13 +45,11 @@ export async function action({ request }) {
     const actionType = formData.get("actionType");
 
     if (actionType === "connect") {
-        await connectInstagramAccount(session.shop, "dummy_token"); // Basic placeholder if needed
+        await connectInstagramAccount(session.shop, "dummy_token");
         return json({ success: true, message: "Connected!" });
     }
 
     if (actionType === "sync") {
-        // We need to import dynamically to avoid cyclic dependency issues if any
-        // or just import at top if it's fine.
         const { syncInstagramMedia } = await import("../models/instagram.server");
         await syncInstagramMedia(session.shop, admin);
         return json({ success: true, message: "Synced!" });
@@ -61,54 +60,41 @@ export async function action({ request }) {
         await deleteWidget(widgetId);
         return json({ success: true, message: "Deleted" });
     }
-
-    // New/Update handled in separate API routes but if we need generic action here, fine.
     return null;
 }
 
 export default function Dashboard() {
     const { instagramAccount, widgets, hasCredentials, businessAccountId } = useLoaderData();
-    const fetcher = useFetcher(); // General action fetcher
-    const createFetcher = useFetcher(); // For creating widget
-    const editFetcher = useFetcher(); // For loading widget data
+    const fetcher = useFetcher();
+    const createFetcher = useFetcher();
 
     // Modal State
-    const [isEditorOpen, setIsEditorOpen] = useState(false);
-
-    // Loaded Data for Editor
-    const [editorData, setEditorData] = useState(null);
+    const [selectedWidgetId, setSelectedWidgetId] = useState(null);
 
     // Handle Create Success
     useEffect(() => {
         if (createFetcher.state === "idle" && createFetcher.data?.widget) {
-            // Widget created successfully, now load it for editing
             const newWidget = createFetcher.data.widget;
-            // Load media as well? We need to fetch from API endpoint.
-            // Since we don't have all data in create response, let's load it properly.
-            editFetcher.load(`/app/widget/${newWidget.id}`);
+            setSelectedWidgetId(newWidget.id);
+            shopify.modal.show('widget-editor-modal');
             shopify.toast.show("Widget created");
         }
     }, [createFetcher.state, createFetcher.data]);
 
-    // Handle Edit Data Load Success
-    useEffect(() => {
-        if (editFetcher.state === "idle" && editFetcher.data?.widget) {
-            setEditorData(editFetcher.data);
-            setIsEditorOpen(true);
-        }
-    }, [editFetcher.state, editFetcher.data]);
-
 
     const handleCreateWidget = () => {
-        // Create widget via API
         createFetcher.submit(null, { method: "post", action: "/app/widget/new" });
-        // Show loading indicator?
         shopify.toast.show("Creating widget...");
     };
 
     const handleEditWidget = (id) => {
-        editFetcher.load(`/app/widget/${id}`);
-        shopify.toast.show("Loading editor...");
+        setSelectedWidgetId(id);
+        shopify.modal.show('widget-editor-modal');
+    };
+
+    const handleCloseEditor = () => {
+        shopify.modal.hide('widget-editor-modal');
+        setSelectedWidgetId(null);
     };
 
     const handleDeleteWidget = (id) => {
@@ -188,16 +174,14 @@ export default function Dashboard() {
             </BlockStack>
 
             {/* FULL SCREEN MODAL EDITOR */}
-            {isEditorOpen && editorData && (
-                <ui-modal id="editor-modal" variant="max" open>
+            <Modal id="widget-editor-modal" variant="max" onHide={() => setSelectedWidgetId(null)}>
+                {selectedWidgetId && (
                     <WidgetEditor
-                        widget={editorData.widget}
-                        media={editorData.media}
-                        account={editorData.account}
-                        onClose={() => setIsEditorOpen(false)}
+                        widgetId={selectedWidgetId}
+                        onClose={handleCloseEditor}
                     />
-                </ui-modal>
-            )}
+                )}
+            </Modal>
         </Page>
     );
 }

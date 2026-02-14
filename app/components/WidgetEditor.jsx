@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useFetcher } from "@remix-run/react";
+import { TitleBar } from "@shopify/app-bridge-react";
 import {
     Layout,
     Card,
@@ -14,55 +15,113 @@ import {
     Banner,
     Box,
     Divider,
-    Checkbox
+    Checkbox,
+    Spinner
 } from "@shopify/polaris";
 
-export function WidgetEditor({ widget, media, account, onClose }) {
-    const fetcher = useFetcher();
+export function WidgetEditor({ widgetId, onClose }) {
+    const dataFetcher = useFetcher();
+    const actionFetcher = useFetcher();
 
-    // Parse initial config
-    // Ensure configuration is object, widget.configuration might be string or object depending on source
-    const initialConfig = typeof widget.configuration === 'string'
-        ? JSON.parse(widget.configuration)
-        : widget.configuration;
+    const [widgetData, setWidgetData] = useState(null);
+    const [mediaData, setMediaData] = useState([]);
+    const [accountData, setAccountData] = useState(null);
 
-    const [config, setConfig] = useState(initialConfig || {});
+    const [config, setConfig] = useState({});
     const [selectedTab, setSelectedTab] = useState(0);
     const [isMobilePreview, setIsMobilePreview] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // If title is missing in config fallback to widget title
-    if (!config.title) config.title = widget.title;
+    // Load Widget Data
+    useEffect(() => {
+        if (widgetId) {
+            console.log("Loading widget data for:", widgetId);
+            dataFetcher.load(`/app/widget/${widgetId}`);
+        }
+    }, [widgetId]);
 
-    const isSaving = fetcher.state === "submitting" && fetcher.formData?.get("actionType") === "save";
-    const isPublishing = fetcher.state === "submitting" && fetcher.formData?.get("actionType") === "publish";
+    useEffect(() => {
+        if (dataFetcher.state === "idle" && dataFetcher.data) {
+            if (dataFetcher.data.error) {
+                console.error("Widget fetch error:", dataFetcher.data.error);
+                shopify.toast.show("Error: " + dataFetcher.data.error);
+                return;
+            }
+
+            const w = dataFetcher.data.widget;
+            if (!w) {
+                console.error("Widget data is missing!", dataFetcher.data);
+                shopify.toast.show("Error: Widget data missing");
+                return;
+            }
+
+            console.log("Widget fetched successfully:", w);
+            setWidgetData(w);
+            setMediaData(dataFetcher.data.media || []);
+            setAccountData(dataFetcher.data.account);
+
+            try {
+                // Handle both string and possible object configuration (if prisma changed)
+                const configStr = w.configuration;
+                const c = (typeof configStr === 'string' && configStr.trim().startsWith('{'))
+                    ? JSON.parse(configStr)
+                    : (typeof configStr === 'object' ? configStr : {});
+
+                const parsedConfig = c || {};
+                if (!parsedConfig.title) parsedConfig.title = w.title;
+
+                // Ensure defaults
+                if (!parsedConfig.layout) parsedConfig.layout = "grid";
+
+                setConfig(parsedConfig);
+            } catch (e) {
+                console.error("Config parse error", e);
+                setConfig({ title: w.title, layout: "grid" });
+            }
+
+            setIsLoading(false);
+        }
+    }, [dataFetcher.state, dataFetcher.data]);
+
+
+    const isSaving = actionFetcher.state === "submitting" && actionFetcher.formData?.get("actionType") === "save";
+    const isPublishing = actionFetcher.state === "submitting" && actionFetcher.formData?.get("actionType") === "publish";
 
     // Handle successful save/publish
     useEffect(() => {
-        if (fetcher.state === "idle" && fetcher.data?.success) {
-            shopify.toast.show(fetcher.data.message);
-            if (fetcher.data.actionType === "publish") {
-                // Maybe close modal or just stay
-            }
+        if (actionFetcher.state === "idle" && actionFetcher.data?.success) {
+            shopify.toast.show(actionFetcher.data.message);
         }
-    }, [fetcher.state, fetcher.data]);
+    }, [actionFetcher.state, actionFetcher.data]);
+
 
     const handleConfigChange = (key, value) => {
         setConfig(prev => ({ ...prev, [key]: value }));
     };
 
     const handleSave = () => {
-        fetcher.submit(
+        if (!widgetData) return;
+        actionFetcher.submit(
             { actionType: "save", configuration: JSON.stringify(config) },
-            { method: "post", action: `/app/widget/${widget.id}` }
+            { method: "post", action: `/app/widget/${widgetData.id}` }
         );
     };
 
     const handlePublish = () => {
-        fetcher.submit(
+        if (!widgetData) return;
+        actionFetcher.submit(
             { actionType: "publish", configuration: JSON.stringify(config) },
-            { method: "post", action: `/app/widget/${widget.id}` }
+            { method: "post", action: `/app/widget/${widgetData.id}` }
         );
     };
+
+    if (isLoading) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: '400px' }}>
+                <Spinner size="large" />
+            </div>
+        );
+    }
 
     const tabs = [
         { id: "content-tab", content: "Content", panelID: "content-panel" },
@@ -72,11 +131,11 @@ export function WidgetEditor({ widget, media, account, onClose }) {
 
     return (
         <div style={{ height: '100%' }}>
-            <ui-title-bar title={config.title || "Edit Feed"}>
+            <TitleBar title={config.title || "Edit Feed"}>
                 <button variant="primary" onClick={handlePublish} disabled={isPublishing}>Publish</button>
                 <button onClick={handleSave} disabled={isSaving}>Save</button>
                 <button onClick={onClose}>Close</button>
-            </ui-title-bar>
+            </TitleBar>
 
             <div style={{ padding: '20px' }}>
                 <Layout>
@@ -118,7 +177,6 @@ export function WidgetEditor({ widget, media, account, onClose }) {
                                 {selectedTab === 2 && (
                                     <BlockStack gap="400">
                                         <Checkbox label="Show Hover Overlay" checked={config.overlay} onChange={v => handleConfigChange("overlay", v)} />
-                                        {/* <Text tone="subdued">Custom colors coming soon...</Text> */}
                                     </BlockStack>
                                 )}
                             </Box>
@@ -135,8 +193,8 @@ export function WidgetEditor({ widget, media, account, onClose }) {
                                 <Divider />
                                 <Box padding="400" background="bg-surface-secondary">
                                     <PreviewComponent
-                                        account={account}
-                                        media={media}
+                                        account={accountData}
+                                        media={mediaData}
                                         config={config}
                                         isMobile={isMobilePreview}
                                     />
