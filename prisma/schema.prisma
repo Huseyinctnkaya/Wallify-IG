@@ -70,3 +70,24 @@ model Settings {
   updatedAt       DateTime @updatedAt
 }
 
+model Analytics {
+  id        String   @id @default(uuid())
+  shop      String
+  date      DateTime @default(now())
+  views     Int      @default(0)
+  clicks    Int      @default(0)
+
+  @@unique([shop, date])
+}
+
+model PostAnalytics {
+  id        String   @id @default(uuid())
+  shop      String
+  mediaId   String
+  views     Int      @default(0)
+  clicks    Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([shop, mediaId])
+}
+

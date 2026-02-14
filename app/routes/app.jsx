@@ -23,6 +23,7 @@ export default function App() {
           DevsApiG
         </Link>
         <Link to="/app/plans">Plans</Link>
+        <Link to="/app/analytics">Analytics</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>
