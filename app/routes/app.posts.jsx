@@ -27,12 +27,12 @@ export const loader = async ({ request }) => {
     const { session } = await authenticate.admin(request);
     const { shop } = session;
 
+    const settings = await getSettings(shop);
     const instagramAccount = await getInstagramAccount(shop);
     let posts = [];
 
     if (instagramAccount) {
         try {
-            const settings = await getSettings(shop);
             const media = await fetchInstagramMedia(instagramAccount.userId, instagramAccount.accessToken, settings.mediaLimit);
             posts = media.map(item => ({
                 id: item.id,
@@ -47,7 +47,7 @@ export const loader = async ({ request }) => {
                 isPinned: false,
                 isHidden: false,
                 products: []
-            }));
+            })).slice(0, settings.mediaLimit);
         } catch (error) {
             console.error("Failed to fetch media for management page:", error);
         }
@@ -55,10 +55,10 @@ export const loader = async ({ request }) => {
 
     // Fallback mock data if no real data exists
     if (posts.length === 0) {
-        posts = [
+        const mockPosts = [
             {
                 id: '1',
-                date: 'Sun Jan 25 2026',
+                date: 'Tue Feb 10 2026',
                 mediaUrl: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=400&auto=format&fit=crop',
                 isPinned: false,
                 isHidden: false,
@@ -66,7 +66,7 @@ export const loader = async ({ request }) => {
             },
             {
                 id: '2',
-                date: 'Sun Jan 25 2026',
+                date: 'Fri Jan 23 2026',
                 mediaUrl: 'https://images.unsplash.com/photo-1529139572764-7ff73077af4c?q=80&w=400&auto=format&fit=crop',
                 isPinned: false,
                 isHidden: false,
@@ -74,13 +74,39 @@ export const loader = async ({ request }) => {
             },
             {
                 id: '3',
-                date: 'Sat Jan 24 2026',
+                date: 'Fri Jan 09 2026',
                 mediaUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?q=80&w=400&auto=format&fit=crop',
+                isPinned: false,
+                isHidden: false,
+                products: []
+            },
+            {
+                id: '4',
+                date: 'Wed Jan 07 2026',
+                mediaUrl: 'https://images.unsplash.com/photo-1511130523564-071a9426f030?q=80&w=400&auto=format&fit=crop',
+                isPinned: false,
+                isHidden: false,
+                products: []
+            },
+            {
+                id: '5',
+                date: 'Mon Jan 05 2026',
+                mediaUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop',
+                isPinned: false,
+                isHidden: false,
+                products: []
+            },
+            {
+                id: '6',
+                date: 'Sun Jan 04 2026',
+                mediaUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=400&auto=format&fit=crop',
                 isPinned: false,
                 isHidden: false,
                 products: []
             }
         ];
+        // Slice mock data based on settings.mediaLimit
+        posts = mockPosts.slice(0, settings.mediaLimit);
     }
 
     return json({

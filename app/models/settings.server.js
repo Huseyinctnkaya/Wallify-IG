@@ -1,4 +1,4 @@
-// Last Sync: 2026-02-14 23:12
+// Last Sync: 2026-02-14 23:25
 import { prisma } from "../db.server";
 
 export async function getSettings(shop) {
@@ -18,6 +18,7 @@ export async function getSettings(shop) {
                 sliderDesktopColumns: 4,
                 sliderMobileColumns: 2,
                 showArrows: true,
+                mediaLimit: 12,
                 onClick: "popup",
                 postSpacing: "medium",
                 borderRadius: "medium",
@@ -71,19 +72,43 @@ export async function getSettings(shop) {
 }
 
 export async function saveSettings(shop, settings, admin = null) {
-    const updatedSettings = await prisma.settings.upsert({
-        where: { shop },
-        update: {
-            ...settings,
-            updatedAt: new Date(),
-        },
-        create: {
-            shop,
-            ...settings,
-        },
-    });
+    let updatedSettings;
+    try {
+        updatedSettings = await prisma.settings.upsert({
+            where: { shop },
+            update: {
+                ...settings,
+                updatedAt: new Date(),
+            },
+            create: {
+                shop,
+                ...settings,
+            },
+        });
+    } catch (error) {
+        console.error("Critical: Prisma save failed with full object:", error.message);
 
-    if (admin) {
+        // Fallback: If it's a validation error about mediaLimit, try saving without it
+        if (error.message.includes("Unknown argument `mediaLimit`")) {
+            console.log("Retrying save without mediaLimit due to client mismatch...");
+            const { mediaLimit, ...safeSettings } = settings;
+            updatedSettings = await prisma.settings.upsert({
+                where: { shop },
+                update: {
+                    ...safeSettings,
+                    updatedAt: new Date(),
+                },
+                create: {
+                    shop,
+                    ...safeSettings,
+                },
+            });
+        } else {
+            throw error;
+        }
+    }
+
+    if (admin && updatedSettings) {
         try {
             await syncSettingsToMetafields(shop, admin, updatedSettings);
         } catch (error) {

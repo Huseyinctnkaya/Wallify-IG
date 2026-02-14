@@ -144,8 +144,8 @@ export async function action({ request }) {
             // Re-fetch media from Instagram API
             const media = await fetchInstagramMedia(account.userId, account.accessToken, settings.mediaLimit);
 
-            // Update media in database/metafields if needed
-            // For now, we just return success as the loader fetches fresh data
+            // Update media in database/metafields
+            await syncInstagramToMetafields(shop, admin, media);
 
             return json({ success: true, message: "Media synced successfully!" });
         } catch (error) {
