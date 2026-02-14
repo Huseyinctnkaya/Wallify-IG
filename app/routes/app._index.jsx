@@ -440,18 +440,20 @@ export default function Dashboard() {
                                     <Text variant="bodyMd" as="p">
                                         2. Sync your media to fetch the latest posts
                                     </Text>
-                                    <InlineStack gap="200" blockAlign="center">
+                                    <BlockStack gap="200">
                                         <Text variant="bodyMd" as="p">
                                             3. Add the Instagram Feed block to your theme
                                         </Text>
-                                        <Button
-                                            size="slim"
-                                            url={`https://${shop}/admin/themes/current/editor`}
-                                            external
-                                        >
-                                            Open Theme Editor
-                                        </Button>
-                                    </InlineStack>
+                                        <InlineStack align="start">
+                                            <Button
+                                                size="slim"
+                                                url={`https://${shop}/admin/themes`}
+                                                external
+                                            >
+                                                Open Theme Editor
+                                            </Button>
+                                        </InlineStack>
+                                    </BlockStack>
                                 </BlockStack>
                             </BlockStack>
                         </Card>

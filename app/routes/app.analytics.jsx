@@ -43,6 +43,12 @@ export const loader = async ({ request }) => {
             views: 0,
             clicks: 0,
             ctr: "0.00"
+        },
+        weekOverWeek: {
+            views: 0,
+            clicks: 0,
+            ctr: 0,
+            engagement: 0
         }
     };
 
@@ -62,6 +68,24 @@ export default function AnalyticsPage() {
         plural: 'posts',
     };
 
+    // Helper function to format percentage change badge
+    const formatChangeBadge = (change) => {
+        const roundedChange = Math.round(change * 10) / 10; // Round to 1 decimal
+
+        if (Math.abs(roundedChange) < 0.5) {
+            return {
+                text: 'Stable',
+                tone: 'attention'
+            };
+        }
+
+        const sign = roundedChange > 0 ? '+' : '';
+        return {
+            text: `${sign}${roundedChange.toFixed(1)}% from last week`,
+            tone: roundedChange > 0 ? 'success' : 'critical'
+        };
+    };
+
     return (
         <Page title="Analytics">
             <Layout>
@@ -78,7 +102,9 @@ export default function AnalyticsPage() {
                                         </div>
                                     </InlineStack>
                                     <Text variant="headingLg" as="p">{analytics.totals.views.toLocaleString()}</Text>
-                                    <Badge tone="success">+12% from last week</Badge>
+                                    <Badge tone={formatChangeBadge(analytics.weekOverWeek.views).tone}>
+                                        {formatChangeBadge(analytics.weekOverWeek.views).text}
+                                    </Badge>
                                 </BlockStack>
                             </Card>
                         </Grid.Cell>
@@ -92,7 +118,9 @@ export default function AnalyticsPage() {
                                         </div>
                                     </InlineStack>
                                     <Text variant="headingLg" as="p">{analytics.totals.clicks.toLocaleString()}</Text>
-                                    <Badge tone="success">+8% from last week</Badge>
+                                    <Badge tone={formatChangeBadge(analytics.weekOverWeek.clicks).tone}>
+                                        {formatChangeBadge(analytics.weekOverWeek.clicks).text}
+                                    </Badge>
                                 </BlockStack>
                             </Card>
                         </Grid.Cell>
@@ -106,7 +134,9 @@ export default function AnalyticsPage() {
                                         </div>
                                     </InlineStack>
                                     <Text variant="headingLg" as="p">{analytics.totals.ctr}%</Text>
-                                    <Badge tone="attention">Stable</Badge>
+                                    <Badge tone={formatChangeBadge(analytics.weekOverWeek.ctr).tone}>
+                                        {formatChangeBadge(analytics.weekOverWeek.ctr).text}
+                                    </Badge>
                                 </BlockStack>
                             </Card>
                         </Grid.Cell>
@@ -120,7 +150,9 @@ export default function AnalyticsPage() {
                                         </div>
                                     </InlineStack>
                                     <Text variant="headingLg" as="p">{(analytics.totals.views + analytics.totals.clicks).toLocaleString()}</Text>
-                                    <Badge tone="success">+15%</Badge>
+                                    <Badge tone={formatChangeBadge(analytics.weekOverWeek.engagement).tone}>
+                                        {formatChangeBadge(analytics.weekOverWeek.engagement).text}
+                                    </Badge>
                                 </BlockStack>
                             </Card>
                         </Grid.Cell>

@@ -26,11 +26,80 @@ export async function getAnalytics(shop, days = 30) {
 
     const ctr = totals.views > 0 ? (totals.clicks / totals.views) * 100 : 0;
 
+    // Calculate week-over-week changes
+    const now = new Date();
+    const currentWeekStart = new Date(now);
+    currentWeekStart.setDate(now.getDate() - 7);
+    currentWeekStart.setHours(0, 0, 0, 0);
+
+    const previousWeekStart = new Date(now);
+    previousWeekStart.setDate(now.getDate() - 14);
+    previousWeekStart.setHours(0, 0, 0, 0);
+
+    const previousWeekEnd = new Date(currentWeekStart);
+    previousWeekEnd.setSeconds(-1); // End of previous week
+
+    // Current week stats (last 7 days)
+    const currentWeekStats = dailyStats.filter(stat => {
+        const statDate = new Date(stat.date);
+        return statDate >= currentWeekStart;
+    });
+
+    // Previous week stats (7-14 days ago)
+    const previousWeekStats = dailyStats.filter(stat => {
+        const statDate = new Date(stat.date);
+        return statDate >= previousWeekStart && statDate <= previousWeekEnd;
+    });
+
+    // Calculate current week totals
+    const currentWeekTotals = currentWeekStats.reduce((acc, curr) => {
+        acc.views += curr.views;
+        acc.clicks += curr.clicks;
+        return acc;
+    }, { views: 0, clicks: 0 });
+
+    // Calculate previous week totals
+    const previousWeekTotals = previousWeekStats.reduce((acc, curr) => {
+        acc.views += curr.views;
+        acc.clicks += curr.clicks;
+        return acc;
+    }, { views: 0, clicks: 0 });
+
+    // Calculate CTR for both weeks
+    const currentWeekCTR = currentWeekTotals.views > 0
+        ? (currentWeekTotals.clicks / currentWeekTotals.views) * 100
+        : 0;
+    const previousWeekCTR = previousWeekTotals.views > 0
+        ? (previousWeekTotals.clicks / previousWeekTotals.views) * 100
+        : 0;
+
+    // Calculate percentage changes
+    const calculateChange = (current, previous) => {
+        if (previous === 0) {
+            return current > 0 ? 100 : 0; // If no previous data but have current, show 100% increase
+        }
+        return ((current - previous) / previous) * 100;
+    };
+
+    const viewsChange = calculateChange(currentWeekTotals.views, previousWeekTotals.views);
+    const clicksChange = calculateChange(currentWeekTotals.clicks, previousWeekTotals.clicks);
+    const ctrChange = calculateChange(currentWeekCTR, previousWeekCTR);
+    const engagementChange = calculateChange(
+        currentWeekTotals.views + currentWeekTotals.clicks,
+        previousWeekTotals.views + previousWeekTotals.clicks
+    );
+
     return {
         dailyStats,
         totals: {
             ...totals,
             ctr: ctr.toFixed(2)
+        },
+        weekOverWeek: {
+            views: viewsChange,
+            clicks: clicksChange,
+            ctr: ctrChange,
+            engagement: engagementChange
         }
     };
 }
