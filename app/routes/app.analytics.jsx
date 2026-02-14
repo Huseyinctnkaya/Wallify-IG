@@ -17,7 +17,7 @@ import {
 } from "@shopify/polaris";
 import {
     ViewIcon,
-    CursorClickIcon,
+    ArrowRightIcon,
     ChartVerticalIcon,
     CalendarIcon
 } from "@shopify/polaris-icons";
@@ -75,7 +75,7 @@ export default function AnalyticsPage() {
                         <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 3, xl: 3 }}>
                             <Card padding="400">
                                 <BlockStack gap="200">
-                                    <InlineStack align="space-between">
+                                    <InlineStack gap="100" blockAlign="center">
                                         <Text variant="headingSm" as="h6" tone="subdued">Total Views</Text>
                                         <Icon source={ViewIcon} tone="base" />
                                     </InlineStack>
@@ -87,9 +87,9 @@ export default function AnalyticsPage() {
                         <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 3, xl: 3 }}>
                             <Card padding="400">
                                 <BlockStack gap="200">
-                                    <InlineStack align="space-between">
+                                    <InlineStack gap="100" blockAlign="center">
                                         <Text variant="headingSm" as="h6" tone="subdued">Total Clicks</Text>
-                                        <Icon source={CursorClickIcon} tone="base" />
+                                        <Icon source={ArrowRightIcon} tone="base" />
                                     </InlineStack>
                                     <Text variant="headingLg" as="p">{analytics.totals.clicks.toLocaleString()}</Text>
                                     <Badge tone="success">+8% from last week</Badge>
@@ -99,7 +99,7 @@ export default function AnalyticsPage() {
                         <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 3, xl: 3 }}>
                             <Card padding="400">
                                 <BlockStack gap="200">
-                                    <InlineStack align="space-between">
+                                    <InlineStack gap="100" blockAlign="center">
                                         <Text variant="headingSm" as="h6" tone="subdued">Click-through Rate</Text>
                                         <Icon source={ChartVerticalIcon} tone="base" />
                                     </InlineStack>
@@ -111,7 +111,7 @@ export default function AnalyticsPage() {
                         <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 3, xl: 3 }}>
                             <Card padding="400">
                                 <BlockStack gap="200">
-                                    <InlineStack align="space-between">
+                                    <InlineStack gap="100" blockAlign="center">
                                         <Text variant="headingSm" as="h6" tone="subdued">Total Engagement</Text>
                                         <Icon source={CalendarIcon} tone="base" />
                                     </InlineStack>
@@ -128,18 +128,16 @@ export default function AnalyticsPage() {
                     <Grid>
                         {/* Performance Chart Placeholder */}
                         <Grid.Cell columnSpan={{ xs: 6, sm: 6, md: 8, lg: 8, xl: 8 }}>
-                            <Card title="Performance over time">
-                                <Box padding="400">
-                                    <BlockStack gap="400">
-                                        <Text variant="headingMd" as="h3">Insights</Text>
-                                        <Box padding="1000" background="bg-surface-secondary" borderRadius="200">
-                                            <BlockStack align="center" gap="400">
-                                                <Icon source={ChartVerticalIcon} tone="subdued" />
-                                                <Text variant="bodyMd" tone="subdued">Visual chart showing view/click trends will appear here as more data is collected.</Text>
-                                            </BlockStack>
-                                        </Box>
-                                    </BlockStack>
-                                </Box>
+                            <Card padding="400">
+                                <BlockStack gap="400">
+                                    <Text variant="headingMd" as="h3">Insights</Text>
+                                    <Box padding="1000" background="bg-surface-secondary" borderRadius="200">
+                                        <BlockStack align="center" gap="400">
+                                            <Icon source={ChartVerticalIcon} tone="subdued" />
+                                            <Text variant="bodyMd" tone="subdued">Visual chart showing view/click trends will appear here as more data is collected.</Text>
+                                        </BlockStack>
+                                    </Box>
+                                </BlockStack>
                             </Card>
                         </Grid.Cell>
 
