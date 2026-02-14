@@ -43,12 +43,15 @@ model InstagramAccount {
 }
 
 model Settings {
-  id          String   @id @default(uuid())
-  shop        String   @unique
-  gridColumns Int      @default(4)
-  gridRows    Int      @default(2)
-  showTitle   Boolean  @default(true)
-  titleText   String   @default("Instagram Feed")
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(uuid())
+  shop            String   @unique
+  title           String   @default("INSTAGRAM'DA BİZ")
+  subheading      String   @default("Daha Fazlası İçin Bizi Takip Edebilirsiniz")
+  feedType        String   @default("slider") // slider, grid
+  showPinnedReels Boolean  @default(false)
+  desktopColumns  Int      @default(4)
+  mobileColumns   Int      @default(2)
+  showArrows      Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
 }
 
