@@ -1,4 +1,6 @@
 import { prisma } from "../db.server";
+import { getPosts } from "./post.server";
+import { getSettings } from "./settings.server";
 
 // Instagram Graph API Endpoints
 const INSTAGRAM_GRAPH_URL = "https://graph.instagram.com";
@@ -83,6 +85,7 @@ export async function disconnectInstagramAccount(shop) {
 
 /**
  * Sync Instagram media to Shopify metafields
+ * Now includes Post metadata (pin/hide/products)
  */
 export async function syncInstagramToMetafields(shop, admin) {
     const account = await getInstagramAccount(shop);
@@ -90,25 +93,58 @@ export async function syncInstagramToMetafields(shop, admin) {
         throw new Error("No Instagram account connected");
     }
 
+    // Fetch settings and post records
+    const settings = await getSettings(shop);
+    const postRecords = await getPosts(shop);
+
     let mediaItems = [];
     try {
-        mediaItems = await fetchInstagramMedia(account.userId, account.accessToken);
+        mediaItems = await fetchInstagramMedia(
+            account.userId,
+            account.accessToken,
+            settings.mediaLimit || 100
+        );
     } catch (error) {
         console.error("Sync Error:", error);
         throw error;
     }
 
-    // Format media for metafield
-    const formattedMedia = mediaItems.map(item => ({
-        id: item.id,
-        url: item.media_url,
-        thumbnail: item.thumbnail_url || item.media_url,
-        permalink: item.permalink,
-        caption: item.caption || "",
-        type: item.media_type
-    }));
+    // Merge Instagram media with Post metadata
+    let enrichedMedia = mediaItems.map(item => {
+        const record = postRecords.find(p => p.mediaId === item.id);
 
-    const jsonValue = JSON.stringify(formattedMedia);
+        return {
+            id: item.id,
+            url: item.media_url,
+            thumbnail: item.thumbnail_url || item.media_url,
+            permalink: item.permalink,
+            caption: item.caption || "",
+            type: item.media_type,
+            username: item.username || account.username,
+            timestamp: item.timestamp,
+            // Post metadata
+            isPinned: record?.isPinned || false,
+            isHidden: record?.isHidden || false,
+            products: record?.products ? JSON.parse(record.products) : []
+        };
+    });
+
+    // Filter: Remove hidden posts from theme display
+    enrichedMedia = enrichedMedia.filter(item => !item.isHidden);
+
+    // Filter: Apply showPinnedReels setting
+    if (settings.showPinnedReels) {
+        enrichedMedia = enrichedMedia.filter(item => item.isPinned);
+    }
+
+    // Sort: Pinned posts first
+    enrichedMedia.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return 0;
+    });
+
+    const jsonValue = JSON.stringify(enrichedMedia);
 
     // Get shop ID for metafield owner
     const shopIdResponse = await admin.graphql(`

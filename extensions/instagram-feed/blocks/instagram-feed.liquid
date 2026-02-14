@@ -31,19 +31,48 @@
       "
     >
       {% for item in media_items limit: block.settings.limit %}
-        <a
-          href="{{ item.permalink }}"
-          target="_blank"
-          class="instagram-feed-item"
-          data-media-id="{{ item.id }}"
-          data-media-url="{{ item.thumbnail }}"
-          data-permalink="{{ item.permalink }}"
-        >
-          <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy" width="100%" height="auto">
-          <div class="instagram-feed-overlay">
-            <span class="instagram-icon">@{{ item.username }}</span>
-          </div>
-        </a>
+        <div class="instagram-feed-item-wrapper">
+          <a
+            href="{{ item.permalink }}"
+            target="_blank"
+            class="instagram-feed-item"
+            data-media-id="{{ item.id }}"
+            data-media-url="{{ item.thumbnail }}"
+            data-permalink="{{ item.permalink }}"
+          >
+            <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy" width="100%" height="auto">
+
+            {% comment %} Product badges overlay {% endcomment %}
+            {% if item.products.size > 0 %}
+              <div class="instagram-product-badge">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/>
+                </svg>
+                <span>{{ item.products.size }}</span>
+              </div>
+            {% endif %}
+
+            <div class="instagram-feed-overlay">
+              <span class="instagram-icon">@{{ item.username }}</span>
+            </div>
+          </a>
+
+          {% comment %} Product tags below image {% endcomment %}
+          {% if item.products.size > 0 and settings_metafield.showAttachedProducts %}
+            <div class="instagram-product-tags">
+              {% for product in item.products limit: 3 %}
+                <a href="/products/{{ product.handle }}" class="instagram-product-tag">
+                  {{ product.title }}
+                </a>
+              {% endfor %}
+              {% if item.products.size > 3 %}
+                <span class="instagram-product-tag-more">
+                  +{{ item.products.size | minus: 3 }} more
+                </span>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
       {% endfor %}
     </div>
   </div>
@@ -88,6 +117,9 @@
     .instagram-feed-heading {
       margin-bottom: 20px;
     }
+    .instagram-feed-item-wrapper {
+      position: relative;
+    }
     .instagram-feed-item {
       position: relative;
       display: block;
@@ -122,9 +154,71 @@
       opacity: 1;
     }
 
+    /* Product badge on image */
+    .instagram-product-badge {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.95);
+      color: #000;
+      padding: 6px 10px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      z-index: 2;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    .instagram-product-badge svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Product tags below image */
+    .instagram-product-tags {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .instagram-product-tag {
+      display: inline-block;
+      background: #f0f0f0;
+      color: #333;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      text-decoration: none;
+      transition: background 0.2s ease;
+    }
+    .instagram-product-tag:hover {
+      background: #e0e0e0;
+      color: #000;
+    }
+    .instagram-product-tag-more {
+      display: inline-block;
+      background: #e8e8e8;
+      color: #666;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+    }
+
     @media (max-width: 768px) {
       .instagram-feed-grid {
         grid-template-columns: repeat({{mobile_cols}}, 1fr) !important;
+      }
+      .instagram-product-badge {
+        bottom: 6px;
+        right: 6px;
+        padding: 4px 8px;
+        font-size: 11px;
+      }
+      .instagram-product-badge svg {
+        width: 14px;
+        height: 14px;
       }
     }
   </style>

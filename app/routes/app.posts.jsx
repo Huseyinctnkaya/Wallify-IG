@@ -1,5 +1,6 @@
 import { json } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { useLoaderData, useFetcher } from "@remix-run/react";
+import { useState } from "react";
 import {
     Page,
     Layout,
@@ -18,9 +19,12 @@ import {
     PinIcon,
     HideIcon,
 } from "@shopify/polaris-icons";
+import { ResourcePicker } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
-import { getInstagramAccount, fetchInstagramMedia } from "../models/instagram.server";
+import { getInstagramAccount, fetchInstagramMedia, syncInstagramToMetafields } from "../models/instagram.server";
 import { getSettings } from "../models/settings.server";
+import { getPosts, togglePin, toggleHide, updateProducts } from "../models/post.server";
+import { isPremiumShop } from "../utils/premium.server";
 
 export const loader = async ({ request }) => {
     const { session } = await authenticate.admin(request);
@@ -28,25 +32,44 @@ export const loader = async ({ request }) => {
 
     const settings = await getSettings(shop);
     const instagramAccount = await getInstagramAccount(shop);
+    const isPremium = await isPremiumShop(shop);
     let posts = [];
 
     if (instagramAccount) {
         try {
+            // Fetch Instagram media
             const media = await fetchInstagramMedia(instagramAccount.userId, instagramAccount.accessToken, settings.mediaLimit);
-            posts = media.map(item => ({
-                id: item.id,
-                date: new Date(item.timestamp).toLocaleDateString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: '2-digit',
-                    year: 'numeric'
-                }).replace(/,/g, ''),
-                mediaUrl: item.thumbnail_url || item.media_url,
-                permalink: item.permalink,
-                isPinned: false,
-                isHidden: false,
-                products: []
-            })).slice(0, settings.mediaLimit);
+
+            // Fetch Post records from database
+            const postRecords = await getPosts(shop);
+
+            // Merge Instagram data with Post metadata
+            posts = media.map(item => {
+                const record = postRecords.find(p => p.mediaId === item.id);
+
+                return {
+                    id: item.id,
+                    date: new Date(item.timestamp).toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: '2-digit',
+                        year: 'numeric'
+                    }).replace(/,/g, ''),
+                    mediaUrl: item.thumbnail_url || item.media_url,
+                    permalink: item.permalink,
+                    mediaType: item.media_type,
+                    caption: item.caption || '',
+                    // Merge Post metadata
+                    isPinned: record?.isPinned || false,
+                    isHidden: record?.isHidden || false,
+                    products: record?.products ? JSON.parse(record.products) : []
+                };
+            }).slice(0, settings.mediaLimit);
+
+            // Filter by showPinnedReels setting
+            if (settings.showPinnedReels) {
+                posts = posts.filter(p => p.isPinned);
+            }
         } catch (error) {
             console.error("Failed to fetch media for management page:", error);
         }
@@ -110,80 +133,262 @@ export const loader = async ({ request }) => {
 
     return json({
         posts,
-        isPremium: false,
+        isPremium,
     });
 };
+
+export async function action({ request }) {
+    const { session, admin } = await authenticate.admin(request);
+    const { shop } = session;
+    const formData = await request.formData();
+    const actionType = formData.get("actionType");
+
+    // Check premium status
+    const isPremium = await isPremiumShop(shop);
+
+    // Premium feature gate
+    if (!isPremium && ["togglePin", "toggleHide", "updateProducts"].includes(actionType)) {
+        return json({
+            error: "This is a premium feature. Upgrade to unlock pin, hide, and product attachment features.",
+            showUpgrade: true
+        }, { status: 403 });
+    }
+
+    try {
+        if (actionType === "togglePin") {
+            const mediaId = formData.get("mediaId");
+            await togglePin(shop, mediaId);
+
+            // Trigger metafield sync to update theme
+            await syncInstagramToMetafields(shop, admin);
+
+            return json({ success: true, message: "Post pin status updated" });
+        }
+
+        if (actionType === "toggleHide") {
+            const mediaId = formData.get("mediaId");
+            await toggleHide(shop, mediaId);
+
+            // Trigger metafield sync to update theme
+            await syncInstagramToMetafields(shop, admin);
+
+            return json({ success: true, message: "Post hide status updated" });
+        }
+
+        if (actionType === "updateProducts") {
+            const mediaId = formData.get("mediaId");
+            const productsData = formData.get("products");
+            const products = productsData ? JSON.parse(productsData) : [];
+
+            await updateProducts(shop, mediaId, products);
+
+            // Trigger metafield sync to update theme
+            await syncInstagramToMetafields(shop, admin);
+
+            return json({ success: true, message: "Products updated successfully" });
+        }
+
+        return json({ error: "Unknown action type" }, { status: 400 });
+    } catch (error) {
+        console.error("Action error:", error);
+        return json({ error: error.message || "An error occurred" }, { status: 500 });
+    }
+}
 
 const ProBadge = () => (
     <Badge tone="info" size="small">Pro</Badge>
 );
 
-const PostCard = ({ post }) => (
-    <Card padding="0">
-        <Box padding="300">
-            <BlockStack gap="300">
-                <InlineStack align="space-between">
-                    <InlineStack gap="200">
-                        <Button size="slim">
-                            <InlineStack gap="150" blockAlign="center">
-                                <Icon source={PinIcon} />
-                                <Text variant="bodySm" as="span">Pin</Text>
-                                <ProBadge />
+const PostCard = ({ post, isPremium, onEditProducts, onShowUpgrade }) => {
+    const fetcher = useFetcher();
+    const isLoading = fetcher.state === "submitting";
+
+    const handleTogglePin = () => {
+        if (!isPremium) {
+            onShowUpgrade();
+            return;
+        }
+        fetcher.submit(
+            { actionType: "togglePin", mediaId: post.id },
+            { method: "post" }
+        );
+    };
+
+    const handleToggleHide = () => {
+        if (!isPremium) {
+            onShowUpgrade();
+            return;
+        }
+        fetcher.submit(
+            { actionType: "toggleHide", mediaId: post.id },
+            { method: "post" }
+        );
+    };
+
+    const handleEditProducts = () => {
+        if (!isPremium) {
+            onShowUpgrade();
+            return;
+        }
+        onEditProducts(post);
+    };
+
+    return (
+        <Card padding="0">
+            <Box padding="300">
+                <BlockStack gap="300">
+                    <InlineStack align="space-between">
+                        <InlineStack gap="200">
+                            <Button
+                                size="slim"
+                                onClick={handleTogglePin}
+                                disabled={!isPremium || isLoading}
+                                pressed={post.isPinned}
+                            >
+                                <InlineStack gap="150" blockAlign="center">
+                                    <Icon source={PinIcon} />
+                                    <Text variant="bodySm" as="span">
+                                        {post.isPinned ? "Unpin" : "Pin"}
+                                    </Text>
+                                    {!isPremium && <ProBadge />}
+                                </InlineStack>
+                            </Button>
+                            <Button
+                                size="slim"
+                                onClick={handleToggleHide}
+                                disabled={!isPremium || isLoading}
+                                tone={post.isHidden ? "critical" : undefined}
+                            >
+                                <InlineStack gap="150" blockAlign="center">
+                                    <Icon source={HideIcon} />
+                                    <Text variant="bodySm" as="span">
+                                        {post.isHidden ? "Unhide" : "Hide"}
+                                    </Text>
+                                    {!isPremium && <ProBadge />}
+                                </InlineStack>
+                            </Button>
+                        </InlineStack>
+                    </InlineStack>
+
+                    {post.isPinned && (
+                        <Banner tone="info">
+                            <Text variant="bodySm">This post is pinned</Text>
+                        </Banner>
+                    )}
+
+                    {post.isHidden && (
+                        <Banner tone="warning">
+                            <Text variant="bodySm">This post is hidden from your storefront</Text>
+                        </Banner>
+                    )}
+
+                    <Text variant="bodyMd" fontWeight="bold" tone="subdued">
+                        {post.date}
+                    </Text>
+
+                    <div style={{
+                        width: '100%',
+                        aspectRatio: '1/1',
+                        borderRadius: '4px',
+                        overflow: 'hidden',
+                        background: '#f1f1f1'
+                    }}>
+                        <img
+                            src={post.mediaUrl}
+                            alt="Instagram post"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                    </div>
+
+                    <BlockStack gap="100">
+                        <Text variant="headingSm" as="h6">Attached products</Text>
+                        {post.products && post.products.length > 0 ? (
+                            <InlineStack gap="100" wrap>
+                                {post.products.map((product, index) => (
+                                    <Badge key={index} tone="success">
+                                        {product.title}
+                                    </Badge>
+                                ))}
                             </InlineStack>
-                        </Button>
-                        <Button size="slim">
+                        ) : (
+                            <Text variant="bodyMd" tone="subdued">No products attached</Text>
+                        )}
+                    </BlockStack>
+
+                    <InlineStack align="start">
+                        <Button
+                            size="slim"
+                            onClick={handleEditProducts}
+                            disabled={!isPremium || isLoading}
+                        >
                             <InlineStack gap="150" blockAlign="center">
-                                <Icon source={HideIcon} />
-                                <Text variant="bodySm" as="span">Hide</Text>
-                                <ProBadge />
+                                <Text variant="bodySm" as="span">Edit products</Text>
+                                {!isPremium && <ProBadge />}
                             </InlineStack>
                         </Button>
                     </InlineStack>
-                </InlineStack>
 
-                <Text variant="bodyMd" fontWeight="bold" tone="subdued">
-                    {post.date}
-                </Text>
+                    {fetcher.data?.success && (
+                        <Banner tone="success">
+                            <Text variant="bodySm">{fetcher.data.message}</Text>
+                        </Banner>
+                    )}
 
-                <div style={{
-                    width: '100%',
-                    aspectRatio: '1/1',
-                    borderRadius: '4px',
-                    overflow: 'hidden',
-                    background: '#f1f1f1'
-                }}>
-                    <img
-                        src={post.mediaUrl}
-                        alt="Instagram post"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                </div>
-
-                <BlockStack gap="100">
-                    <Text variant="headingSm" as="h6">Attached products</Text>
-                    <Text variant="bodyMd" tone="subdued">No products attached</Text>
+                    {fetcher.data?.error && (
+                        <Banner tone="critical">
+                            <Text variant="bodySm">{fetcher.data.error}</Text>
+                        </Banner>
+                    )}
                 </BlockStack>
-
-                <InlineStack align="start">
-                    <Button size="slim">
-                        <InlineStack gap="150" blockAlign="center">
-                            <Text variant="bodySm" as="span">Edit products</Text>
-                            <ProBadge />
-                        </InlineStack>
-                    </Button>
-                </InlineStack>
-            </BlockStack>
-        </Box>
-    </Card>
-);
+            </Box>
+        </Card>
+    );
+};
 
 export default function PostsPage() {
     const { posts, isPremium } = useLoaderData();
+    const fetcher = useFetcher();
+
+    const [selectedPost, setSelectedPost] = useState(null);
+    const [showProductPicker, setShowProductPicker] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+    const handleEditProducts = (post) => {
+        setSelectedPost(post);
+        setShowProductPicker(true);
+    };
+
+    const handleProductSelection = (resources) => {
+        if (!resources || !resources.selection || !selectedPost) return;
+
+        const products = resources.selection.map(product => ({
+            id: product.id,
+            title: product.title,
+            handle: product.handle,
+            image: product.images?.[0]?.originalSrc || null
+        }));
+
+        fetcher.submit(
+            {
+                actionType: "updateProducts",
+                mediaId: selectedPost.id,
+                products: JSON.stringify(products)
+            },
+            { method: "post" }
+        );
+
+        setShowProductPicker(false);
+        setSelectedPost(null);
+    };
+
+    const handleShowUpgrade = () => {
+        setShowUpgradeModal(true);
+    };
 
     return (
         <Page
-            title="Videos"
-            primaryAction={{ content: 'Import video by URL', variant: 'primary' }}
+            title="Posts & Reels"
+            subtitle="Manage your Instagram posts and reels"
         >
             <Layout>
                 {!isPremium && (
@@ -191,9 +396,12 @@ export default function PostsPage() {
                         <Banner
                             title="You're on the free plan"
                             tone="warning"
-                            action={{ content: 'Upgrade' }}
+                            action={{
+                                content: 'Upgrade to Premium',
+                                url: '/app/plans'
+                            }}
                         >
-                            <p>Features on this page like pinning reels, hiding reels, and attaching products are part of the premium plan!</p>
+                            <p>Features on this page like pinning posts, hiding posts, and attaching products are part of the premium plan!</p>
                         </Banner>
                     </Layout.Section>
                 )}
@@ -202,13 +410,68 @@ export default function PostsPage() {
                     <Grid>
                         {posts.map((post) => (
                             <Grid.Cell key={post.id} columnSpan={{ xs: 6, sm: 3, md: 4, lg: 4, xl: 4 }}>
-                                <PostCard post={post} />
+                                <PostCard
+                                    post={post}
+                                    isPremium={isPremium}
+                                    onEditProducts={handleEditProducts}
+                                    onShowUpgrade={handleShowUpgrade}
+                                />
                             </Grid.Cell>
                         ))}
                     </Grid>
                 </Layout.Section>
             </Layout>
             <Box paddingBlockEnd="800" />
+
+            {/* Product Picker Modal */}
+            {showProductPicker && (
+                <ResourcePicker
+                    resourceType="Product"
+                    open={showProductPicker}
+                    onSelection={handleProductSelection}
+                    onCancel={() => {
+                        setShowProductPicker(false);
+                        setSelectedPost(null);
+                    }}
+                    selectMultiple={true}
+                />
+            )}
+
+            {/* Upgrade Modal */}
+            {showUpgradeModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}>
+                    <Card>
+                        <Box padding="400">
+                            <BlockStack gap="400">
+                                <Text variant="headingMd" as="h2">Upgrade to Premium</Text>
+                                <Text variant="bodyMd">
+                                    Pin posts, hide posts, and attach products are premium features.
+                                    Upgrade now to unlock these powerful features and grow your sales!
+                                </Text>
+                                <InlineStack gap="200">
+                                    <Button variant="primary" url="/app/plans">
+                                        View Plans
+                                    </Button>
+                                    <Button onClick={() => setShowUpgradeModal(false)}>
+                                        Maybe Later
+                                    </Button>
+                                </InlineStack>
+                            </BlockStack>
+                        </Box>
+                    </Card>
+                </div>
+            )}
         </Page>
     );
 }

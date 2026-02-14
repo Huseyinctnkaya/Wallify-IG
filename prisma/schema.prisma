@@ -96,3 +96,17 @@ model PostAnalytics {
   @@unique([shop, mediaId])
 }
 
+model Post {
+  id        String   @id @default(uuid())
+  shop      String
+  mediaId   String   // Instagram media ID
+  isPinned  Boolean  @default(false)
+  isHidden  Boolean  @default(false)
+  products  String?  // JSON array of products
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([shop, mediaId])
+  @@index([shop])
+}
+
