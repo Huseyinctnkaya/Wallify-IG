@@ -207,7 +207,7 @@ const ColorSetting = ({ label, color, onChange, hexToHsb, hsbToHex }) => {
 };
 
 export default function Dashboard() {
-    const { instagramAccount, hasCredentials, media, settings } = useLoaderData();
+    const { instagramAccount, hasCredentials, media, settings, shop } = useLoaderData();
     const fetcher = useFetcher();
 
     const isLoading = fetcher.state === "submitting";
@@ -440,9 +440,18 @@ export default function Dashboard() {
                                     <Text variant="bodyMd" as="p">
                                         2. Sync your media to fetch the latest posts
                                     </Text>
-                                    <Text variant="bodyMd" as="p">
-                                        3. Add the Instagram Feed block to your theme
-                                    </Text>
+                                    <InlineStack gap="200" blockAlign="center">
+                                        <Text variant="bodyMd" as="p">
+                                            3. Add the Instagram Feed block to your theme
+                                        </Text>
+                                        <Button
+                                            size="slim"
+                                            url={`https://${shop}/admin/themes/current/editor`}
+                                            external
+                                        >
+                                            Open Theme Editor
+                                        </Button>
+                                    </InlineStack>
                                 </BlockStack>
                             </BlockStack>
                         </Card>
