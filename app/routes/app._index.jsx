@@ -142,6 +142,25 @@ export default function Dashboard() {
                         )}
 
                         <Card>
+                            <BlockStack gap="300">
+                                <Text variant="headingMd" as="h2">
+                                    How it works
+                                </Text>
+                                <BlockStack gap="200">
+                                    <Text variant="bodyMd" as="p">
+                                        1. Connect your Instagram business account
+                                    </Text>
+                                    <Text variant="bodyMd" as="p">
+                                        2. Sync your media to fetch the latest posts
+                                    </Text>
+                                    <Text variant="bodyMd" as="p">
+                                        3. Add the Instagram Feed block to your theme
+                                    </Text>
+                                </BlockStack>
+                            </BlockStack>
+                        </Card>
+
+                        <Card>
                             <BlockStack gap="400">
                                 <Text variant="headingMd" as="h2">
                                     Instagram Connection
@@ -194,25 +213,6 @@ export default function Dashboard() {
                                         </div>
                                     </BlockStack>
                                 )}
-                            </BlockStack>
-                        </Card>
-
-                        <Card>
-                            <BlockStack gap="300">
-                                <Text variant="headingMd" as="h2">
-                                    How it works
-                                </Text>
-                                <BlockStack gap="200">
-                                    <Text variant="bodyMd" as="p">
-                                        1. Connect your Instagram business account
-                                    </Text>
-                                    <Text variant="bodyMd" as="p">
-                                        2. Sync your media to fetch the latest posts
-                                    </Text>
-                                    <Text variant="bodyMd" as="p">
-                                        3. Add the Instagram Feed block to your theme
-                                    </Text>
-                                </BlockStack>
                             </BlockStack>
                         </Card>
                     </BlockStack>
