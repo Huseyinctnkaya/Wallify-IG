@@ -491,11 +491,7 @@ export default function Dashboard() {
                             </BlockStack>
                         </Card>
 
-                        {isDirty && (
-                            <Banner tone="warning" title="Unsaved Changes">
-                                <p>You have unsaved changes in your feed settings. Please save them to see the changes on your storefront.</p>
-                            </Banner>
-                        )}
+
 
                         {/* Editor Section */}
                         {instagramAccount && (
@@ -705,7 +701,14 @@ export default function Dashboard() {
                                     </Grid.Cell>
 
                                     <Grid.Cell columnSpan={{ xs: 6, sm: 6, md: 8, lg: 8, xl: 8 }}>
-                                        <div style={{ position: "sticky", top: "20px" }}>
+                                        <div style={{ position: "sticky", top: "20px", zIndex: 11 }}>
+                                            {isDirty && (
+                                                <Box paddingBlockEnd="200">
+                                                    <Banner tone="warning" title="Unsaved Changes">
+                                                        <p>You have unsaved changes in your feed settings. Please save them to see the changes on your storefront.</p>
+                                                    </Banner>
+                                                </Box>
+                                            )}
                                             <Card>
                                                 <BlockStack gap="400">
                                                     <InlineStack align="space-between" blockAlign="center">
