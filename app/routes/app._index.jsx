@@ -793,13 +793,7 @@ export default function Dashboard() {
                                             )}
                                             <Card>
                                                 <BlockStack gap="400">
-                                                    <InlineStack align="space-between" blockAlign="center">
-                                                        <Text variant="headingMd" as="h3">Preview</Text>
-                                                        <InlineStack gap="200">
-                                                            <Button variant="plain">Manage videos</Button>
-                                                            <Button variant="plain">Add block on homepage</Button>
-                                                        </InlineStack>
-                                                    </InlineStack>
+                                                    <Text variant="headingMd" as="h3">Preview</Text>
 
                                                     <Banner tone="warning">
                                                         <p>Heading, button and few other elements shown in the above preview might look different on the storefront depending on your theme.</p>

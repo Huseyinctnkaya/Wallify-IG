@@ -8,14 +8,15 @@
  * @returns {Promise<boolean>} True if shop has premium access
  */
 export async function isPremiumShop(shop) {
-  // DEV MODE: Premium enabled for testing
-  // TODO: Integrate with Shopify Billing API for production
+  // Phase 1: All features disabled initially
+  // Premium UI will be ready but buttons will be disabled
+  // This allows for easy activation later via Shopify Billing API
 
   // Future implementation example:
   // const subscription = await checkShopifyBilling(shop);
   // return subscription?.status === "ACTIVE";
 
-  return true; // DEV: Premium enabled
+  return false;
 }
 
 /**
