@@ -86,6 +86,48 @@ export default function AnalyticsPage() {
         };
     };
 
+    // Prepare last 7 days data for insights chart
+    const getLast7DaysData = () => {
+        const days = [];
+        const now = new Date();
+
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date(now);
+            date.setDate(now.getDate() - i);
+            date.setHours(0, 0, 0, 0);
+
+            const dateStr = date.toISOString().split('T')[0];
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+
+            const dayData = analytics.dailyStats.find(stat => {
+                const statDate = new Date(stat.date).toISOString().split('T')[0];
+                return statDate === dateStr;
+            });
+
+            days.push({
+                day: dayName,
+                date: dateStr,
+                views: dayData?.views || 0,
+                clicks: dayData?.clicks || 0,
+                total: (dayData?.views || 0) + (dayData?.clicks || 0)
+            });
+        }
+
+        return days;
+    };
+
+    const last7Days = getLast7DaysData();
+    const maxEngagement = Math.max(...last7Days.map(d => d.total), 1);
+
+    // Calculate performance summary stats
+    const bestDay = last7Days.reduce((best, current) =>
+        current.total > best.total ? current : best
+    , last7Days[0]);
+
+    const avgDailyViews = Math.round(last7Days.reduce((sum, day) => sum + day.views, 0) / 7);
+    const avgDailyClicks = Math.round(last7Days.reduce((sum, day) => sum + day.clicks, 0) / 7);
+    const totalEngagement = last7Days.reduce((sum, day) => sum + day.total, 0);
+
     return (
         <Page title="Analytics">
             <Layout>
@@ -162,51 +204,113 @@ export default function AnalyticsPage() {
                 {/* Main Content Areas */}
                 <Layout.Section>
                     <Grid>
-                        {/* Performance Chart Placeholder */}
+                        {/* Performance Chart */}
                         <Grid.Cell columnSpan={{ xs: 6, sm: 6, md: 8, lg: 8, xl: 8 }}>
                             <Card padding="400">
                                 <BlockStack gap="400">
-                                    <Text variant="headingMd" as="h3">Insights</Text>
+                                    <InlineStack align="space-between" blockAlign="center">
+                                        <Text variant="headingMd" as="h3">Last 7 Days Activity</Text>
+                                        <Badge tone="info">{totalEngagement} total interactions</Badge>
+                                    </InlineStack>
                                     <Box padding="600" background="bg-surface-secondary" borderRadius="200">
                                         <BlockStack gap="600">
                                             <InlineStack align="space-between" blockAlign="end">
-                                                {[40, 60, 45, 90, 65, 80, 100].map((height, i) => (
-                                                    <div key={i} style={{
-                                                        height: `${height}px`,
-                                                        width: '30px',
-                                                        background: i === 6 ? '#008060' : '#c1e0d7',
-                                                        borderRadius: '4px 4px 0 0'
-                                                    }} />
-                                                ))}
+                                                {last7Days.map((dayData, i) => {
+                                                    const barHeight = maxEngagement > 0
+                                                        ? Math.max((dayData.total / maxEngagement) * 120, 10)
+                                                        : 10;
+                                                    const isToday = i === 6;
+
+                                                    return (
+                                                        <div
+                                                            key={i}
+                                                            style={{
+                                                                display: 'flex',
+                                                                flexDirection: 'column',
+                                                                alignItems: 'center',
+                                                                gap: '4px',
+                                                                position: 'relative'
+                                                            }}
+                                                        >
+                                                            <div style={{
+                                                                fontSize: '10px',
+                                                                color: '#6d7175',
+                                                                fontWeight: isToday ? 'bold' : 'normal'
+                                                            }}>
+                                                                {dayData.total}
+                                                            </div>
+                                                            <div style={{
+                                                                height: `${barHeight}px`,
+                                                                width: '35px',
+                                                                background: isToday ? '#008060' : '#c1e0d7',
+                                                                borderRadius: '4px 4px 0 0',
+                                                                position: 'relative',
+                                                                cursor: 'pointer',
+                                                                transition: 'opacity 0.2s'
+                                                            }}
+                                                                title={`${dayData.day}: ${dayData.views} views, ${dayData.clicks} clicks`}
+                                                            />
+                                                        </div>
+                                                    );
+                                                })}
                                             </InlineStack>
                                             <InlineStack align="space-between">
-                                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                                                    <Text key={day} variant="bodySm" tone="subdued">{day}</Text>
+                                                {last7Days.map((dayData, i) => (
+                                                    <Text key={i} variant="bodySm" tone="subdued" fontWeight={i === 6 ? "bold" : "regular"}>
+                                                        {dayData.day}
+                                                    </Text>
                                                 ))}
                                             </InlineStack>
                                         </BlockStack>
                                     </Box>
+                                    <InlineStack gap="400" wrap>
+                                        <InlineStack gap="100" blockAlign="center">
+                                            <div style={{ width: '12px', height: '12px', background: '#c1e0d7', borderRadius: '2px' }} />
+                                            <Text variant="bodySm" tone="subdued">Previous days</Text>
+                                        </InlineStack>
+                                        <InlineStack gap="100" blockAlign="center">
+                                            <div style={{ width: '12px', height: '12px', background: '#008060', borderRadius: '2px' }} />
+                                            <Text variant="bodySm" tone="subdued">Today</Text>
+                                        </InlineStack>
+                                    </InlineStack>
                                 </BlockStack>
                             </Card>
                         </Grid.Cell>
 
                         {/* Summary Info */}
                         <Grid.Cell columnSpan={{ xs: 6, sm: 6, md: 4, lg: 4, xl: 4 }}>
-                            <Card title="Summary Breakdown">
+                            <Card>
                                 <Box padding="400">
                                     <BlockStack gap="400">
-                                        <Text variant="headingMd" as="h3">Performance Summary</Text>
+                                        <Text variant="headingMd" as="h3">Weekly Summary</Text>
                                         <Divider />
-                                        <InlineStack align="space-between">
-                                            <Text variant="bodyMd" as="span">Desktop Views</Text>
-                                            <Text variant="bodyMd" as="span" fontWeight="bold">84%</Text>
-                                        </InlineStack>
-                                        <InlineStack align="space-between">
-                                            <Text variant="bodyMd" as="span">Mobile Views</Text>
-                                            <Text variant="bodyMd" as="span" fontWeight="bold">16%</Text>
-                                        </InlineStack>
+                                        <BlockStack gap="300">
+                                            <InlineStack align="space-between">
+                                                <Text variant="bodyMd" as="span" tone="subdued">Best Day</Text>
+                                                <Badge tone="success">{bestDay.day}</Badge>
+                                            </InlineStack>
+                                            <Text variant="bodySm" tone="subdued">
+                                                {bestDay.total} interactions on {bestDay.day}
+                                            </Text>
+                                        </BlockStack>
                                         <Divider />
-                                        <Text variant="bodySm" tone="subdued">Most interactions happen on desktop layouts during working hours.</Text>
+                                        <BlockStack gap="300">
+                                            <InlineStack align="space-between">
+                                                <Text variant="bodyMd" as="span" tone="subdued">Avg Daily Views</Text>
+                                                <Text variant="bodyMd" as="span" fontWeight="bold">{avgDailyViews}</Text>
+                                            </InlineStack>
+                                            <InlineStack align="space-between">
+                                                <Text variant="bodyMd" as="span" tone="subdued">Avg Daily Clicks</Text>
+                                                <Text variant="bodyMd" as="span" fontWeight="bold">{avgDailyClicks}</Text>
+                                            </InlineStack>
+                                        </BlockStack>
+                                        <Divider />
+                                        <Text variant="bodySm" tone="subdued">
+                                            {totalEngagement > 0
+                                                ? `Your feed received ${totalEngagement} total interactions this week.`
+                                                : 'No interactions yet. Share your feed to start collecting data!'
+                                            }
+                                        </Text>
                                     </BlockStack>
                                 </Box>
                             </Card>

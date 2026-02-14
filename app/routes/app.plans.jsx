@@ -48,7 +48,7 @@ export default function Plans() {
                                                 <List.Item>Basic Analytics</List.Item>
                                                 <List.Item>Daily Auto-Sync</List.Item>
                                                 <List.Item>Slider Layout Only</List.Item>
-                                                <List.Item>Max 12 Photos</List.Item>
+                                                <List.Item>Max 12 Photos & Videos</List.Item>
                                                 <List.Item>Mobile Responsive</List.Item>
                                             </List>
                                         </BlockStack>
@@ -84,10 +84,12 @@ export default function Plans() {
                                                 Everything in Free, plus:
                                             </Text>
                                             <List type="bullet">
-                                                <List.Item>Advanced Analytics</List.Item>
+                                                <List.Item>Advanced Analytics (Week-over-week insights)</List.Item>
                                                 <List.Item>Unlimited Photos & Videos</List.Item>
                                                 <List.Item>Slider & Grid Layouts</List.Item>
+                                                <List.Item>Pin & Hide Posts/Reels</List.Item>
                                                 <List.Item>Shoppable Posts (Tag Products)</List.Item>
+                                                <List.Item>Show Pinned Reels Only Filter</List.Item>
                                                 <List.Item>Real-time Sync</List.Item>
                                                 <List.Item>Video & Reels Support</List.Item>
                                                 <List.Item>Priority Support</List.Item>
