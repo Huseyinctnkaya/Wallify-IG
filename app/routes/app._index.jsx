@@ -749,7 +749,6 @@ export default function Dashboard() {
 
                         {/* Footer button */}
                         <Button
-                            icon={null}
                             onClick={() => {
                                 const url = typeof selectedMedia === 'string' ? 'https://instagram.com' : (selectedMedia.permalink || 'https://instagram.com');
                                 window.open(url, '_blank');
