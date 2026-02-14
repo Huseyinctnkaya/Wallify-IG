@@ -22,6 +22,7 @@ export default function App() {
         <Link to="/app" rel="home">
           Instagram Feed
         </Link>
+        <Link to="/app/plans">Plans</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>
