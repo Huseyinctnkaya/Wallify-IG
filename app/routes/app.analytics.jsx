@@ -42,6 +42,14 @@ export const loader = async ({ request }) => {
         { date: '2026-02-14', views: 300, clicks: 64 },
     ];
 
+    const mockTopPosts = [
+        { id: '1', mediaId: '17841401234567890', views: 1250, clicks: 185 },
+        { id: '2', mediaId: '17841409876543210', views: 980, clicks: 142 },
+        { id: '3', mediaId: '17841405556667778', views: 850, clicks: 110 },
+        { id: '4', mediaId: '17841401112223334', views: 720, clicks: 95 },
+        { id: '5', mediaId: '17841409998887776', views: 600, clicks: 58 },
+    ];
+
     const displayAnalytics = analytics.dailyStats.length > 0 ? analytics : {
         dailyStats: mockDailyStats,
         totals: {
@@ -53,7 +61,7 @@ export const loader = async ({ request }) => {
 
     return json({
         analytics: displayAnalytics,
-        topPosts: topPosts.length > 0 ? topPosts : null,
+        topPosts: topPosts.length > 0 ? topPosts : mockTopPosts,
         shop
     });
 };
@@ -77,7 +85,9 @@ export default function AnalyticsPage() {
                                 <BlockStack gap="200">
                                     <InlineStack gap="100" blockAlign="center">
                                         <Text variant="headingSm" as="h6" tone="subdued">Total Views</Text>
-                                        <Icon source={ViewIcon} tone="base" />
+                                        <div style={{ marginLeft: '0px', display: 'flex' }}>
+                                            <Icon source={ViewIcon} tone="base" />
+                                        </div>
                                     </InlineStack>
                                     <Text variant="headingLg" as="p">{analytics.totals.views.toLocaleString()}</Text>
                                     <Badge tone="success">+12% from last week</Badge>
@@ -89,7 +99,9 @@ export default function AnalyticsPage() {
                                 <BlockStack gap="200">
                                     <InlineStack gap="100" blockAlign="center">
                                         <Text variant="headingSm" as="h6" tone="subdued">Total Clicks</Text>
-                                        <Icon source={ArrowRightIcon} tone="base" />
+                                        <div style={{ marginLeft: '0px', display: 'flex' }}>
+                                            <Icon source={ArrowRightIcon} tone="base" />
+                                        </div>
                                     </InlineStack>
                                     <Text variant="headingLg" as="p">{analytics.totals.clicks.toLocaleString()}</Text>
                                     <Badge tone="success">+8% from last week</Badge>
@@ -101,7 +113,9 @@ export default function AnalyticsPage() {
                                 <BlockStack gap="200">
                                     <InlineStack gap="100" blockAlign="center">
                                         <Text variant="headingSm" as="h6" tone="subdued">Click-through Rate</Text>
-                                        <Icon source={ChartVerticalIcon} tone="base" />
+                                        <div style={{ marginLeft: '0px', display: 'flex' }}>
+                                            <Icon source={ChartVerticalIcon} tone="base" />
+                                        </div>
                                     </InlineStack>
                                     <Text variant="headingLg" as="p">{analytics.totals.ctr}%</Text>
                                     <Badge tone="attention">Stable</Badge>
@@ -113,7 +127,9 @@ export default function AnalyticsPage() {
                                 <BlockStack gap="200">
                                     <InlineStack gap="100" blockAlign="center">
                                         <Text variant="headingSm" as="h6" tone="subdued">Total Engagement</Text>
-                                        <Icon source={CalendarIcon} tone="base" />
+                                        <div style={{ marginLeft: '0px', display: 'flex' }}>
+                                            <Icon source={CalendarIcon} tone="base" />
+                                        </div>
                                     </InlineStack>
                                     <Text variant="headingLg" as="p">{(analytics.totals.views + analytics.totals.clicks).toLocaleString()}</Text>
                                     <Badge tone="success">+15%</Badge>
@@ -131,10 +147,23 @@ export default function AnalyticsPage() {
                             <Card padding="400">
                                 <BlockStack gap="400">
                                     <Text variant="headingMd" as="h3">Insights</Text>
-                                    <Box padding="1000" background="bg-surface-secondary" borderRadius="200">
-                                        <BlockStack align="center" gap="400">
-                                            <Icon source={ChartVerticalIcon} tone="subdued" />
-                                            <Text variant="bodyMd" tone="subdued">Visual chart showing view/click trends will appear here as more data is collected.</Text>
+                                    <Box padding="600" background="bg-surface-secondary" borderRadius="200">
+                                        <BlockStack gap="600">
+                                            <InlineStack align="space-between" blockAlign="end">
+                                                {[40, 60, 45, 90, 65, 80, 100].map((height, i) => (
+                                                    <div key={i} style={{
+                                                        height: `${height}px`,
+                                                        width: '30px',
+                                                        background: i === 6 ? '#008060' : '#c1e0d7',
+                                                        borderRadius: '4px 4px 0 0'
+                                                    }} />
+                                                ))}
+                                            </InlineStack>
+                                            <InlineStack align="space-between">
+                                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                                                    <Text key={day} variant="bodySm" tone="subdued">{day}</Text>
+                                                ))}
+                                            </InlineStack>
                                         </BlockStack>
                                     </Box>
                                 </BlockStack>
