@@ -1,27 +1,63 @@
 {% assign media_json = shop.metafields.instagram_feed.media %}
-{% assign media_items = media_json.value %}
+{% assign widget_config_json = shop.metafields.instagram_feed.widget_config %}
 
-{% if media_items %}
-  <div class="instagram-feed-container" style="padding: {{ block.settings.padding }}px;">
-    {% if block.settings.heading != blank %}
-      <h2 class="instagram-feed-heading" style="text-align: {{ block.settings.heading_alignment }}; color: {{ block.settings.heading_color }};">
-        {{ block.settings.heading }}
-      </h2>
-    {% endif %}
+{% if media_json %}
+  {% assign media_items = media_json.value %}
 
-    <div class="instagram-feed-grid" style="
-        display: grid; 
-        grid-template-columns: repeat({{ block.settings.columns_desktop }}, 1fr); 
-        gap: {{ block.settings.grid_gap }}px;
-    ">
-      {% for item in media_items limit: block.settings.limit %}
-        <a href="{{ item.permalink }}" target="_blank" class="instagram-feed-item">
-          <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy" width="100%" height="auto" />
-          <div class="instagram-feed-overlay">
-            <span class="instagram-icon">@{{ item.username }}</span>
-          </div>
-        </a>
-      {% endfor %}
+  {% if widget_config_json %}
+    {% assign config = widget_config_json.value %}
+  {% else %}
+    {% comment %} Default fallback config if no widget published {% endcomment %}
+    {% assign config = block.settings %}
+  {% endif %}
+
+  {% comment %}
+    Allow overriding config from theme editor if needed,
+    but for now we prioritize App Builder config if exists
+  {% endcomment %}
+
+  <div class="instagram-feed-section" style="padding: 40px 0;">
+    <div class="instagram-feed-container">
+      {% if config.showTitle %}
+        <h2 class="instagram-feed-heading">
+          {{ config.sectionTitle | default: 'Follow us on Instagram' }}
+        </h2>
+      {% endif %}
+
+      {% if config.description != blank %}
+        <p class="instagram-feed-description">{{ config.description }}</p>
+      {% endif %}
+
+      <div
+        class="instagram-feed-wrapper instagram-feed-{{ config.layout }}"
+        style="
+          --columns-desktop: {{ config.columnsDesktop | default: 4 }};
+          --columns-mobile: {{ config.columnsMobile | default: 2 }};
+          --gap: {{ config.gap | default: 10 }}px;
+        "
+      >
+        {% assign limit = config.limit | default: 8 %}
+        {% for item in media_items limit: limit %}
+          <a href="{{ item.permalink }}" target="_blank" class="instagram-feed-item">
+            <div class="instagram-feed-image-wrapper">
+              <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy" width="100%" height="auto">
+              {% if config.overlay %}
+                <div class="instagram-feed-overlay">
+                  <span class="instagram-icon">@{{ item.username }}</span>
+                </div>
+              {% endif %}
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+
+      {% if config.showButton %}
+        <div class="instagram-feed-footer">
+          <a href="{{ config.buttonUrl }}" target="_blank" class="instagram-feed-btn">
+            {{ config.buttonText }}
+          </a>
+        </div>
+      {% endif %}
     </div>
   </div>
 
@@ -29,29 +65,71 @@
     .instagram-feed-container {
       max-width: 1200px;
       margin: 0 auto;
+      padding: 0 20px;
     }
     .instagram-feed-heading {
-      margin-bottom: 20px;
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 24px;
+      font-weight: bold;
     }
-    .instagram-feed-item {
+    .instagram-feed-description {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #666;
+    }
+
+    .instagram-feed-wrapper {
+      display: grid;
+      gap: var(--gap);
+    }
+
+    /* GRID LAYOUT */
+    .instagram-feed-grid {
+      grid-template-columns: repeat(var(--columns-desktop), 1fr);
+    }
+
+    /* CAROUSEL LAYOUT */
+    .instagram-feed-carousel {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      grid-template-columns: none; /* override grid */
+      padding-bottom: 20px; /* space for scrollbar */
+    }
+
+    .instagram-feed-carousel .instagram-feed-item {
+      flex: 0 0 calc(100% / var(--columns-desktop) - var(--gap));
+      scroll-snap-align: start;
+      min-width: calc(100% / var(--columns-desktop) - var(--gap));
+    }
+
+    .instagram-feed-image-wrapper {
       position: relative;
       display: block;
       overflow: hidden;
       aspect-ratio: 1 / 1;
+      border-radius: 8px;
     }
-    .instagram-feed-item img {
+
+    .instagram-feed-image-wrapper img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       transition: transform 0.3s ease;
+      display: block;
     }
     .instagram-feed-item:hover img {
       transform: scale(1.05);
     }
     .instagram-feed-overlay {
       position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.3);
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.3);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -63,18 +141,37 @@
     .instagram-feed-item:hover .instagram-feed-overlay {
       opacity: 1;
     }
-    
+
+    .instagram-feed-footer {
+      text-align: center;
+      margin-top: 30px;
+    }
+    .instagram-feed-btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: #000;
+      color: #fff;
+      text-decoration: 'none';
+      border-radius: 4px;
+      font-weight: bold;
+    }
+
     @media (max-width: 768px) {
       .instagram-feed-grid {
-        grid-template-columns: repeat({{ block.settings.columns_mobile }}, 1fr) !important;
+        grid-template-columns: repeat(var(--columns-mobile), 1fr);
+      }
+
+      .instagram-feed-carousel .instagram-feed-item {
+        flex: 0 0 calc(100% / var(--columns-mobile) - var(--gap));
+        min-width: calc(100% / var(--columns-mobile) - var(--gap));
       }
     }
   </style>
 {% else %}
   {% if request.design_mode %}
-    <div style="padding: 20px; background: #f4f4f4; text-align: center;">
-      <p>Instagram Feed App: No media found.</p>
-      <p>Please connect your account in the App Settings and click "Sync Now".</p>
+    <div style="padding: 40px; text-align: center; background: #f9f9f9;">
+      <p><strong>Instagram Feed App</strong></p>
+      <p>No media found. Please create and publish a widget in the App Dashboard.</p>
     </div>
   {% endif %}
 {% endif %}
@@ -83,75 +180,6 @@
 {
   "name": "Instagram Feed",
   "target": "section",
-  "settings": [
-    {
-      "type": "text",
-      "id": "heading",
-      "label": "Heading",
-      "default": "Follow us on Instagram"
-    },
-    {
-      "type": "color",
-      "id": "heading_color",
-      "label": "Heading Color",
-      "default": "#000000"
-    },
-    {
-      "type": "select",
-      "id": "heading_alignment",
-      "label": "Heading Alignment",
-      "options": [
-        { "value": "left", "label": "Left" },
-        { "value": "center", "label": "Center" },
-        { "value": "right", "label": "Right" }
-      ],
-      "default": "center"
-    },
-    {
-      "type": "range",
-      "id": "columns_desktop",
-      "min": 1,
-      "max": 6,
-      "step": 1,
-      "label": "Columns (Desktop)",
-      "default": 4
-    },
-    {
-      "type": "range",
-      "id": "columns_mobile",
-      "min": 1,
-      "max": 3,
-      "step": 1,
-      "label": "Columns (Mobile)",
-      "default": 2
-    },
-    {
-      "type": "range",
-      "id": "limit",
-      "min": 1,
-      "max": 12,
-      "step": 1,
-      "label": "Max Items",
-      "default": 8
-    },
-    {
-      "type": "range",
-      "id": "grid_gap",
-      "min": 0,
-      "max": 50,
-      "step": 5,
-      "label": "Grid Gap (px)",
-      "default": 10
-    },
-    {
-      "type": "range",
-      "id": "padding",
-      "min": 0,
-      "max": 100,
-      "step": 10,
-      "label": "Section Padding (px)",
-      "default": 40
-    }
-  ]
+  "settings": []
 }
 {% endschema %}
