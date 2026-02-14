@@ -9,7 +9,7 @@ const INSTAGRAM_GRAPH_URL = "https://graph.instagram.com";
  */
 export async function fetchInstagramMedia(instagramUserId, accessToken) {
     const fields = "id,caption,media_type,media_url,permalink,thumbnail_url,timestamp,username";
-    const url = `${INSTAGRAM_GRAPH_URL}/${instagramUserId}/media?fields=${fields}&access_token=${accessToken}&limit=12`;
+    const url = `${INSTAGRAM_GRAPH_URL}/${instagramUserId}/media?fields=${fields}&access_token=${accessToken}&limit=100`;
 
     const response = await fetch(url);
 
