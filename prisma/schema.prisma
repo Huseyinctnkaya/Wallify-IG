@@ -42,14 +42,13 @@ model InstagramAccount {
   updatedAt   DateTime @updatedAt
 }
 
-model Widget {
-  id        String   @id @default(uuid())
-  shop      String
-  title     String   @default("My Feed Widget")
-  type      String   @default("feed") // feed, story, etc.
-  status    String   @default("active") // active, draft
-  configuration String // JSON string for all visual settings (layout, colors, text)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Settings {
+  id          String   @id @default(uuid())
+  shop        String   @unique
+  gridColumns Int      @default(4)
+  gridRows    Int      @default(2)
+  showTitle   Boolean  @default(true)
+  titleText   String   @default("Instagram Feed")
+  updatedAt   DateTime @updatedAt
 }
 

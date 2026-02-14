@@ -1,29 +1,25 @@
 import { json } from "@remix-run/node";
-import { useLoaderData, Form, useSubmit } from "@remix-run/react";
+import { useLoaderData, useFetcher } from "@remix-run/react";
 import {
     Page,
     Layout,
     Card,
     Button,
     BlockStack,
-    Text,
     InlineStack,
+    Text,
     Banner,
-    Box,
-    Divider
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { getInstagramAccount, saveInstagramAccount, disconnectInstagramAccount } from "../models/instagram.server";
-import { getWidgets, deleteWidget } from "../models/widget.server";
 
 export async function loader({ request }) {
     const { session } = await authenticate.admin(request);
     const { shop } = session;
 
     const instagramAccount = await getInstagramAccount(shop);
-    const widgets = await getWidgets(shop);
 
-    // Check credentials env
+    // Check if Instagram credentials are configured
     const hasCredentials = !!(
         process.env.INSTAGRAM_APP_ID &&
         process.env.INSTAGRAM_APP_SECRET &&
@@ -32,7 +28,6 @@ export async function loader({ request }) {
 
     return json({
         instagramAccount,
-        widgets,
         shop,
         hasCredentials,
     });
@@ -44,38 +39,40 @@ export async function action({ request }) {
     const formData = await request.formData();
     const actionType = formData.get("actionType");
 
-    if (actionType === "deleteWidget") {
-        const widgetId = formData.get("widgetId");
-        await deleteWidget(widgetId);
-        return json({ success: true, message: "Widget deleted" });
-    }
-
-    // ... (Instagram connecting logic same as before)
     if (actionType === "connect") {
+        // Connect using environment variables
         const appId = process.env.INSTAGRAM_APP_ID;
         const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
 
-        if (!appId || !accessToken) return json({ error: "Missing config" }, { status: 500 });
+        if (!appId || !accessToken) {
+            return json({
+                error: "Instagram credentials not configured in .env file"
+            }, { status: 500 });
+        }
 
         try {
+            // Fetch user profile to get username
             const { fetchUserProfile } = await import("../models/instagram.server");
             const profile = await fetchUserProfile(accessToken);
 
+            // Save to database
             await saveInstagramAccount({
                 shop,
                 accessToken,
                 userId: profile.id,
                 username: profile.username,
             });
-            return json({ success: true, message: "Connected!" });
-        } catch (e) {
-            return json({ error: e.message }, { status: 500 });
+
+            return json({ success: true, message: "Instagram connected successfully!" });
+        } catch (error) {
+            console.error("Connect error:", error);
+            return json({ error: error.message || "Failed to connect Instagram" }, { status: 500 });
         }
     }
 
     if (actionType === "disconnect") {
         await disconnectInstagramAccount(shop);
-        return json({ success: true });
+        return json({ success: true, message: "Instagram disconnected" });
     }
 
     if (actionType === "sync") {
@@ -93,93 +90,132 @@ export async function action({ request }) {
 }
 
 export default function Dashboard() {
-    const { instagramAccount, widgets, hasCredentials } = useLoaderData();
-    const submit = useSubmit();
+    const { instagramAccount, hasCredentials } = useLoaderData();
+    const fetcher = useFetcher();
 
-    const handleCreateWidget = () => {
-        window.location.href = "/app/widget/new";
+    const isLoading = fetcher.state === "submitting";
+
+    const handleConnect = () => {
+        fetcher.submit(
+            { actionType: "connect" },
+            { method: "post" }
+        );
     };
 
-    const handleDeleteWidget = (id) => {
-        if (confirm("Delete this widget?")) {
-            submit({ actionType: "deleteWidget", widgetId: id }, { method: "post" });
+    const handleDisconnect = () => {
+        if (confirm("Are you sure you want to disconnect Instagram?")) {
+            fetcher.submit(
+                { actionType: "disconnect" },
+                { method: "post" }
+            );
         }
     };
 
-    const handleSync = () => submit({ actionType: "sync" }, { method: "post" });
-    const handleConnect = () => submit({ actionType: "connect" }, { method: "post" });
-    const handleDisconnect = () => submit({ actionType: "disconnect" }, { method: "post" });
+    const handleSync = () => {
+        fetcher.submit(
+            { actionType: "sync" },
+            { method: "post" }
+        );
+    };
 
     return (
-        <Page title="Dashboard">
+        <Page title="Instagram Feed">
             <Layout>
                 <Layout.Section>
-                    {/* Instagram Connection Card */}
-                    <Card>
-                        <BlockStack gap="400">
-                            <InlineStack align="space-between" blockAlign="center">
-                                <Text variant="headingMd" as="h2">Instagram Connection</Text>
-                                {instagramAccount && (
-                                    <Button onClick={handleSync}>Sync Media</Button>
-                                )}
-                            </InlineStack>
+                    <BlockStack gap="400">
+                        {!hasCredentials && (
+                            <Banner tone="warning">
+                                <p>Instagram credentials not configured. Please add INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET, and INSTAGRAM_ACCESS_TOKEN to your .env file.</p>
+                            </Banner>
+                        )}
 
-                            <Divider />
+                        {fetcher.data?.error && (
+                            <Banner tone="critical">
+                                <p>{fetcher.data.error}</p>
+                            </Banner>
+                        )}
 
-                            {instagramAccount ? (
-                                <InlineStack align="space-between" blockAlign="center">
-                                    <InlineStack gap="200" blockAlign="center">
-                                        <div style={{ width: 10, height: 10, background: "green", borderRadius: "50%" }} />
-                                        <Text>Connected as <strong>@{instagramAccount.username}</strong></Text>
-                                    </InlineStack>
-                                    <Button tone="critical" onClick={handleDisconnect}>Disconnect</Button>
-                                </InlineStack>
-                            ) : (
-                                <BlockStack gap="200">
-                                    <Text tone="subdued">Connect your account to fetch media.</Text>
-                                    <Button variant="primary" onClick={handleConnect} disabled={!hasCredentials}>Connect Instagram</Button>
-                                </BlockStack>
-                            )}
-                        </BlockStack>
-                    </Card>
-                </Layout.Section>
+                        {fetcher.data?.success && fetcher.data?.message && (
+                            <Banner tone="success">
+                                <p>{fetcher.data.message}</p>
+                            </Banner>
+                        )}
 
-                <Layout.Section>
-                    <InlineStack align="space-between" blockAlign="center">
-                        <Text variant="headingLg" as="h1">Widgets</Text>
-                        <Button variant="primary" onClick={handleCreateWidget}>Create New Widget</Button>
-                    </InlineStack>
-                </Layout.Section>
-
-                <Layout.Section>
-                    {widgets.length === 0 ? (
                         <Card>
-                            <BlockStack gap="400" align="center">
-                                <div style={{ padding: "40px", textAlign: "center" }}>
-                                    <Text variant="headingMd" as="h3">No widgets yet</Text>
-                                    <p style={{ marginTop: 10, marginBottom: 20 }}>Create your first widget to display Instagram feed on your store.</p>
-                                    <Button variant="primary" onClick={handleCreateWidget}>Create Widget</Button>
-                                </div>
+                            <BlockStack gap="400">
+                                <Text variant="headingMd" as="h2">
+                                    Instagram Connection
+                                </Text>
+
+                                {instagramAccount ? (
+                                    <BlockStack gap="300">
+                                        <InlineStack gap="200" blockAlign="center">
+                                            <div style={{
+                                                width: "8px",
+                                                height: "8px",
+                                                borderRadius: "50%",
+                                                backgroundColor: "#00a650"
+                                            }} />
+                                            <Text variant="bodyMd" as="p">
+                                                Connected as <strong>@{instagramAccount.username}</strong>
+                                            </Text>
+                                        </InlineStack>
+
+                                        <InlineStack gap="200">
+                                            <Button
+                                                onClick={handleSync}
+                                                loading={isLoading && fetcher.formData?.get("actionType") === "sync"}
+                                            >
+                                                Sync Media
+                                            </Button>
+                                            <Button
+                                                onClick={handleDisconnect}
+                                                loading={isLoading && fetcher.formData?.get("actionType") === "disconnect"}
+                                                tone="critical"
+                                            >
+                                                Disconnect
+                                            </Button>
+                                        </InlineStack>
+                                    </BlockStack>
+                                ) : (
+                                    <BlockStack gap="300">
+                                        <Text variant="bodyMd" as="p" tone="subdued">
+                                            Connect your Instagram business account to display your feed.
+                                        </Text>
+                                        <div>
+                                            <Button
+                                                variant="primary"
+                                                onClick={handleConnect}
+                                                loading={isLoading}
+                                                disabled={!hasCredentials}
+                                            >
+                                                Connect Instagram
+                                            </Button>
+                                        </div>
+                                    </BlockStack>
+                                )}
                             </BlockStack>
                         </Card>
-                    ) : (
-                        <BlockStack gap="400">
-                            {widgets.map(widget => (
-                                <Card key={widget.id}>
-                                    <InlineStack align="space-between" blockAlign="center">
-                                        <BlockStack gap="100">
-                                            <Text variant="headingMd" as="h3">{widget.title}</Text>
-                                            <Text tone="subdued" as="span">ID: {widget.id}</Text>
-                                        </BlockStack>
-                                        <InlineStack gap="200">
-                                            <Button url={`/app/widget/${widget.id}`}>Edit</Button>
-                                            <Button tone="critical" onClick={() => handleDeleteWidget(widget.id)}>Delete</Button>
-                                        </InlineStack>
-                                    </InlineStack>
-                                </Card>
-                            ))}
-                        </BlockStack>
-                    )}
+
+                        <Card>
+                            <BlockStack gap="300">
+                                <Text variant="headingMd" as="h2">
+                                    How it works
+                                </Text>
+                                <BlockStack gap="200">
+                                    <Text variant="bodyMd" as="p">
+                                        1. Connect your Instagram business account
+                                    </Text>
+                                    <Text variant="bodyMd" as="p">
+                                        2. Sync your media to fetch the latest posts
+                                    </Text>
+                                    <Text variant="bodyMd" as="p">
+                                        3. Add the Instagram Feed block to your theme
+                                    </Text>
+                                </BlockStack>
+                            </BlockStack>
+                        </Card>
+                    </BlockStack>
                 </Layout.Section>
             </Layout>
         </Page>
