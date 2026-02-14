@@ -1,5 +1,5 @@
 {
-  "name": "instagram-feed-app",
+  "name": "devsapig",
   "private": true,
   "scripts": {
     "build": "remix vite:build",

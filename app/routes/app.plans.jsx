@@ -45,10 +45,11 @@ export default function Plans() {
                                                 Includes:
                                             </Text>
                                             <List type="bullet">
-                                                <List.Item>Basic Instagram Feed</List.Item>
+                                                <List.Item>1 Instagram Account</List.Item>
                                                 <List.Item>Daily Auto-Sync</List.Item>
+                                                <List.Item>Grid Layout Only</List.Item>
+                                                <List.Item>Max 12 Photos</List.Item>
                                                 <List.Item>Mobile Responsive</List.Item>
-                                                <List.Item>Standard Support</List.Item>
                                             </List>
                                         </BlockStack>
                                     </BlockStack>
@@ -70,7 +71,7 @@ export default function Plans() {
                                                 For growing brands
                                             </Text>
                                             <Text variant="heading2xl" as="p">
-                                                $9.99 <Text variant="bodyMd" as="span" tone="subdued">/month</Text>
+                                                $2.99 <Text variant="bodyMd" as="span" tone="subdued" style={{ textDecoration: "line-through" }}>$5.00</Text> <Text variant="bodyMd" as="span" tone="subdued">/month</Text>
                                             </Text>
                                         </BlockStack>
 
@@ -83,10 +84,12 @@ export default function Plans() {
                                                 Everything in Free, plus:
                                             </Text>
                                             <List type="bullet">
-                                                <List.Item>Unlimited Layouts</List.Item>
-                                                <List.Item>Real-time Sync</List.Item>
+                                                <List.Item>Unlimited Photos & Videos</List.Item>
+                                                <List.Item>Slider & Grid Layouts</List.Item>
                                                 <List.Item>Shoppable Posts (Tag Products)</List.Item>
-                                                <List.Item>Remove Branding</List.Item>
+                                                <List.Item>Real-time Sync</List.Item>
+                                                <List.Item>Remove "Powered by" Branding</List.Item>
+                                                <List.Item>Video & Reels Support</List.Item>
                                                 <List.Item>Priority Support</List.Item>
                                             </List>
                                         </BlockStack>
@@ -96,7 +99,7 @@ export default function Plans() {
                         </Grid>
                     </div>
                 </Layout.Section>
-            </Layout>
-        </Page>
+            </Layout >
+        </Page >
     );
 }
