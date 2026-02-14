@@ -81,9 +81,41 @@
                   data-caption="{{ item.caption }}"
                   data-products='{{ item.products | json }}'
                   data-username="{{ item.username }}"
+                  data-has-carousel="{{ item.children.size | default: 0 }}"
                   style="border-radius: {{ radius_value }};"
                 >
-                  <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy">
+                  {% if item.children.size > 0 %}
+                    {%- comment -%} Carousel post with multiple images {%- endcomment -%}
+                    <div class="instagram-carousel-container">
+                      <div class="instagram-carousel-track">
+                        {% for child in item.children %}
+                          <div class="instagram-carousel-slide">
+                            <img src="{{ child.thumbnail_url | default: child.media_url }}" alt="{{ item.caption }}" loading="lazy">
+                          </div>
+                        {% endfor %}
+                      </div>
+                      <div class="instagram-carousel-dots">
+                        {% for child in item.children %}
+                          <span class="instagram-carousel-dot"></span>
+                        {% endfor %}
+                      </div>
+                      {% if item.children.size > 1 %}
+                        <button class="instagram-carousel-prev" aria-label="Previous image">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                          </svg>
+                        </button>
+                        <button class="instagram-carousel-next" aria-label="Next image">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                          </svg>
+                        </button>
+                      {% endif %}
+                    </div>
+                  {% else %}
+                    {%- comment -%} Single image/video post {%- endcomment -%}
+                    <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy">
+                  {% endif %}
 
                   {% if item.products.size > 0 %}
                     <div class="instagram-product-badge">
@@ -138,9 +170,41 @@
                 data-caption="{{ item.caption }}"
                 data-products='{{ item.products | json }}'
                 data-username="{{ item.username }}"
+                data-has-carousel="{{ item.children.size | default: 0 }}"
                 style="border-radius: {{ radius_value }};"
               >
-                <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy">
+                {% if item.children.size > 0 %}
+                  {%- comment -%} Carousel post with multiple images {%- endcomment -%}
+                  <div class="instagram-carousel-container">
+                    <div class="instagram-carousel-track">
+                      {% for child in item.children %}
+                        <div class="instagram-carousel-slide">
+                          <img src="{{ child.thumbnail_url | default: child.media_url }}" alt="{{ item.caption }}" loading="lazy">
+                        </div>
+                      {% endfor %}
+                    </div>
+                    <div class="instagram-carousel-dots">
+                      {% for child in item.children %}
+                        <span class="instagram-carousel-dot"></span>
+                      {% endfor %}
+                    </div>
+                    {% if item.children.size > 1 %}
+                      <button class="instagram-carousel-prev" aria-label="Previous image">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                          <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                      </button>
+                      <button class="instagram-carousel-next" aria-label="Next image">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                          <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                      </button>
+                    {% endif %}
+                  </div>
+                {% else %}
+                  {%- comment -%} Single image/video post {%- endcomment -%}
+                  <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy">
+                {% endif %}
 
                 {% if item.products.size > 0 %}
                   <div class="instagram-product-badge">
@@ -325,6 +389,54 @@
       closeBtn.addEventListener('click', closePopup);
       overlay.addEventListener('click', closePopup);
 
+      // Carousel Logic for Multi-Image Posts
+      document.querySelectorAll(`[data-feed-id="${feedId}"] .instagram-carousel-container`).forEach((container) => {
+        const track = container.querySelector('.instagram-carousel-track');
+        const slides = container.querySelectorAll('.instagram-carousel-slide');
+        const dots = container.querySelectorAll('.instagram-carousel-dot');
+        const prevBtn = container.querySelector('.instagram-carousel-prev');
+        const nextBtn = container.querySelector('.instagram-carousel-next');
+
+        if (slides.length === 0) return;
+
+        let currentSlide = 0;
+
+        function updateCarousel() {
+          track.style.transform = `translateX(-${currentSlide * 100}%)`;
+
+          dots.forEach((dot, idx) => {
+            dot.classList.toggle('active', idx === currentSlide);
+          });
+        }
+
+        if (prevBtn) {
+          prevBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            currentSlide = Math.max(0, currentSlide - 1);
+            updateCarousel();
+          });
+        }
+
+        if (nextBtn) {
+          nextBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            currentSlide = Math.min(slides.length - 1, currentSlide + 1);
+            updateCarousel();
+          });
+        }
+
+        dots.forEach((dot, idx) => {
+          dot.addEventListener('click', (e) => {
+            e.stopPropagation();
+            currentSlide = idx;
+            updateCarousel();
+          });
+        });
+
+        // Initialize first dot as active
+        updateCarousel();
+      });
+
       // Click handling
       document.querySelectorAll(`[data-feed-id="${feedId}"] .instagram-feed-item`).forEach((item) => {
         item.style.cursor = 'pointer';
@@ -447,6 +559,102 @@
 
     .instagram-feed-item:hover img {
       transform: scale(1.05);
+    }
+
+    /* Carousel Container for Multi-Image Posts */
+    .instagram-carousel-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .instagram-carousel-track {
+      display: flex;
+      height: 100%;
+      transition: transform 0.3s ease;
+    }
+
+    .instagram-carousel-slide {
+      flex: 0 0 100%;
+      width: 100%;
+      height: 100%;
+    }
+
+    .instagram-carousel-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Carousel Dots */
+    .instagram-carousel-dots {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+      z-index: 3;
+    }
+
+    .instagram-carousel-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .instagram-carousel-dot.active {
+      background: white;
+      width: 8px;
+      height: 8px;
+    }
+
+    /* Carousel Navigation Arrows */
+    .instagram-carousel-prev,
+    .instagram-carousel-next {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 3;
+      transition: all 0.2s ease;
+      opacity: 0;
+    }
+
+    .instagram-feed-item:hover .instagram-carousel-prev,
+    .instagram-feed-item:hover .instagram-carousel-next {
+      opacity: 1;
+    }
+
+    .instagram-carousel-prev:hover,
+    .instagram-carousel-next:hover {
+      background: white;
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .instagram-carousel-prev {
+      left: 8px;
+    }
+
+    .instagram-carousel-next {
+      right: 8px;
+    }
+
+    .instagram-carousel-prev svg,
+    .instagram-carousel-next svg {
+      color: #333;
     }
 
     .instagram-feed-overlay {

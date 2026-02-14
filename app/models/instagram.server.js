@@ -6,8 +6,28 @@ import { getSettings } from "./settings.server";
 const INSTAGRAM_GRAPH_URL = "https://graph.instagram.com";
 
 /**
+ * Fetch carousel children for a media item
+ */
+async function fetchCarouselChildren(mediaId, accessToken) {
+    const fields = "id,media_type,media_url,thumbnail_url";
+    const url = `${INSTAGRAM_GRAPH_URL}/${mediaId}/children?fields=${fields}&access_token=${accessToken}`;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) return [];
+
+        const data = await response.json();
+        return data.data || [];
+    } catch (error) {
+        console.error(`Failed to fetch children for ${mediaId}:`, error);
+        return [];
+    }
+}
+
+/**
  * Fetch Instagram user's media using Graph API
  * Requires: Instagram Business or Creator account connected via Meta Business Suite
+ * Now includes carousel children for multi-image posts
  */
 export async function fetchInstagramMedia(instagramUserId, accessToken, limit = 100) {
     const fields = "id,caption,media_type,media_url,permalink,thumbnail_url,timestamp,username";
@@ -22,7 +42,20 @@ export async function fetchInstagramMedia(instagramUserId, accessToken, limit = 
     }
 
     const data = await response.json();
-    return data.data || [];
+    const mediaItems = data.data || [];
+
+    // Fetch children for carousel posts
+    const enrichedMedia = await Promise.all(
+        mediaItems.map(async (item) => {
+            if (item.media_type === "CAROUSEL_ALBUM") {
+                const children = await fetchCarouselChildren(item.id, accessToken);
+                return { ...item, children };
+            }
+            return { ...item, children: [] };
+        })
+    );
+
+    return enrichedMedia;
 }
 
 /**
@@ -122,6 +155,8 @@ export async function syncInstagramToMetafields(shop, admin) {
             type: item.media_type,
             username: item.username || account.username,
             timestamp: item.timestamp,
+            // Carousel children (for multi-image posts)
+            children: item.children || [],
             // Post metadata
             isPinned: record?.isPinned || false,
             isHidden: record?.isHidden || false,
