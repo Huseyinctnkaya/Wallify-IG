@@ -70,6 +70,14 @@ export async function action({ request }) {
             desktopColumns: parseInt(formData.get("desktopColumns")),
             mobileColumns: parseInt(formData.get("mobileColumns")),
             showArrows: formData.get("showArrows") === "true",
+            onClick: formData.get("onClick"),
+            postSpacing: formData.get("postSpacing"),
+            borderRadius: formData.get("borderRadius"),
+            playVideoOnHover: formData.get("playVideoOnHover") === "true",
+            showThumbnail: formData.get("showThumbnail") === "true",
+            showViewsCount: formData.get("showViewsCount") === "true",
+            showAuthorProfile: formData.get("showAuthorProfile") === "true",
+            showAttachedProducts: formData.get("showAttachedProducts") === "true",
         };
 
         await saveSettings(shop, settings);
@@ -179,6 +187,14 @@ export default function Dashboard() {
         formData.append("desktopColumns", desktopColumns);
         formData.append("mobileColumns", mobileColumns);
         formData.append("showArrows", showArrows);
+        formData.append("onClick", onClick);
+        formData.append("postSpacing", postSpacing);
+        formData.append("borderRadius", borderRadius);
+        formData.append("playVideoOnHover", playVideoOnHover);
+        formData.append("showThumbnail", showThumbnail);
+        formData.append("showViewsCount", showViewsCount);
+        formData.append("showAuthorProfile", showAuthorProfile);
+        formData.append("showAttachedProducts", showAttachedProducts);
 
         fetcher.submit(formData, { method: "post" });
     };
@@ -191,6 +207,14 @@ export default function Dashboard() {
     const [desktopColumns, setDesktopColumns] = useState(settings?.desktopColumns?.toString() || "4");
     const [mobileColumns, setMobileColumns] = useState(settings?.mobileColumns?.toString() || "2");
     const [showArrows, setShowArrows] = useState(settings?.showArrows || true);
+    const [onClick, setOnClick] = useState(settings?.onClick || "popup");
+    const [postSpacing, setPostSpacing] = useState(settings?.postSpacing || "medium");
+    const [borderRadius, setBorderRadius] = useState(settings?.borderRadius || "medium");
+    const [playVideoOnHover, setPlayVideoOnHover] = useState(settings?.playVideoOnHover || false);
+    const [showThumbnail, setShowThumbnail] = useState(settings?.showThumbnail || false);
+    const [showViewsCount, setShowViewsCount] = useState(settings?.showViewsCount || false);
+    const [showAuthorProfile, setShowAuthorProfile] = useState(settings?.showAuthorProfile ?? true);
+    const [showAttachedProducts, setShowAttachedProducts] = useState(settings?.showAttachedProducts ?? true);
     const [previewMode, setPreviewMode] = useState("desktop"); // desktop | mobile
     const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -203,8 +227,19 @@ export default function Dashboard() {
         showPinnedReels !== (settings?.showPinnedReels || false) ||
         desktopColumns !== (settings?.desktopColumns?.toString() || "4") ||
         mobileColumns !== (settings?.mobileColumns?.toString() || "2") ||
-        showArrows !== (settings?.showArrows || true)
+        showArrows !== (settings?.showArrows || true) ||
+        onClick !== (settings?.onClick || "popup") ||
+        postSpacing !== (settings?.postSpacing || "medium") ||
+        borderRadius !== (settings?.borderRadius || "medium") ||
+        playVideoOnHover !== (settings?.playVideoOnHover || false) ||
+        showThumbnail !== (settings?.showThumbnail || false) ||
+        showViewsCount !== (settings?.showViewsCount || false) ||
+        showAuthorProfile !== (settings?.showAuthorProfile ?? true) ||
+        showAttachedProducts !== (settings?.showAttachedProducts ?? true)
     );
+
+    const spacingMap = { none: '0px', low: '4px', medium: '12px', high: '24px' };
+    const radiusMap = { none: '0px', low: '4px', medium: '12px', high: '24px' };
 
     // Mock images for preview if no instagram account connected
     const mockImages = [
@@ -385,6 +420,80 @@ export default function Dashboard() {
                                             <div style={{ marginTop: "10px" }}></div>
                                         </BlockStack>
                                     </Card>
+
+                                    <Card>
+                                        <BlockStack gap="400">
+                                            <Text variant="headingMd" as="h3">Card settings</Text>
+                                            <Select
+                                                label="On click"
+                                                options={[
+                                                    { label: 'Open in Popup', value: 'popup' },
+                                                    { label: 'Open on Instagram', value: 'instagram' },
+                                                ]}
+                                                value={onClick}
+                                                onChange={setOnClick}
+                                            />
+                                            <Select
+                                                label="Post spacing"
+                                                options={[
+                                                    { label: 'None', value: 'none' },
+                                                    { label: 'Low', value: 'low' },
+                                                    { label: 'Medium', value: 'medium' },
+                                                    { label: 'High', value: 'high' },
+                                                ]}
+                                                value={postSpacing}
+                                                onChange={setPostSpacing}
+                                            />
+                                            <Select
+                                                label="Border radius"
+                                                options={[
+                                                    { label: 'None', value: 'none' },
+                                                    { label: 'Low', value: 'low' },
+                                                    { label: 'Medium', value: 'medium' },
+                                                    { label: 'High', value: 'high' },
+                                                ]}
+                                                value={borderRadius}
+                                                onChange={setBorderRadius}
+                                            />
+                                            <BlockStack gap="200">
+                                                <Checkbox
+                                                    label="Play full video on hover"
+                                                    checked={playVideoOnHover}
+                                                    onChange={setPlayVideoOnHover}
+                                                />
+                                                <Checkbox
+                                                    label="Show image thumbnail (instead of video preview clip)"
+                                                    checked={showThumbnail}
+                                                    onChange={setShowThumbnail}
+                                                />
+                                                <Checkbox
+                                                    label="Show views count"
+                                                    checked={showViewsCount}
+                                                    onChange={setShowViewsCount}
+                                                />
+                                                <Checkbox
+                                                    label="Show author profile"
+                                                    checked={showAuthorProfile}
+                                                    onChange={setShowAuthorProfile}
+                                                />
+                                                <Checkbox
+                                                    label="Show attached products"
+                                                    checked={showAttachedProducts}
+                                                    onChange={setShowAttachedProducts}
+                                                />
+                                                <Box opacity="0.5">
+                                                    <Checkbox
+                                                        label="Show 5 sec preview instead of 1 sec preview"
+                                                        checked={false}
+                                                        disabled
+                                                    />
+                                                    <Text variant="bodySm" as="p" tone="subdued">
+                                                        This option is available in our <Button variant="plain" url="/app/plans">premium plan</Button>.
+                                                    </Text>
+                                                </Box>
+                                            </BlockStack>
+                                        </BlockStack>
+                                    </Card>
                                     <Button
                                         variant="primary"
                                         onClick={handleSave}
@@ -502,7 +611,7 @@ export default function Dashboard() {
 
                                                 <div style={{
                                                     display: "flex",
-                                                    gap: "10px",
+                                                    gap: spacingMap[postSpacing] || '12px',
                                                     justifyContent: feedType === "grid" ? "center" : "flex-start",
                                                     flexWrap: feedType === "grid" ? "wrap" : "nowrap",
                                                     transition: "transform 0.3s ease-in-out",
@@ -516,13 +625,13 @@ export default function Dashboard() {
                                                             <div key={index} style={{
                                                                 width: previewMode === 'mobile'
                                                                     ? (feedType === 'grid' ? '45%' : '80%')
-                                                                    : `${(100 / parseInt(desktopColumns)) - 2}%`, // Subtract gap
+                                                                    : `calc(${(100 / parseInt(desktopColumns))}% - ${spacingMap[postSpacing] || '12px'})`,
                                                                 flexShrink: 0,
                                                                 aspectRatio: "2/3",
                                                                 backgroundImage: `url(${src})`,
                                                                 backgroundSize: "cover",
                                                                 backgroundPosition: "center",
-                                                                borderRadius: "8px",
+                                                                borderRadius: radiusMap[borderRadius] || '12px',
                                                                 border: "1px solid #e1e3e5",
                                                                 boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                                                                 position: "relative"

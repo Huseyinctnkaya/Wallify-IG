@@ -14,6 +14,14 @@ export async function getSettings(shop) {
             desktopColumns: 4,
             mobileColumns: 2,
             showArrows: true,
+            onClick: "popup",
+            postSpacing: "medium",
+            borderRadius: "medium",
+            playVideoOnHover: false,
+            showThumbnail: false,
+            showViewsCount: false,
+            showAuthorProfile: true,
+            showAttachedProducts: true,
         };
     }
 

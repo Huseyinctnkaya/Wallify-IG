@@ -52,6 +52,14 @@ model Settings {
   desktopColumns  Int      @default(4)
   mobileColumns   Int      @default(2)
   showArrows      Boolean  @default(true)
+  onClick         String   @default("popup")
+  postSpacing     String   @default("medium")
+  borderRadius    String   @default("medium")
+  playVideoOnHover Boolean @default(false)
+  showThumbnail   Boolean  @default(false)
+  showViewsCount  Boolean  @default(false)
+  showAuthorProfile Boolean @default(true)
+  showAttachedProducts Boolean @default(true)
   updatedAt       DateTime @updatedAt
 }
 
