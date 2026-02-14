@@ -22,6 +22,7 @@ export default function App() {
         <Link to="/app" rel="home">
           DevsApiG
         </Link>
+        <Link to="/app/posts">Posts & Reels</Link>
         <Link to="/app/analytics">Analytics</Link>
         <Link to="/app/plans">Plans</Link>
       </NavMenu>
