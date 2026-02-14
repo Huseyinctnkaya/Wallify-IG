@@ -17,7 +17,6 @@ import {
 import {
     PinIcon,
     HideIcon,
-    PlusIcon,
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import { getInstagramAccount, fetchInstagramMedia } from "../models/instagram.server";
@@ -125,14 +124,16 @@ const PostCard = ({ post }) => (
             <BlockStack gap="300">
                 <InlineStack align="space-between">
                     <InlineStack gap="200">
-                        <Button size="slim" icon={PinIcon}>
-                            <InlineStack gap="100">
+                        <Button size="slim">
+                            <InlineStack gap="150" blockAlign="center">
+                                <Icon source={PinIcon} />
                                 <Text variant="bodySm" as="span">Pin</Text>
                                 <ProBadge />
                             </InlineStack>
                         </Button>
-                        <Button size="slim" icon={HideIcon}>
-                            <InlineStack gap="100">
+                        <Button size="slim">
+                            <InlineStack gap="150" blockAlign="center">
+                                <Icon source={HideIcon} />
                                 <Text variant="bodySm" as="span">Hide</Text>
                                 <ProBadge />
                             </InlineStack>
@@ -163,9 +164,9 @@ const PostCard = ({ post }) => (
                     <Text variant="bodyMd" tone="subdued">No products attached</Text>
                 </BlockStack>
 
-                <InlineStack align="end">
-                    <Button variant="tertiary" size="slim">
-                        <InlineStack gap="100">
+                <InlineStack align="start">
+                    <Button size="slim">
+                        <InlineStack gap="150" blockAlign="center">
                             <Text variant="bodySm" as="span">Edit products</Text>
                             <ProBadge />
                         </InlineStack>
