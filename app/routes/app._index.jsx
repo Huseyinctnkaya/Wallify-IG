@@ -505,151 +505,153 @@ export default function Dashboard() {
                                 </BlockStack>
                             </Grid.Cell>
 
-                            {/* Right Column: Preview */}
                             <Grid.Cell columnSpan={{ xs: 6, sm: 6, md: 8, lg: 8, xl: 8 }}>
-                                <Card>
-                                    <BlockStack gap="400">
-                                        <InlineStack align="space-between" blockAlign="center">
-                                            <Text variant="headingMd" as="h3">Preview</Text>
-                                            <InlineStack gap="200">
-                                                <Button variant="plain">Manage videos</Button>
-                                                <Button variant="plain">Add block on homepage</Button>
+                                <div style={{ position: "sticky", top: "20px" }}>
+                                    <Card>
+                                        <BlockStack gap="400">
+                                            <InlineStack align="space-between" blockAlign="center">
+                                                <Text variant="headingMd" as="h3">Preview</Text>
+                                                <InlineStack gap="200">
+                                                    <Button variant="plain">Manage videos</Button>
+                                                    <Button variant="plain">Add block on homepage</Button>
+                                                </InlineStack>
                                             </InlineStack>
-                                        </InlineStack>
 
-                                        <Banner tone="warning">
-                                            <p>Heading, button and few other elements shown in the above preview might look different on the storefront depending on your theme.</p>
-                                        </Banner>
+                                            <Banner tone="warning">
+                                                <p>Heading, button and few other elements shown in the above preview might look different on the storefront depending on your theme.</p>
+                                            </Banner>
 
-                                        <Box paddingBlockEnd="400">
-                                            <InlineStack align="center" gap="200">
-                                                <Button
-                                                    pressed={previewMode === 'mobile'}
-                                                    onClick={() => setPreviewMode('mobile')}
-                                                    icon={MobileIcon}
-                                                >
-                                                    Mobile
-                                                </Button>
-                                                <Button
-                                                    pressed={previewMode === 'desktop'}
-                                                    onClick={() => setPreviewMode('desktop')}
-                                                    icon={DesktopIcon}
-                                                >
-                                                    Desktop
-                                                </Button>
-                                            </InlineStack>
-                                        </Box>
+                                            <Box paddingBlockEnd="400">
+                                                <InlineStack align="center" gap="200">
+                                                    <Button
+                                                        pressed={previewMode === 'mobile'}
+                                                        onClick={() => setPreviewMode('mobile')}
+                                                        icon={MobileIcon}
+                                                    >
+                                                        Mobile
+                                                    </Button>
+                                                    <Button
+                                                        pressed={previewMode === 'desktop'}
+                                                        onClick={() => setPreviewMode('desktop')}
+                                                        icon={DesktopIcon}
+                                                    >
+                                                        Desktop
+                                                    </Button>
+                                                </InlineStack>
+                                            </Box>
 
-                                        {/* Preview Area */}
-                                        <div style={{
-                                            backgroundColor: "#f9fafb",
-                                            padding: "20px",
-                                            borderRadius: "8px",
-                                            textAlign: "center",
-                                            border: "1px dashed #e1e3e5",
-                                            position: "relative"
-                                        }}>
-                                            <BlockStack gap="200">
-                                                {title && <Text variant="headingXl" as="h2">{title}</Text>}
-                                                {subheading && <Text variant="bodyLg" as="p" tone="subdued">{subheading}</Text>}
-                                            </BlockStack>
+                                            {/* Preview Area */}
+                                            <div style={{
+                                                backgroundColor: "#f9fafb",
+                                                padding: "20px",
+                                                borderRadius: "8px",
+                                                textAlign: "center",
+                                                border: "1px dashed #e1e3e5",
+                                                position: "relative"
+                                            }}>
+                                                <BlockStack gap="200">
+                                                    {title && <Text variant="headingXl" as="h2">{title}</Text>}
+                                                    {subheading && <Text variant="bodyLg" as="p" tone="subdued">{subheading}</Text>}
+                                                </BlockStack>
 
-                                            <div style={{ marginTop: "20px", position: "relative", overflow: "hidden" }}>
-                                                {/* Navigation Arrows */}
-                                                {showArrows && feedType === 'slider' && previewMode === 'desktop' && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => setCurrentSlide(prev => Math.max(0, prev - 1))}
-                                                            disabled={currentSlide === 0}
-                                                            style={{
-                                                                position: "absolute",
-                                                                left: "10px",
-                                                                top: "50%",
-                                                                transform: "translateY(-50%)",
-                                                                zIndex: 10,
-                                                                background: "white",
-                                                                border: "1px solid #e1e3e5",
-                                                                borderRadius: "50%",
-                                                                width: "32px",
-                                                                height: "32px",
-                                                                display: "flex",
-                                                                alignItems: "center",
-                                                                justifyContent: "center",
-                                                                cursor: currentSlide === 0 ? "not-allowed" : "pointer",
-                                                                opacity: currentSlide === 0 ? 0.5 : 1,
-                                                                boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-                                                            }}
-                                                        >
-                                                            &lt;
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setCurrentSlide(prev => Math.min(Math.max(0, displayMedia.length - parseInt(desktopColumns)), prev + 1))}
-                                                            disabled={currentSlide >= Math.max(0, displayMedia.length - parseInt(desktopColumns))}
-                                                            style={{
-                                                                position: "absolute",
-                                                                right: "10px",
-                                                                top: "50%",
-                                                                transform: "translateY(-50%)",
-                                                                zIndex: 10,
-                                                                background: "white",
-                                                                border: "1px solid #e1e3e5",
-                                                                borderRadius: "50%",
-                                                                width: "32px",
-                                                                height: "32px",
-                                                                display: "flex",
-                                                                alignItems: "center",
-                                                                justifyContent: "center",
-                                                                cursor: currentSlide >= Math.max(0, displayMedia.length - parseInt(desktopColumns)) ? "not-allowed" : "pointer",
-                                                                opacity: currentSlide >= Math.max(0, displayMedia.length - parseInt(desktopColumns)) ? 0.5 : 1,
-                                                                boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-                                                            }}
-                                                        >
-                                                            &gt;
-                                                        </button>
-                                                    </>
-                                                )}
+                                                <div style={{ marginTop: "20px", position: "relative", overflow: "hidden" }}>
+                                                    {/* Navigation Arrows */}
+                                                    {showArrows && feedType === 'slider' && previewMode === 'desktop' && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => setCurrentSlide(prev => Math.max(0, prev - 1))}
+                                                                disabled={currentSlide === 0}
+                                                                style={{
+                                                                    position: "absolute",
+                                                                    left: "10px",
+                                                                    top: "50%",
+                                                                    transform: "translateY(-50%)",
+                                                                    zIndex: 10,
+                                                                    background: "white",
+                                                                    border: "1px solid #e1e3e5",
+                                                                    borderRadius: "50%",
+                                                                    width: "32px",
+                                                                    height: "32px",
+                                                                    display: "flex",
+                                                                    alignItems: "center",
+                                                                    justifyContent: "center",
+                                                                    cursor: currentSlide === 0 ? "not-allowed" : "pointer",
+                                                                    opacity: currentSlide === 0 ? 0.5 : 1,
+                                                                    boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+                                                                }}
+                                                            >
+                                                                &lt;
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setCurrentSlide(prev => Math.min(Math.max(0, displayMedia.length - parseInt(desktopColumns)), prev + 1))}
+                                                                disabled={currentSlide >= Math.max(0, displayMedia.length - parseInt(desktopColumns))}
+                                                                style={{
+                                                                    position: "absolute",
+                                                                    right: "10px",
+                                                                    top: "50%",
+                                                                    transform: "translateY(-50%)",
+                                                                    zIndex: 10,
+                                                                    background: "white",
+                                                                    border: "1px solid #e1e3e5",
+                                                                    borderRadius: "50%",
+                                                                    width: "32px",
+                                                                    height: "32px",
+                                                                    display: "flex",
+                                                                    alignItems: "center",
+                                                                    justifyContent: "center",
+                                                                    cursor: currentSlide >= Math.max(0, displayMedia.length - parseInt(desktopColumns)) ? "not-allowed" : "pointer",
+                                                                    opacity: currentSlide >= Math.max(0, displayMedia.length - parseInt(desktopColumns)) ? 0.5 : 1,
+                                                                    boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+                                                                }}
+                                                            >
+                                                                &gt;
+                                                            </button>
+                                                        </>
+                                                    )}
 
-                                                <div style={{
-                                                    display: "flex",
-                                                    gap: spacingMap[postSpacing] || '12px',
-                                                    justifyContent: feedType === "grid" ? "center" : "flex-start",
-                                                    flexWrap: feedType === "grid" ? "wrap" : "nowrap",
-                                                    transition: "transform 0.3s ease-in-out",
-                                                    transform: (feedType === 'slider' && previewMode === 'desktop')
-                                                        ? `translateX(-${currentSlide * (100 / parseInt(desktopColumns))}%)`
-                                                        : "none"
-                                                }}>
-                                                    {displayMedia.map((item, index) => {
-                                                        const src = typeof item === 'string' ? item : (item.media_type === 'VIDEO' ? (item.thumbnail_url || item.media_url) : item.media_url);
-                                                        return (
-                                                            <div key={index} style={{
-                                                                width: previewMode === 'mobile'
-                                                                    ? (feedType === 'grid' ? '45%' : '80%')
-                                                                    : `calc(${(100 / parseInt(desktopColumns))}% - ${spacingMap[postSpacing] || '12px'})`,
-                                                                flexShrink: 0,
-                                                                aspectRatio: "2/3",
-                                                                backgroundImage: `url(${src})`,
-                                                                backgroundSize: "cover",
-                                                                backgroundPosition: "center",
-                                                                borderRadius: radiusMap[borderRadius] || '12px',
-                                                                border: "1px solid #e1e3e5",
-                                                                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                                                                position: "relative"
-                                                            }}>
-                                                                <div style={{ position: "absolute", top: 10, left: 10, display: "flex", alignItems: "center", gap: "5px" }}>
-                                                                    <div style={{ width: 20, height: 20, background: "black", borderRadius: "50%" }}></div>
-                                                                    <span style={{ color: "white", fontSize: "12px", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>@{instagramAccount?.username || "username"}</span>
+                                                    <div style={{
+                                                        display: "flex",
+                                                        gap: spacingMap[postSpacing] || '12px',
+                                                        justifyContent: feedType === "grid" ? "center" : "flex-start",
+                                                        flexWrap: feedType === "grid" ? "wrap" : "nowrap",
+                                                        transition: "transform 0.3s ease-in-out",
+                                                        transform: (feedType === 'slider' && previewMode === 'desktop')
+                                                            ? `translateX(-${currentSlide * (100 / parseInt(desktopColumns))}%)`
+                                                            : "none"
+                                                    }}>
+                                                        {displayMedia.map((item, index) => {
+                                                            const src = typeof item === 'string' ? item : (item.media_type === 'VIDEO' ? (item.thumbnail_url || item.media_url) : item.media_url);
+                                                            return (
+                                                                <div key={index} style={{
+                                                                    width: previewMode === 'mobile'
+                                                                        ? (feedType === 'grid' ? '45%' : '80%')
+                                                                        : `calc(${(100 / parseInt(desktopColumns))}% - ${spacingMap[postSpacing] || '12px'})`,
+                                                                    flexShrink: 0,
+                                                                    aspectRatio: "2/3",
+                                                                    backgroundImage: `url(${src})`,
+                                                                    backgroundSize: "cover",
+                                                                    backgroundPosition: "center",
+                                                                    borderRadius: radiusMap[borderRadius] || '12px',
+                                                                    border: "1px solid #e1e3e5",
+                                                                    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                                                                    position: "relative"
+                                                                }}>
+                                                                    <div style={{ position: "absolute", top: 10, left: 10, display: "flex", alignItems: "center", gap: "5px" }}>
+                                                                        <div style={{ width: 20, height: 20, background: "black", borderRadius: "50%" }}></div>
+                                                                        <span style={{ color: "white", fontSize: "12px", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>@{instagramAccount?.username || "username"}</span>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        )
-                                                    })}
+                                                            )
+                                                        })}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </BlockStack>
-                                </Card>
+                                        </BlockStack>
+                                    </Card>
+                                </div>
                             </Grid.Cell>
                         </Grid>
+                        <Box paddingBlockEnd="800" />
                     </BlockStack>
                 </Layout.Section>
             </Layout>
