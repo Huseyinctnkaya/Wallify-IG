@@ -77,7 +77,34 @@ export async function action({ request }) {
     }
 
     if (actionType === "connect") {
-        // ... (existing connect logic)
+        // Connect using environment variables
+        const appId = process.env.INSTAGRAM_APP_ID;
+        const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
+
+        if (!appId || !accessToken) {
+            return json({
+                error: "Instagram credentials not configured in .env file"
+            }, { status: 500 });
+        }
+
+        try {
+            // Fetch user profile to get username
+            const { fetchUserProfile } = await import("../models/instagram.server");
+            const profile = await fetchUserProfile(accessToken);
+
+            // Save to database
+            await saveInstagramAccount({
+                shop,
+                accessToken,
+                userId: profile.id,
+                username: profile.username,
+            });
+
+            return json({ success: true, message: "Instagram connected successfully!" });
+        } catch (error) {
+            console.error("Connect error:", error);
+            return json({ error: error.message || "Failed to connect Instagram" }, { status: 500 });
+        }
     }
 
     if (actionType === "disconnect") {
@@ -86,7 +113,25 @@ export async function action({ request }) {
     }
 
     if (actionType === "sync") {
-        // ... (existing sync logic)
+        try {
+            const account = await getInstagramAccount(shop);
+            if (!account) {
+                return json({ error: "No Instagram account connected" }, { status: 400 });
+            }
+
+            const { syncInstagramToMetafields } = await import("../models/instagram.server");
+
+            // Re-fetch media from Instagram API
+            const media = await fetchInstagramMedia(account.userId, account.accessToken);
+
+            // Update media in database/metafields if needed
+            // For now, we just return success as the loader fetches fresh data
+
+            return json({ success: true, message: "Media synced successfully!" });
+        } catch (error) {
+            console.error("Sync error:", error);
+            return json({ error: error.message || "Failed to sync media" }, { status: 500 });
+        }
     }
 
     return null;
@@ -100,6 +145,29 @@ export default function Dashboard() {
     const isSaving = isLoading && fetcher.formData?.get("actionType") === "saveSettings";
 
     // ... (existing handlers)
+
+    const handleConnect = () => {
+        fetcher.submit(
+            { actionType: "connect" },
+            { method: "post" }
+        );
+    };
+
+    const handleDisconnect = () => {
+        if (confirm("Are you sure you want to disconnect Instagram?")) {
+            fetcher.submit(
+                { actionType: "disconnect" },
+                { method: "post" }
+            );
+        }
+    };
+
+    const handleSync = () => {
+        fetcher.submit(
+            { actionType: "sync" },
+            { method: "post" }
+        );
+    };
 
     const handleSave = () => {
         const formData = new FormData();
@@ -126,6 +194,14 @@ export default function Dashboard() {
     const [previewMode, setPreviewMode] = useState("desktop"); // desktop | mobile
 
     // ... (mock images)
+
+    // Mock images for preview if no instagram account connected
+    const mockImages = [
+        "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=600&fit=crop",
+        "https://images.unsplash.com/photo-1529139574466-a302d2d3f524?w=400&h=600&fit=crop",
+        "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=600&fit=crop",
+        "https://images.unsplash.com/photo-1539008835657-9e8e9680c956?w=400&h=600&fit=crop"
+    ];
 
     const displayMedia = (media && media.length > 0) ? media : mockImages;
 
@@ -359,6 +435,8 @@ export default function Dashboard() {
                                                             backgroundSize: "cover",
                                                             backgroundPosition: "center",
                                                             borderRadius: "8px",
+                                                            border: "1px solid #e1e3e5",
+                                                            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                                                             position: "relative"
                                                         }}>
                                                             <div style={{ position: "absolute", top: 10, left: 10, display: "flex", alignItems: "center", gap: "5px" }}>
