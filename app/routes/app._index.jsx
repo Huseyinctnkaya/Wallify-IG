@@ -33,7 +33,7 @@ export async function loader({ request }) {
 
     if (instagramAccount) {
         try {
-            media = await fetchInstagramMedia(instagramAccount.userId, instagramAccount.accessToken);
+            media = await fetchInstagramMedia(instagramAccount.userId, instagramAccount.accessToken, settings.mediaLimit);
         } catch (error) {
             console.error("Failed to fetch media for preview:", error);
         }
@@ -69,6 +69,7 @@ export async function action({ request }) {
             subheading: formData.get("subheading"),
             feedType: formData.get("feedType"),
             showPinnedReels: formData.get("showPinnedReels") === "true",
+            mediaLimit: parseInt(formData.get("mediaLimit")) || 12,
             gridDesktopColumns: parseInt(formData.get("gridDesktopColumns")),
             gridMobileColumns: parseInt(formData.get("gridMobileColumns")),
             sliderDesktopColumns: parseInt(formData.get("sliderDesktopColumns")),
@@ -141,7 +142,7 @@ export async function action({ request }) {
             const { syncInstagramToMetafields } = await import("../models/instagram.server");
 
             // Re-fetch media from Instagram API
-            const media = await fetchInstagramMedia(account.userId, account.accessToken);
+            const media = await fetchInstagramMedia(account.userId, account.accessToken, settings.mediaLimit);
 
             // Update media in database/metafields if needed
             // For now, we just return success as the loader fetches fresh data
@@ -244,6 +245,7 @@ export default function Dashboard() {
         formData.append("subheading", subheading);
         formData.append("feedType", feedType);
         formData.append("showPinnedReels", showPinnedReels);
+        formData.append("mediaLimit", mediaLimit);
         formData.append("gridDesktopColumns", gridDesktopColumns);
         formData.append("gridMobileColumns", gridMobileColumns);
         formData.append("sliderDesktopColumns", sliderDesktopColumns);
@@ -273,6 +275,7 @@ export default function Dashboard() {
     const [subheading, setSubheading] = useState(settings?.subheading || "Daha Fazlası İçin Bizi Takip Edebilirsiniz");
     const [feedType, setFeedType] = useState(settings?.feedType || "slider");
     const [showPinnedReels, setShowPinnedReels] = useState(settings?.showPinnedReels || false);
+    const [mediaLimit, setMediaLimit] = useState(settings?.mediaLimit?.toString() || "12");
     const [gridDesktopColumns, setGridDesktopColumns] = useState(settings?.gridDesktopColumns?.toString() || "4");
     const [gridMobileColumns, setGridMobileColumns] = useState(settings?.gridMobileColumns?.toString() || "2");
     const [sliderDesktopColumns, setSliderDesktopColumns] = useState(settings?.sliderDesktopColumns?.toString() || "4");
@@ -364,6 +367,7 @@ export default function Dashboard() {
         subheading !== (settings?.subheading || "Daha Fazlası İçin Bizi Takip Edebilirsiniz") ||
         feedType !== (settings?.feedType || "slider") ||
         showPinnedReels !== (settings?.showPinnedReels || false) ||
+        mediaLimit !== (settings?.mediaLimit?.toString() || "12") ||
         gridDesktopColumns !== (settings?.gridDesktopColumns?.toString() || "4") ||
         gridMobileColumns !== (settings?.gridMobileColumns?.toString() || "2") ||
         sliderDesktopColumns !== (settings?.sliderDesktopColumns?.toString() || "4") ||
@@ -537,6 +541,14 @@ export default function Dashboard() {
                                                         label="Show pinned reels only"
                                                         checked={showPinnedReels}
                                                         onChange={setShowPinnedReels}
+                                                    />
+                                                    <TextField
+                                                        label="Total posts to fetch"
+                                                        type="number"
+                                                        value={mediaLimit}
+                                                        onChange={setMediaLimit}
+                                                        autoComplete="off"
+                                                        helpText="How many posts to pull from Instagram"
                                                     />
                                                 </BlockStack>
                                             </Card>

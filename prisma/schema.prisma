@@ -69,7 +69,8 @@ model Settings {
   cardUserNameColor String @default("#ffffff")
   cardBadgeBackgroundColor String @default("rgba(0,0,0,0.5)")
   cardBadgeIconColor String @default("#ffffff")
-  updatedAt       DateTime @updatedAt
+  mediaLimit       Int      @default(12)
+  updatedAt        DateTime @updatedAt
 }
 
 model Analytics {

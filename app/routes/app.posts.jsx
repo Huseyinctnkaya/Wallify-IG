@@ -21,6 +21,7 @@ import {
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import { getInstagramAccount, fetchInstagramMedia } from "../models/instagram.server";
+import { getSettings } from "../models/settings.server";
 
 export const loader = async ({ request }) => {
     const { session } = await authenticate.admin(request);
@@ -31,7 +32,8 @@ export const loader = async ({ request }) => {
 
     if (instagramAccount) {
         try {
-            const media = await fetchInstagramMedia(instagramAccount.userId, instagramAccount.accessToken);
+            const settings = await getSettings(shop);
+            const media = await fetchInstagramMedia(instagramAccount.userId, instagramAccount.accessToken, settings.mediaLimit);
             posts = media.map(item => ({
                 id: item.id,
                 date: new Date(item.timestamp).toLocaleDateString('en-US', {

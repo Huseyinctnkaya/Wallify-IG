@@ -7,9 +7,9 @@ const INSTAGRAM_GRAPH_URL = "https://graph.instagram.com";
  * Fetch Instagram user's media using Graph API
  * Requires: Instagram Business or Creator account connected via Meta Business Suite
  */
-export async function fetchInstagramMedia(instagramUserId, accessToken) {
+export async function fetchInstagramMedia(instagramUserId, accessToken, limit = 100) {
     const fields = "id,caption,media_type,media_url,permalink,thumbnail_url,timestamp,username";
-    const url = `${INSTAGRAM_GRAPH_URL}/${instagramUserId}/media?fields=${fields}&access_token=${accessToken}&limit=100`;
+    const url = `${INSTAGRAM_GRAPH_URL}/${instagramUserId}/media?fields=${fields}&access_token=${accessToken}&limit=${limit}`;
 
     const response = await fetch(url);
 

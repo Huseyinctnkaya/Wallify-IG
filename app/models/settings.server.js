@@ -50,6 +50,7 @@ export async function getSettings(shop) {
             sliderDesktopColumns: 4,
             sliderMobileColumns: 2,
             showArrows: true,
+            mediaLimit: 12,
             onClick: "popup",
             postSpacing: "medium",
             borderRadius: "medium",
