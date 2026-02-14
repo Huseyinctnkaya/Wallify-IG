@@ -66,10 +66,9 @@ export const loader = async ({ request }) => {
                 };
             }).slice(0, settings.mediaLimit);
 
-            // Filter by showPinnedReels setting
-            if (settings.showPinnedReels) {
-                posts = posts.filter(p => p.isPinned);
-            }
+            // Note: showPinnedReels filter is NOT applied on management page
+            // It only affects the storefront (theme) display
+            // Here we show ALL posts so users can manage them
         } catch (error) {
             console.error("Failed to fetch media for management page:", error);
         }
@@ -271,15 +270,19 @@ const PostCard = ({ post, isPremium, onEditProducts, onShowUpgrade }) => {
                     </InlineStack>
 
                     {post.isPinned && (
-                        <Banner tone="info">
-                            <Text variant="bodySm">This post is pinned</Text>
-                        </Banner>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <Banner tone="info">
+                                <Text variant="bodySm">This post is pinned</Text>
+                            </Banner>
+                        </div>
                     )}
 
                     {post.isHidden && (
-                        <Banner tone="warning">
-                            <Text variant="bodySm">This post is hidden from your storefront</Text>
-                        </Banner>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <Banner tone="warning">
+                                <Text variant="bodySm">This post is hidden from your storefront</Text>
+                            </Banner>
+                        </div>
                     )}
 
                     <Text variant="bodyMd" fontWeight="bold" tone="subdued">

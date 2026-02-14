@@ -22,6 +22,8 @@ import { MobileIcon, DesktopIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import { getInstagramAccount, saveInstagramAccount, disconnectInstagramAccount, fetchInstagramMedia } from "../models/instagram.server";
 import { getSettings, saveSettings } from "../models/settings.server";
+import { isPremiumShop } from "../utils/premium.server";
+import { getPosts } from "../models/post.server";
 
 export async function loader({ request }) {
     const { session } = await authenticate.admin(request);
@@ -33,7 +35,35 @@ export async function loader({ request }) {
 
     if (instagramAccount) {
         try {
-            media = await fetchInstagramMedia(instagramAccount.userId, instagramAccount.accessToken, settings.mediaLimit);
+            // Fetch Instagram media
+            const rawMedia = await fetchInstagramMedia(instagramAccount.userId, instagramAccount.accessToken, settings.mediaLimit);
+
+            // Fetch Post records from database
+            const postRecords = await getPosts(shop);
+
+            // Merge Instagram data with Post metadata
+            media = rawMedia.map(item => {
+                const record = postRecords.find(p => p.mediaId === item.id);
+
+                return {
+                    ...item,
+                    isPinned: record?.isPinned || false,
+                    isHidden: record?.isHidden || false,
+                };
+            });
+
+            // Filter: Remove hidden posts
+            media = media.filter(item => !item.isHidden);
+
+            // Filter: Apply showPinnedReels setting
+            if (settings.showPinnedReels) {
+                const pinnedMedia = media.filter(item => item.isPinned);
+                // Only apply filter if there are pinned posts
+                // Otherwise show all media (ignore the setting)
+                if (pinnedMedia.length > 0) {
+                    media = pinnedMedia;
+                }
+            }
         } catch (error) {
             console.error("Failed to fetch media for preview:", error);
         }
@@ -46,12 +76,15 @@ export async function loader({ request }) {
         process.env.INSTAGRAM_ACCESS_TOKEN
     );
 
+    const isPremium = await isPremiumShop(shop);
+
     return json({
         instagramAccount,
         media,
         settings,
         shop,
         hasCredentials,
+        isPremium,
     });
 }
 
@@ -204,7 +237,7 @@ const ColorSetting = ({ label, color, onChange, hexToHsb, hsbToHex }) => {
 };
 
 export default function Dashboard() {
-    const { instagramAccount, hasCredentials, media, settings, shop } = useLoaderData();
+    const { instagramAccount, hasCredentials, media, settings, shop, isPremium } = useLoaderData();
     const fetcher = useFetcher();
 
     const isLoading = fetcher.state === "submitting";
@@ -666,15 +699,17 @@ export default function Dashboard() {
                                                             checked={showAttachedProducts}
                                                             onChange={setShowAttachedProducts}
                                                         />
-                                                        <Box opacity="0.5">
+                                                        <Box opacity={isPremium ? "1" : "0.5"}>
                                                             <Checkbox
                                                                 label="Show 5 sec preview instead of 1 sec preview"
                                                                 checked={false}
-                                                                disabled
+                                                                disabled={!isPremium}
                                                             />
-                                                            <Text variant="bodySm" as="p" tone="subdued">
-                                                                This option is available in our <Button variant="plain" url="/app/plans">premium plan</Button>.
-                                                            </Text>
+                                                            {!isPremium && (
+                                                                <Text variant="bodySm" as="p" tone="subdued">
+                                                                    This option is available in our <Button variant="plain" url="/app/plans">premium plan</Button>.
+                                                                </Text>
+                                                            )}
                                                         </Box>
                                                     </BlockStack>
                                                 </BlockStack>
