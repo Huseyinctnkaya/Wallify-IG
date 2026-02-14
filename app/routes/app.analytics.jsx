@@ -17,8 +17,8 @@ import {
 } from "@shopify/polaris";
 import {
     ViewIcon,
-    CursorIcon,
-    ChartIcon,
+    CursorClickIcon,
+    ChartVerticalIcon,
     CalendarIcon
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
@@ -89,7 +89,7 @@ export default function AnalyticsPage() {
                                 <BlockStack gap="200">
                                     <InlineStack align="space-between">
                                         <Text variant="headingSm" as="h6" tone="subdued">Total Clicks</Text>
-                                        <Icon source={CursorIcon} tone="base" />
+                                        <Icon source={CursorClickIcon} tone="base" />
                                     </InlineStack>
                                     <Text variant="headingLg" as="p">{analytics.totals.clicks.toLocaleString()}</Text>
                                     <Badge tone="success">+8% from last week</Badge>
@@ -101,7 +101,7 @@ export default function AnalyticsPage() {
                                 <BlockStack gap="200">
                                     <InlineStack align="space-between">
                                         <Text variant="headingSm" as="h6" tone="subdued">Click-through Rate</Text>
-                                        <Icon source={ChartIcon} tone="base" />
+                                        <Icon source={ChartVerticalIcon} tone="base" />
                                     </InlineStack>
                                     <Text variant="headingLg" as="p">{analytics.totals.ctr}%</Text>
                                     <Badge tone="attention">Stable</Badge>
@@ -134,7 +134,7 @@ export default function AnalyticsPage() {
                                         <Text variant="headingMd" as="h3">Insights</Text>
                                         <Box padding="1000" background="bg-surface-secondary" borderRadius="200">
                                             <BlockStack align="center" gap="400">
-                                                <Icon source={ChartIcon} tone="subdued" />
+                                                <Icon source={ChartVerticalIcon} tone="subdued" />
                                                 <Text variant="bodyMd" tone="subdued">Visual chart showing view/click trends will appear here as more data is collected.</Text>
                                             </BlockStack>
                                         </Box>
@@ -171,7 +171,7 @@ export default function AnalyticsPage() {
                 <Layout.Section>
                     <Card padding="0">
                         <Box padding="400">
-                            <Text variant="headingLe" as="h3">Top Performing Posts</Text>
+                            <Text variant="headingMd" as="h3">Top Performing Posts</Text>
                         </Box>
                         {topPosts ? (
                             <IndexTable
