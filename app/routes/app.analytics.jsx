@@ -32,73 +32,25 @@ export const loader = async ({ request }) => {
     const analytics = await getAnalytics(shop);
     const topPosts = await getTopPostsAnalytics(shop);
 
-    // Mock data for initial view if no real data exists
-    const mockDailyStats = [
-        { date: '2026-02-08', views: 120, clicks: 12 },
-        { date: '2026-02-09', views: 150, clicks: 18 },
-        { date: '2026-02-10', views: 180, clicks: 25 },
-        { date: '2026-02-11', views: 210, clicks: 30 },
-        { date: '2026-02-12', views: 190, clicks: 22 },
-        { date: '2026-02-13', views: 250, clicks: 45 },
-        { date: '2026-02-14', views: 300, clicks: 64 },
-    ];
+    const hasRealData = analytics.dailyStats.length > 0;
 
-    const mockTopPosts = [
-        {
-            id: '1',
-            mediaId: '17841401234567890',
-            mediaUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=100&auto=format&fit=crop',
-            permalink: 'https://instagram.com',
-            views: 1250,
-            clicks: 185
-        },
-        {
-            id: '2',
-            mediaId: '17841409876543210',
-            mediaUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=100&auto=format&fit=crop',
-            permalink: 'https://instagram.com',
-            views: 980,
-            clicks: 142
-        },
-        {
-            id: '3',
-            mediaId: '17841405556667778',
-            mediaUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=100&auto=format&fit=crop',
-            permalink: 'https://instagram.com',
-            views: 850,
-            clicks: 110
-        },
-        {
-            id: '4',
-            mediaId: '17841401112223334',
-            mediaUrl: 'https://images.unsplash.com/photo-1526170315870-efffd0ad46b4?q=80&w=100&auto=format&fit=crop',
-            permalink: 'https://instagram.com',
-            views: 720,
-            clicks: 95
-        },
-        {
-            id: '5',
-            mediaId: '17841409998887776',
-            mediaUrl: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=100&auto=format&fit=crop',
-            permalink: 'https://instagram.com',
-            views: 600,
-            clicks: 58
-        },
-    ];
-
-    const displayAnalytics = analytics.dailyStats.length > 0 ? analytics : {
-        dailyStats: mockDailyStats,
+    // Use zeroed stats if no real data exists
+    const displayAnalytics = hasRealData ? analytics : {
+        dailyStats: [
+            { date: new Date().toISOString().split('T')[0], views: 0, clicks: 0 }
+        ],
         totals: {
-            views: 1400,
-            clicks: 216,
-            ctr: "15.43"
+            views: 0,
+            clicks: 0,
+            ctr: "0.00"
         }
     };
 
     return json({
         analytics: displayAnalytics,
-        topPosts: topPosts.length > 0 ? topPosts : mockTopPosts,
-        shop
+        topPosts: topPosts.length > 0 ? topPosts : null,
+        shop,
+        hasRealData
     });
 };
 

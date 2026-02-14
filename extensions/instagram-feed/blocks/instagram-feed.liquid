@@ -4,19 +4,32 @@
 {% if media_items %}
   <div class="instagram-feed-container" style="padding: {{ block.settings.padding }}px;">
     {% if block.settings.heading != blank %}
-      <h2 class="instagram-feed-heading" style="text-align: {{ block.settings.heading_alignment }}; color: {{ block.settings.heading_color }};">
+      <h2
+        class="instagram-feed-heading"
+        style="text-align: {{ block.settings.heading_alignment }}; color: {{ block.settings.heading_color }};"
+      >
         {{ block.settings.heading }}
       </h2>
     {% endif %}
 
-    <div class="instagram-feed-grid" style="
-        display: grid; 
-        grid-template-columns: repeat({{ block.settings.columns_desktop }}, 1fr); 
+    <div
+      class="instagram-feed-grid"
+      style="
+        display: grid;
+        grid-template-columns: repeat({{ block.settings.columns_desktop }}, 1fr);
         gap: {{ block.settings.grid_gap }}px;
-    ">
+      "
+    >
       {% for item in media_items limit: block.settings.limit %}
-        <a href="{{ item.permalink }}" target="_blank" class="instagram-feed-item">
-          <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy" width="100%" height="auto" />
+        <a
+          href="{{ item.permalink }}"
+          target="_blank"
+          class="instagram-feed-item"
+          data-media-id="{{ item.id }}"
+          data-media-url="{{ item.thumbnail }}"
+          data-permalink="{{ item.permalink }}"
+        >
+          <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy" width="100%" height="auto">
           <div class="instagram-feed-overlay">
             <span class="instagram-icon">@{{ item.username }}</span>
           </div>
@@ -24,6 +37,38 @@
       {% endfor %}
     </div>
   </div>
+
+  <script>
+    (function () {
+      const track = async (data) => {
+        try {
+          await fetch('/apps/instagram-feed-track/event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+        } catch (e) {
+          // Silently fail in production
+          console.debug('Tracking error:', e);
+        }
+      };
+
+      // Track aggregate view for the shop
+      track({ type: 'view' });
+
+      // Track individual post clicks
+      document.querySelectorAll('.instagram-feed-item').forEach((item) => {
+        item.addEventListener('click', function () {
+          track({
+            type: 'click',
+            mediaId: this.dataset.mediaId,
+            mediaUrl: this.dataset.mediaUrl,
+            permalink: this.dataset.permalink,
+          });
+        });
+      });
+    })();
+  </script>
 
   <style>
     .instagram-feed-container {
@@ -63,7 +108,7 @@
     .instagram-feed-item:hover .instagram-feed-overlay {
       opacity: 1;
     }
-    
+
     @media (max-width: 768px) {
       .instagram-feed-grid {
         grid-template-columns: repeat({{ block.settings.columns_mobile }}, 1fr) !important;

@@ -25,3 +25,8 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [ "https://effectively-suspected-manor-identifier.trycloudflare.com/auth/callback", "https://effectively-suspected-manor-identifier.trycloudflare.com/auth/shopify/callback", "https://effectively-suspected-manor-identifier.trycloudflare.com/api/auth/callback" ]
+
+[app_proxy]
+url = "https://effectively-suspected-manor-identifier.trycloudflare.com/api"
+subpath = "instagram-feed-track"
+prefix = "apps"
