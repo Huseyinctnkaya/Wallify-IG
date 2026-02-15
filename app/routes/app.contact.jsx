@@ -63,47 +63,105 @@ export default function Contact() {
     ];
 
     return (
-        <Page title="Contact" narrowWidth>
+        <Page title="Contact & Support" narrowWidth>
             <Layout>
                 {/* Contact Support Card */}
                 <Layout.Section>
                     <Card>
-                        <BlockStack gap="400">
-                            <InlineStack align="space-between" blockAlign="start">
-                                <BlockStack gap="200">
-                                    <InlineStack gap="200" blockAlign="center">
-                                        <Icon source={EmailIcon} tone="base" />
-                                        <Text variant="headingMd" as="h2">
-                                            Contact Support
-                                        </Text>
-                                    </InlineStack>
-                                    <Text variant="bodyMd" as="p" tone="subdued">
-                                        Need help? Our support team is here to assist you with any questions or issues.
-                                    </Text>
-                                </BlockStack>
-                                <Button
-                                    variant="primary"
-                                    url="mailto:support@34devs.com"
-                                    external
-                                >
-                                    Email Support
-                                </Button>
-                            </InlineStack>
+                        <BlockStack gap="500">
+                            <BlockStack gap="300">
+                                <Text variant="headingLg" as="h2">
+                                    Contact Support
+                                </Text>
+                                <Text variant="bodyMd" as="p" tone="subdued">
+                                    Need help? Our support team is here to assist you with any questions or issues.
+                                </Text>
+                            </BlockStack>
 
-                            <Box paddingBlockStart="200">
-                                <BlockStack gap="200">
-                                    <Text variant="bodyMd" as="p">
-                                        📧 <strong>Email:</strong> support@34devs.com
-                                    </Text>
-                                    <Text variant="bodyMd" as="p">
-                                        ⏰ <strong>Response time:</strong> Within 24 hours
-                                    </Text>
-                                    <Text variant="bodyMd" as="p">
-                                        🌐 <strong>Website:</strong>{" "}
-                                        <a href="https://34devs.com" target="_blank" rel="noopener noreferrer">
-                                            www.34devs.com
-                                        </a>
-                                    </Text>
+                            <Box
+                                padding="400"
+                                background="bg-surface-secondary"
+                                borderRadius="300"
+                            >
+                                <BlockStack gap="400">
+                                    <InlineStack gap="300" blockAlign="center">
+                                        <div style={{
+                                            width: '40px',
+                                            height: '40px',
+                                            borderRadius: '8px',
+                                            background: '#f0f0f0',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
+                                            <Text variant="headingMd" as="span">📧</Text>
+                                        </div>
+                                        <BlockStack gap="100">
+                                            <Text variant="headingSm" as="h3">
+                                                Email
+                                            </Text>
+                                            <Text variant="bodyMd" as="p">
+                                                support@34devs.com
+                                            </Text>
+                                        </BlockStack>
+                                    </InlineStack>
+
+                                    <InlineStack gap="300" blockAlign="center">
+                                        <div style={{
+                                            width: '40px',
+                                            height: '40px',
+                                            borderRadius: '8px',
+                                            background: '#f0f0f0',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
+                                            <Text variant="headingMd" as="span">⏰</Text>
+                                        </div>
+                                        <BlockStack gap="100">
+                                            <Text variant="headingSm" as="h3">
+                                                Response time
+                                            </Text>
+                                            <Text variant="bodyMd" as="p">
+                                                Within 24 hours
+                                            </Text>
+                                        </BlockStack>
+                                    </InlineStack>
+
+                                    <InlineStack gap="300" blockAlign="center">
+                                        <div style={{
+                                            width: '40px',
+                                            height: '40px',
+                                            borderRadius: '8px',
+                                            background: '#f0f0f0',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
+                                            <Text variant="headingMd" as="span">🌐</Text>
+                                        </div>
+                                        <BlockStack gap="100">
+                                            <Text variant="headingSm" as="h3">
+                                                Website
+                                            </Text>
+                                            <Text variant="bodyMd" as="p">
+                                                <a href="https://34devs.com" target="_blank" rel="noopener noreferrer" style={{ color: '#005bd3', textDecoration: 'none' }}>
+                                                    www.34devs.com
+                                                </a>
+                                            </Text>
+                                        </BlockStack>
+                                    </InlineStack>
+
+                                    <Box paddingBlockStart="200">
+                                        <Button
+                                            variant="primary"
+                                            url="mailto:support@34devs.com"
+                                            external
+                                            fullWidth
+                                        >
+                                            Send Email
+                                        </Button>
+                                    </Box>
                                 </BlockStack>
                             </Box>
                         </BlockStack>
@@ -113,23 +171,25 @@ export default function Contact() {
                 {/* FAQ Section */}
                 <Layout.Section>
                     <Card>
-                        <BlockStack gap="400">
-                            <InlineStack gap="200" blockAlign="center">
-                                <Icon source={QuestionCircleIcon} tone="base" />
-                                <Text variant="headingMd" as="h2">
+                        <BlockStack gap="500">
+                            <BlockStack gap="300">
+                                <Text variant="headingLg" as="h2">
                                     Frequently Asked Questions
                                 </Text>
-                            </InlineStack>
+                                <Text variant="bodyMd" as="p" tone="subdued">
+                                    Find answers to common questions about the Instagram Feed app.
+                                </Text>
+                            </BlockStack>
 
-                            <BlockStack gap="300">
+                            <BlockStack gap="200">
                                 {faqs.map((faq, index) => (
                                     <Box
                                         key={index}
-                                        padding="300"
+                                        padding="400"
                                         background="bg-surface-secondary"
                                         borderRadius="200"
                                     >
-                                        <BlockStack gap="200">
+                                        <BlockStack gap="300">
                                             <Button
                                                 variant="plain"
                                                 textAlign="left"
@@ -137,12 +197,23 @@ export default function Contact() {
                                                 fullWidth
                                             >
                                                 <InlineStack align="space-between" blockAlign="center">
-                                                    <Text variant="headingSm" as="h3">
+                                                    <Text variant="headingSm" as="h3" fontWeight="semibold">
                                                         {faq.question}
                                                     </Text>
-                                                    <Text variant="headingSm" as="span">
-                                                        {openFAQ === index ? "−" : "+"}
-                                                    </Text>
+                                                    <div style={{
+                                                        width: '24px',
+                                                        height: '24px',
+                                                        borderRadius: '50%',
+                                                        background: '#f0f0f0',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        flexShrink: 0
+                                                    }}>
+                                                        <Text variant="bodySm" as="span" fontWeight="semibold">
+                                                            {openFAQ === index ? "−" : "+"}
+                                                        </Text>
+                                                    </div>
                                                 </InlineStack>
                                             </Button>
 
@@ -151,7 +222,7 @@ export default function Contact() {
                                                 id={`faq-${index}`}
                                                 transition={{ duration: "200ms", timingFunction: "ease-in-out" }}
                                             >
-                                                <Box paddingBlockStart="200">
+                                                <Box paddingBlockStart="100">
                                                     <Text variant="bodyMd" as="p" tone="subdued">
                                                         {faq.answer}
                                                     </Text>
@@ -165,32 +236,9 @@ export default function Contact() {
                     </Card>
                 </Layout.Section>
 
-                {/* Additional Resources */}
+                {/* Bottom Spacing */}
                 <Layout.Section>
-                    <Card>
-                        <BlockStack gap="300">
-                            <Text variant="headingMd" as="h2">
-                                Additional Resources
-                            </Text>
-                            <Text variant="bodyMd" as="p" tone="subdued">
-                                Still have questions? Check out these helpful resources:
-                            </Text>
-                            <BlockStack gap="200">
-                                <Button variant="plain" url="/app">
-                                    → Dashboard & Settings Guide
-                                </Button>
-                                <Button variant="plain" url="/app/posts">
-                                    → Managing Posts & Reels
-                                </Button>
-                                <Button variant="plain" url="/app/analytics">
-                                    → Understanding Analytics
-                                </Button>
-                                <Button variant="plain" url="/app/plans">
-                                    → Premium Features & Plans
-                                </Button>
-                            </BlockStack>
-                        </BlockStack>
-                    </Card>
+                    <Box paddingBlockEnd="800" />
                 </Layout.Section>
             </Layout>
         </Page>

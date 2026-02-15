@@ -488,6 +488,23 @@ export default function Dashboard() {
                             </BlockStack>
                         </Card>
 
+                        {/* Contact Support Card */}
+                        <Card>
+                            <InlineStack align="space-between" blockAlign="center">
+                                <BlockStack gap="200">
+                                    <Text variant="headingMd" as="h3">
+                                        Need Help?
+                                    </Text>
+                                    <Text variant="bodyMd" as="p" tone="subdued">
+                                        Get support, view FAQs, or contact our team
+                                    </Text>
+                                </BlockStack>
+                                <Button url="/app/contact">
+                                    Contact Support
+                                </Button>
+                            </InlineStack>
+                        </Card>
+
                         <Card>
                             <BlockStack gap="400">
                                 <Text variant="headingMd" as="h2">
@@ -1068,27 +1085,6 @@ export default function Dashboard() {
                     </div>
                 )
             }
-
-            {/* Contact Support Card */}
-            <Layout.Section>
-                <Box paddingBlockStart="800">
-                    <Card>
-                        <InlineStack align="space-between" blockAlign="center">
-                            <BlockStack gap="200">
-                                <Text variant="headingMd" as="h3">
-                                    Need Help?
-                                </Text>
-                                <Text variant="bodyMd" as="p" tone="subdued">
-                                    Get support, view FAQs, or contact our team
-                                </Text>
-                            </BlockStack>
-                            <Button url="/app/contact">
-                                Contact Support
-                            </Button>
-                        </InlineStack>
-                    </Card>
-                </Box>
-            </Layout.Section>
 
             {/* MenuCraft Promotional Banner */}
             <Layout.Section>
