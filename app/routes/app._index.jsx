@@ -1068,6 +1068,91 @@ export default function Dashboard() {
                     </div>
                 )
             }
+
+            {/* MenuCraft Promotional Banner */}
+            <Layout.Section>
+                <Box paddingBlockStart="800" paddingBlockEnd="800">
+                    <div style={{
+                        backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('/menucraft-bg.png')",
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        borderRadius: "12px",
+                        padding: "40px",
+                        color: "white",
+                        minHeight: "220px",
+                        display: "flex",
+                        alignItems: "center"
+                    }}>
+                            <InlineStack align="space-between" blockAlign="center" wrap={false} gap="600">
+                                {/* Left side - Title and description */}
+                                <BlockStack gap="300" inlineAlign="start">
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                        <Text variant="headingSm" as="span" tone="text-inverse">
+                                            Güvenilir üzerinde 50000+ ticari
+                                        </Text>
+                                    </div>
+                                    <Text variant="heading2xl" as="h2" tone="text-inverse">
+                                        MenuCraft
+                                    </Text>
+                                    <Text variant="headingLg" as="h3" tone="text-inverse">
+                                        Mega Menu Builder
+                                    </Text>
+                                    <Text variant="bodyLg" as="p" tone="text-inverse">
+                                        Sınırsız özel ürün seçenekleri ve varyantları oluşturun
+                                    </Text>
+                                </BlockStack>
+
+                                {/* Middle - Image placeholder */}
+                                <Box>
+                                    <div style={{
+                                        width: "300px",
+                                        height: "200px",
+                                        background: "rgba(255, 255, 255, 0.1)",
+                                        borderRadius: "8px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        border: "2px dashed rgba(255, 255, 255, 0.3)"
+                                    }}>
+                                        <Text variant="bodyMd" as="p" tone="text-inverse">
+                                            [Görseli buraya ekle]
+                                        </Text>
+                                    </div>
+                                </Box>
+
+                                {/* Right side - Features and button */}
+                                <BlockStack gap="300" inlineAlign="start">
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                                        <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                                            <div style={{ marginTop: "4px" }}>✓</div>
+                                            <Text variant="bodyMd" as="span" tone="text-inverse">
+                                                Koşullu mantık seçenekleri
+                                            </Text>
+                                        </div>
+                                        <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                                            <div style={{ marginTop: "4px" }}>✓</div>
+                                            <Text variant="bodyMd" as="span" tone="text-inverse">
+                                                Canlı önizleme ile ürün personalizasyonu
+                                            </Text>
+                                        </div>
+                                        <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                                            <div style={{ marginTop: "4px" }}>✓</div>
+                                            <Text variant="bodyMd" as="span" tone="text-inverse">
+                                                Sepet sayfasında seçenekleri düzenleyin
+                                            </Text>
+                                        </div>
+                                        <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                                            <div style={{ marginTop: "4px" }}>✓</div>
+                                            <Text variant="bodyMd" as="span" tone="text-inverse">
+                                                Sipariş resim veya dosya yükleyin
+                                            </Text>
+                                        </div>
+                                    </div>
+                                </BlockStack>
+                            </InlineStack>
+                    </div>
+                </Box>
+            </Layout.Section>
         </Page >
     );
 }

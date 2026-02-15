@@ -30,3 +30,26 @@ redirect_urls = [ "https://permissions-fog-selecting-elder.trycloudflare.com/aut
 url = "https://permissions-fog-selecting-elder.trycloudflare.com/api"
 subpath = "instagram-feed-track"
 prefix = "apps"
+
+[pos]
+embedded = false
+
+[[app.nav.items]]
+label = "Dashboard"
+url = "/"
+
+[[app.nav.items]]
+label = "Posts & Reels"
+url = "/posts"
+
+[[app.nav.items]]
+label = "Analytics"
+url = "/analytics"
+
+[[app.nav.items]]
+label = "Support"
+url = "/support"
+
+[[app.nav.items]]
+label = "Plans"
+url = "/plans"
