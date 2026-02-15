@@ -2,7 +2,7 @@
 
 client_id = "e0471fb4646d0d4281ce490c807e6b91"
 name = "DevsApiG"
-application_url = "https://cartridges-despite-telecommunications-advise.trycloudflare.com"
+application_url = "https://permissions-fog-selecting-elder.trycloudflare.com"
 embedded = true
 
 [build]
@@ -24,9 +24,9 @@ api_version = "2026-04"
 scopes = "write_products,read_products"
 
 [auth]
-redirect_urls = [ "https://cartridges-despite-telecommunications-advise.trycloudflare.com/auth/callback", "https://cartridges-despite-telecommunications-advise.trycloudflare.com/auth/shopify/callback", "https://cartridges-despite-telecommunications-advise.trycloudflare.com/api/auth/callback" ]
+redirect_urls = [ "https://permissions-fog-selecting-elder.trycloudflare.com/auth/callback", "https://permissions-fog-selecting-elder.trycloudflare.com/auth/shopify/callback", "https://permissions-fog-selecting-elder.trycloudflare.com/api/auth/callback" ]
 
 [app_proxy]
-url = "https://cartridges-despite-telecommunications-advise.trycloudflare.com/api"
+url = "https://permissions-fog-selecting-elder.trycloudflare.com/api"
 subpath = "instagram-feed-track"
 prefix = "apps"
