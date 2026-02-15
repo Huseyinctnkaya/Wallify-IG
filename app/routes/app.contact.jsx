@@ -20,7 +20,7 @@ export const loader = async ({ request }) => {
     return json({});
 };
 
-export default function Support() {
+export default function Contact() {
     const [openFAQ, setOpenFAQ] = useState(null);
 
     const toggleFAQ = (index) => {
@@ -63,7 +63,7 @@ export default function Support() {
     ];
 
     return (
-        <Page title="Support" narrowWidth>
+        <Page title="Contact" narrowWidth>
             <Layout>
                 {/* Contact Support Card */}
                 <Layout.Section>
