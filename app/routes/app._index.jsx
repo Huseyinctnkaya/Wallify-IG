@@ -31,12 +31,19 @@ export async function loader({ request }) {
 
     const instagramAccount = await getInstagramAccount(shop);
     const settings = await getSettings(shop);
+    const isPremium = await isPremiumShop(shop);
+    const freeMediaLimit = Math.min(Number(settings.mediaLimit) || 12, 12);
+    const effectiveMediaLimit = isPremium ? null : freeMediaLimit;
     let media = [];
 
     if (instagramAccount) {
         try {
             // Fetch Instagram media
-            const rawMedia = await fetchInstagramMedia(instagramAccount.userId, instagramAccount.accessToken, settings.mediaLimit);
+            const rawMedia = await fetchInstagramMedia(
+                instagramAccount.userId,
+                instagramAccount.accessToken,
+                effectiveMediaLimit
+            );
 
             // Fetch Post records from database
             const postRecords = await getPosts(shop);
@@ -76,8 +83,6 @@ export async function loader({ request }) {
         process.env.INSTAGRAM_ACCESS_TOKEN
     );
 
-    const isPremium = await isPremiumShop(shop);
-
     return json({
         instagramAccount,
         media,
@@ -97,12 +102,17 @@ export async function action({ request }) {
     const actionType = formData.get("actionType");
 
     if (actionType === "saveSettings") {
+        const isPremium = await isPremiumShop(shop);
+        const parsedMediaLimit = parseInt(formData.get("mediaLimit"), 10);
+        const normalizedMediaLimit = Number.isFinite(parsedMediaLimit) && parsedMediaLimit > 0
+            ? parsedMediaLimit
+            : 12;
         const settings = {
             title: formData.get("title"),
             subheading: formData.get("subheading"),
-            feedType: formData.get("feedType"),
+            feedType: isPremium ? formData.get("feedType") : "slider",
             showPinnedReels: formData.get("showPinnedReels") === "true",
-            mediaLimit: parseInt(formData.get("mediaLimit")) || 12,
+            mediaLimit: isPremium ? normalizedMediaLimit : Math.min(normalizedMediaLimit, 12),
             gridDesktopColumns: parseInt(formData.get("gridDesktopColumns")),
             gridMobileColumns: parseInt(formData.get("gridMobileColumns")),
             sliderDesktopColumns: parseInt(formData.get("sliderDesktopColumns")),
@@ -126,6 +136,15 @@ export async function action({ request }) {
         };
 
         await saveSettings(shop, settings, admin);
+        try {
+            const account = await getInstagramAccount(shop);
+            if (account) {
+                const { syncInstagramToMetafields } = await import("../models/instagram.server");
+                await syncInstagramToMetafields(shop, admin);
+            }
+        } catch (error) {
+            console.error("Media resync after settings update failed:", error);
+        }
         return json({ success: true, message: "Settings saved successfully!" });
     }
 
@@ -273,7 +292,7 @@ export default function Dashboard() {
         formData.append("actionType", "saveSettings");
         formData.append("title", title);
         formData.append("subheading", subheading);
-        formData.append("feedType", feedType);
+        formData.append("feedType", isPremium ? feedType : "slider");
         formData.append("showPinnedReels", showPinnedReels);
         formData.append("mediaLimit", mediaLimit);
         formData.append("gridDesktopColumns", gridDesktopColumns);
@@ -301,11 +320,24 @@ export default function Dashboard() {
     };
 
     // Dashboard State
+    const defaultFeedType = isPremium ? (settings?.feedType || "slider") : "slider";
+    const defaultMediaLimit = isPremium
+        ? (settings?.mediaLimit?.toString() || "12")
+        : String(Math.min(Number(settings?.mediaLimit) || 12, 12));
+    const feedTypeOptions = isPremium
+        ? [
+            { label: 'Slider', value: 'slider' },
+            { label: 'Grid', value: 'grid' },
+        ]
+        : [
+            { label: 'Slider', value: 'slider' },
+        ];
+
     const [title, setTitle] = useState(settings?.title || "INSTAGRAM'DA BİZ");
     const [subheading, setSubheading] = useState(settings?.subheading || "Daha Fazlası İçin Bizi Takip Edebilirsiniz");
-    const [feedType, setFeedType] = useState(settings?.feedType || "slider");
+    const [feedType, setFeedType] = useState(defaultFeedType);
     const [showPinnedReels, setShowPinnedReels] = useState(settings?.showPinnedReels || false);
-    const [mediaLimit, setMediaLimit] = useState(settings?.mediaLimit?.toString() || "12");
+    const [mediaLimit, setMediaLimit] = useState(defaultMediaLimit);
     const [gridDesktopColumns, setGridDesktopColumns] = useState(settings?.gridDesktopColumns?.toString() || "4");
     const [gridMobileColumns, setGridMobileColumns] = useState(settings?.gridMobileColumns?.toString() || "2");
     const [sliderDesktopColumns, setSliderDesktopColumns] = useState(settings?.sliderDesktopColumns?.toString() || "4");
@@ -395,9 +427,9 @@ export default function Dashboard() {
     const isDirty = (
         title !== (settings?.title || "INSTAGRAM'DA BİZ") ||
         subheading !== (settings?.subheading || "Daha Fazlası İçin Bizi Takip Edebilirsiniz") ||
-        feedType !== (settings?.feedType || "slider") ||
+        feedType !== defaultFeedType ||
         showPinnedReels !== (settings?.showPinnedReels || false) ||
-        mediaLimit !== (settings?.mediaLimit?.toString() || "12") ||
+        mediaLimit !== defaultMediaLimit ||
         gridDesktopColumns !== (settings?.gridDesktopColumns?.toString() || "4") ||
         gridMobileColumns !== (settings?.gridMobileColumns?.toString() || "2") ||
         sliderDesktopColumns !== (settings?.sliderDesktopColumns?.toString() || "4") ||
@@ -588,12 +620,10 @@ export default function Dashboard() {
                                                     />
                                                     <Select
                                                         label="Feed type"
-                                                        options={[
-                                                            { label: 'Slider', value: 'slider' },
-                                                            { label: 'Grid', value: 'grid' },
-                                                        ]}
+                                                        options={feedTypeOptions}
                                                         value={feedType}
                                                         onChange={setFeedType}
+                                                        helpText={!isPremium ? "Grid layout is available on Premium plan." : undefined}
                                                     />
                                                     <Checkbox
                                                         label="Show pinned reels only"
@@ -604,9 +634,27 @@ export default function Dashboard() {
                                                         label="Total posts to fetch"
                                                         type="number"
                                                         value={mediaLimit}
-                                                        onChange={setMediaLimit}
+                                                        onChange={(value) => {
+                                                            if (isPremium) {
+                                                                setMediaLimit(value);
+                                                                return;
+                                                            }
+
+                                                            const parsed = parseInt(value, 10);
+                                                            if (!Number.isFinite(parsed)) {
+                                                                setMediaLimit("12");
+                                                                return;
+                                                            }
+
+                                                            setMediaLimit(String(Math.max(1, Math.min(parsed, 12))));
+                                                        }}
                                                         autoComplete="off"
-                                                        helpText="How many posts to pull from Instagram"
+                                                        min={1}
+                                                        max={isPremium ? undefined : 12}
+                                                        helpText={isPremium
+                                                            ? "Premium plan fetches all available posts. This value is optional."
+                                                            : "Free plan allows up to 12 posts."
+                                                        }
                                                     />
                                                 </BlockStack>
                                             </Card>

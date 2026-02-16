@@ -1,6 +1,7 @@
 import { prisma } from "../db.server";
 import { getPosts } from "./post.server";
 import { getSettings } from "./settings.server";
+import { isPremiumShop } from "../utils/premium.server";
 
 // Instagram Graph API Endpoints
 const INSTAGRAM_GRAPH_URL = "https://graph.instagram.com";
@@ -29,20 +30,43 @@ async function fetchCarouselChildren(mediaId, accessToken) {
  * Requires: Instagram Business or Creator account connected via Meta Business Suite
  * Now includes carousel children for multi-image posts
  */
-export async function fetchInstagramMedia(instagramUserId, accessToken, limit = 100) {
+export async function fetchInstagramMedia(instagramUserId, accessToken, limit = null) {
     const fields = "id,caption,media_type,media_url,permalink,thumbnail_url,timestamp,username";
-    const url = `${INSTAGRAM_GRAPH_URL}/${instagramUserId}/media?fields=${fields}&access_token=${accessToken}&limit=${limit}`;
+    const parsedLimit = Number.isFinite(Number(limit)) && Number(limit) > 0
+        ? Number(limit)
+        : null;
 
-    const response = await fetch(url);
+    const pageLimit = parsedLimit ? Math.min(parsedLimit, 100) : 100;
+    let nextUrl = `${INSTAGRAM_GRAPH_URL}/${instagramUserId}/media?fields=${fields}&access_token=${accessToken}&limit=${pageLimit}`;
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Instagram Graph API Error:", errorText);
-        throw new Error(`Failed to fetch media: ${response.statusText}`);
+    const mediaItems = [];
+    let pageCount = 0;
+    const maxPages = 50;
+
+    while (nextUrl && pageCount < maxPages) {
+        const response = await fetch(nextUrl);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Instagram Graph API Error:", errorText);
+            throw new Error(`Failed to fetch media: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const pageItems = data.data || [];
+
+        if (parsedLimit) {
+            const remaining = parsedLimit - mediaItems.length;
+            if (remaining <= 0) break;
+            mediaItems.push(...pageItems.slice(0, remaining));
+        } else {
+            mediaItems.push(...pageItems);
+        }
+
+        if (parsedLimit && mediaItems.length >= parsedLimit) break;
+        nextUrl = data?.paging?.next || null;
+        pageCount += 1;
     }
-
-    const data = await response.json();
-    const mediaItems = data.data || [];
 
     // Fetch children for carousel posts
     const enrichedMedia = await Promise.all(
@@ -128,6 +152,9 @@ export async function syncInstagramToMetafields(shop, admin) {
 
     // Fetch settings and post records
     const settings = await getSettings(shop);
+    const isPremium = await isPremiumShop(shop);
+    const freeMediaLimit = Math.min(Number(settings.mediaLimit) || 12, 12);
+    const effectiveMediaLimit = isPremium ? null : freeMediaLimit;
     const postRecords = await getPosts(shop);
 
     let mediaItems = [];
@@ -135,7 +162,7 @@ export async function syncInstagramToMetafields(shop, admin) {
         mediaItems = await fetchInstagramMedia(
             account.userId,
             account.accessToken,
-            settings.mediaLimit || 100
+            effectiveMediaLimit
         );
     } catch (error) {
         console.error("Sync Error:", error);

@@ -33,12 +33,18 @@ export const loader = async ({ request }) => {
     const settings = await getSettings(shop);
     const instagramAccount = await getInstagramAccount(shop);
     const isPremium = await isPremiumShop(shop);
+    const freeMediaLimit = Math.min(Number(settings.mediaLimit) || 12, 12);
+    const effectiveMediaLimit = isPremium ? null : freeMediaLimit;
     let posts = [];
 
     if (instagramAccount) {
         try {
             // Fetch Instagram media
-            const media = await fetchInstagramMedia(instagramAccount.userId, instagramAccount.accessToken, settings.mediaLimit);
+            const media = await fetchInstagramMedia(
+                instagramAccount.userId,
+                instagramAccount.accessToken,
+                effectiveMediaLimit
+            );
 
             // Fetch Post records from database
             const postRecords = await getPosts(shop);
@@ -64,7 +70,7 @@ export const loader = async ({ request }) => {
                     isHidden: record?.isHidden || false,
                     products: record?.products ? JSON.parse(record.products) : []
                 };
-            }).slice(0, settings.mediaLimit);
+            });
 
             // Note: showPinnedReels filter is NOT applied on management page
             // It only affects the storefront (theme) display
@@ -126,8 +132,8 @@ export const loader = async ({ request }) => {
                 products: []
             }
         ];
-        // Slice mock data based on settings.mediaLimit
-        posts = mockPosts.slice(0, settings.mediaLimit);
+        // Slice mock data only for free plan cap
+        posts = isPremium ? mockPosts : mockPosts.slice(0, freeMediaLimit);
     }
 
     return json({
