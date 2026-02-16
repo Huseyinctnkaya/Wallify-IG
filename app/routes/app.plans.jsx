@@ -50,6 +50,7 @@ export default function Plans() {
                                                 <List.Item>Slider Layout Only</List.Item>
                                                 <List.Item>Max 12 Photos & Videos</List.Item>
                                                 <List.Item>Mobile Responsive</List.Item>
+                                                <List.Item>Basic Support</List.Item>
                                             </List>
                                         </BlockStack>
                                     </BlockStack>
