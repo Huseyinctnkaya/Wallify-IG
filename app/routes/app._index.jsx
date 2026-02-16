@@ -435,7 +435,7 @@ export default function Dashboard() {
 
     return (
         <Page
-            title="DevsApiG"
+            title="Wallify İG"
         >
             <Layout>
                 <Layout.Section>
