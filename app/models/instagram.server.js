@@ -192,7 +192,28 @@ export async function syncInstagramToMetafields(shop, admin) {
     const shopIdData = await shopIdResponse.json();
     const shopId = shopIdData.data.shop.id;
 
-    // Save to metafield
+    const metafieldsPayload = [
+        {
+            namespace: "instagram_feed",
+            key: "media",
+            type: "json",
+            value: jsonValue,
+            ownerId: shopId
+        }
+    ];
+
+    const appUrl = process.env.SHOPIFY_APP_URL?.replace(/\/$/, "");
+    if (appUrl) {
+        metafieldsPayload.push({
+            namespace: "instagram_feed",
+            key: "tracking_url",
+            type: "single_line_text_field",
+            value: `${appUrl}/api/track`,
+            ownerId: shopId
+        });
+    }
+
+    // Save to metafields
     const response = await admin.graphql(
         `#graphql
         mutation MetafieldsSet($metafields: [MetafieldsSetInput!]!) {
@@ -210,15 +231,7 @@ export async function syncInstagramToMetafields(shop, admin) {
         }`,
         {
             variables: {
-                metafields: [
-                    {
-                        namespace: "instagram_feed",
-                        key: "media",
-                        type: "json",
-                        value: jsonValue,
-                        ownerId: shopId
-                    }
-                ]
+                metafields: metafieldsPayload
             },
         }
     );

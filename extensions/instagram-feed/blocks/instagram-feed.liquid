@@ -7,6 +7,7 @@
 {% assign post_spacing = settings_metafield.postSpacing | default: 'medium' %}
 {% assign border_radius = settings_metafield.borderRadius | default: 'medium' %}
 {% assign max_items = settings_metafield.mediaLimit | default: 12 %}
+{% assign tracking_url = shop.metafields.instagram_feed.tracking_url.value %}
 
 {% comment %} Spacing values {% endcomment %}
 {% if post_spacing == 'none' %}
@@ -261,18 +262,71 @@
       const onClick = '{{ on_click }}';
       const desktopCols = {{ desktop_cols }};
       const mobileCols = {{ mobile_cols }};
+      const shopDomain = {{ shop.permanent_domain | json }};
+      const directTrackingUrl = {{ tracking_url | json }};
+      const proxyCandidates = [
+        '/apps/instagram-feed-track',
+        '/a/instagram-feed-track',
+      ];
+      const proxyStorageKey = 'wallify_proxy_path';
 
       // Tracking
       const track = async (data) => {
-        try {
-          await fetch('/apps/instagram-feed-track/event', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-          });
-        } catch (e) {
-          console.debug('Tracking error:', e);
+        const params = new URLSearchParams();
+        Object.entries(data || {}).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            params.set(key, String(value));
+          }
+        });
+
+        const preferredProxy = sessionStorage.getItem(proxyStorageKey);
+        const endpointCandidates = preferredProxy
+          ? [preferredProxy, ...proxyCandidates.filter((p) => p !== preferredProxy)]
+          : proxyCandidates;
+
+        for (const endpoint of endpointCandidates) {
+          const fallbackUrl = `${endpoint}?${params.toString()}`;
+
+          try {
+            const response = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data),
+              keepalive: true,
+            });
+
+            if (response.ok) {
+              sessionStorage.setItem(proxyStorageKey, endpoint);
+              return;
+            }
+
+            const getResponse = await fetch(fallbackUrl, { method: 'GET', keepalive: true });
+            if (getResponse.ok) {
+              sessionStorage.setItem(proxyStorageKey, endpoint);
+              return;
+            }
+
+            console.warn(`Tracking failed on ${endpoint} (POST ${response.status}, GET ${getResponse.status}).`);
+          } catch (error) {
+            console.debug(`Tracking failed on ${endpoint}:`, error);
+          }
         }
+
+        if (directTrackingUrl) {
+          const directParams = new URLSearchParams(params);
+          directParams.set('shop', shopDomain);
+          const separator = directTrackingUrl.includes('?') ? '&' : '?';
+          const directUrl = `${directTrackingUrl}${separator}${directParams.toString()}`;
+
+          try {
+            await fetch(directUrl, { method: 'GET', mode: 'no-cors', keepalive: true });
+            return;
+          } catch (directError) {
+            console.debug('Direct tracking fallback failed:', directError);
+          }
+        }
+
+        console.error('Tracking disabled: App Proxy endpoint is not reachable. Verify App Proxy config/deploy.');
       };
 
       track({ type: 'view' });
