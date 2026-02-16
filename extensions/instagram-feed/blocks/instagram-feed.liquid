@@ -279,6 +279,20 @@
           }
         });
 
+        if (directTrackingUrl) {
+          const directParams = new URLSearchParams(params);
+          directParams.set('shop', shopDomain);
+          const separator = directTrackingUrl.includes('?') ? '&' : '?';
+          const directUrl = `${directTrackingUrl}${separator}${directParams.toString()}`;
+
+          try {
+            await fetch(directUrl, { method: 'GET', mode: 'no-cors', keepalive: true });
+            return;
+          } catch (directError) {
+            console.debug('Direct tracking failed, falling back to proxy:', directError);
+          }
+        }
+
         const preferredProxy = sessionStorage.getItem(proxyStorageKey);
         const endpointCandidates = preferredProxy
           ? [preferredProxy, ...proxyCandidates.filter((p) => p !== preferredProxy)]
@@ -305,28 +319,10 @@
               sessionStorage.setItem(proxyStorageKey, endpoint);
               return;
             }
-
-            console.warn(`Tracking failed on ${endpoint} (POST ${response.status}, GET ${getResponse.status}).`);
           } catch (error) {
-            console.debug(`Tracking failed on ${endpoint}:`, error);
+            console.debug(`Tracking proxy failed on ${endpoint}:`, error);
           }
         }
-
-        if (directTrackingUrl) {
-          const directParams = new URLSearchParams(params);
-          directParams.set('shop', shopDomain);
-          const separator = directTrackingUrl.includes('?') ? '&' : '?';
-          const directUrl = `${directTrackingUrl}${separator}${directParams.toString()}`;
-
-          try {
-            await fetch(directUrl, { method: 'GET', mode: 'no-cors', keepalive: true });
-            return;
-          } catch (directError) {
-            console.debug('Direct tracking fallback failed:', directError);
-          }
-        }
-
-        console.error('Tracking disabled: App Proxy endpoint is not reachable. Verify App Proxy config/deploy.');
       };
 
       track({ type: 'view' });
