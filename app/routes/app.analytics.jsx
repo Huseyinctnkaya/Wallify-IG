@@ -15,6 +15,7 @@ import {
     Icon,
     EmptyState,
     Button,
+    Banner,
 } from "@shopify/polaris";
 import {
     ViewIcon,
@@ -23,19 +24,11 @@ import {
     CalendarIcon
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
-import { getAnalytics, getTopPostsAnalytics } from "../models/analytics.server";
+import { getAnalytics, getAnalyticsTotals, getTopPostsAnalytics } from "../models/analytics.server";
+import { isPremiumShop } from "../utils/premium.server";
 
-export const loader = async ({ request }) => {
-    const { session } = await authenticate.admin(request);
-    const { shop } = session;
-
-    const analytics = await getAnalytics(shop);
-    const topPosts = await getTopPostsAnalytics(shop);
-
-    const hasRealData = analytics.dailyStats.length > 0;
-
-    // Use zeroed stats if no real data exists
-    const displayAnalytics = hasRealData ? analytics : {
+function createEmptyAnalytics() {
+    return {
         dailyStats: [
             { date: new Date().toISOString().split('T')[0], views: 0, clicks: 0 }
         ],
@@ -51,17 +44,59 @@ export const loader = async ({ request }) => {
             engagement: 0
         }
     };
+}
+
+export const loader = async ({ request }) => {
+    const { session } = await authenticate.admin(request);
+    const { shop } = session;
+    const premium = await isPremiumShop(shop);
+
+    const [allTimeTotals, weeklyAnalytics] = await Promise.all([
+        getAnalyticsTotals(shop),
+        getAnalytics(shop, 7),
+    ]);
+
+    const hasRealData = (allTimeTotals.views + allTimeTotals.clicks) > 0;
+    const displayWeeklyAnalytics = hasRealData ? weeklyAnalytics : createEmptyAnalytics();
+
+    let detailedRanges = null;
+    let topPosts = null;
+
+    if (premium) {
+        const [range30, range60, range90, topPostsData] = await Promise.all([
+            getAnalytics(shop, 30),
+            getAnalytics(shop, 60),
+            getAnalytics(shop, 90),
+            getTopPostsAnalytics(shop),
+        ]);
+
+        detailedRanges = {
+            30: range30,
+            60: range60,
+            90: range90,
+        };
+        topPosts = topPostsData.length > 0 ? topPostsData : null;
+    }
 
     return json({
-        analytics: displayAnalytics,
-        topPosts: topPosts.length > 0 ? topPosts : null,
+        allTimeTotals,
+        weeklyAnalytics: displayWeeklyAnalytics,
+        detailedRanges,
+        topPosts,
+        isPremium: premium,
         shop,
         hasRealData
     });
 };
 
 export default function AnalyticsPage() {
-    const { analytics, topPosts } = useLoaderData();
+    const {
+        allTimeTotals,
+        weeklyAnalytics,
+        detailedRanges,
+        topPosts,
+        isPremium,
+    } = useLoaderData();
 
     const resourceName = {
         singular: 'post',
@@ -99,7 +134,7 @@ export default function AnalyticsPage() {
             const dateStr = date.toISOString().split('T')[0];
             const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
 
-            const dayData = analytics.dailyStats.find(stat => {
+            const dayData = weeklyAnalytics.dailyStats.find(stat => {
                 const statDate = new Date(stat.date).toISOString().split('T')[0];
                 return statDate === dateStr;
             });
@@ -143,10 +178,12 @@ export default function AnalyticsPage() {
                                             <Icon source={ViewIcon} tone="base" />
                                         </div>
                                     </InlineStack>
-                                    <Text variant="headingLg" as="p">{analytics.totals.views.toLocaleString()}</Text>
-                                    <Badge tone={formatChangeBadge(analytics.weekOverWeek.views).tone}>
-                                        {formatChangeBadge(analytics.weekOverWeek.views).text}
-                                    </Badge>
+                                    <Text variant="headingLg" as="p">{allTimeTotals.views.toLocaleString()}</Text>
+                                    {isPremium && (
+                                        <Badge tone={formatChangeBadge(weeklyAnalytics.weekOverWeek.views).tone}>
+                                            {formatChangeBadge(weeklyAnalytics.weekOverWeek.views).text}
+                                        </Badge>
+                                    )}
                                 </BlockStack>
                             </Card>
                         </Grid.Cell>
@@ -159,10 +196,12 @@ export default function AnalyticsPage() {
                                             <Icon source={ArrowRightIcon} tone="base" />
                                         </div>
                                     </InlineStack>
-                                    <Text variant="headingLg" as="p">{analytics.totals.clicks.toLocaleString()}</Text>
-                                    <Badge tone={formatChangeBadge(analytics.weekOverWeek.clicks).tone}>
-                                        {formatChangeBadge(analytics.weekOverWeek.clicks).text}
-                                    </Badge>
+                                    <Text variant="headingLg" as="p">{allTimeTotals.clicks.toLocaleString()}</Text>
+                                    {isPremium && (
+                                        <Badge tone={formatChangeBadge(weeklyAnalytics.weekOverWeek.clicks).tone}>
+                                            {formatChangeBadge(weeklyAnalytics.weekOverWeek.clicks).text}
+                                        </Badge>
+                                    )}
                                 </BlockStack>
                             </Card>
                         </Grid.Cell>
@@ -175,10 +214,12 @@ export default function AnalyticsPage() {
                                             <Icon source={ChartVerticalIcon} tone="base" />
                                         </div>
                                     </InlineStack>
-                                    <Text variant="headingLg" as="p">{analytics.totals.ctr}%</Text>
-                                    <Badge tone={formatChangeBadge(analytics.weekOverWeek.ctr).tone}>
-                                        {formatChangeBadge(analytics.weekOverWeek.ctr).text}
-                                    </Badge>
+                                    <Text variant="headingLg" as="p">{allTimeTotals.ctr}%</Text>
+                                    {isPremium && (
+                                        <Badge tone={formatChangeBadge(weeklyAnalytics.weekOverWeek.ctr).tone}>
+                                            {formatChangeBadge(weeklyAnalytics.weekOverWeek.ctr).text}
+                                        </Badge>
+                                    )}
                                 </BlockStack>
                             </Card>
                         </Grid.Cell>
@@ -191,15 +232,69 @@ export default function AnalyticsPage() {
                                             <Icon source={CalendarIcon} tone="base" />
                                         </div>
                                     </InlineStack>
-                                    <Text variant="headingLg" as="p">{(analytics.totals.views + analytics.totals.clicks).toLocaleString()}</Text>
-                                    <Badge tone={formatChangeBadge(analytics.weekOverWeek.engagement).tone}>
-                                        {formatChangeBadge(analytics.weekOverWeek.engagement).text}
-                                    </Badge>
+                                    <Text variant="headingLg" as="p">{(allTimeTotals.views + allTimeTotals.clicks).toLocaleString()}</Text>
+                                    {isPremium && (
+                                        <Badge tone={formatChangeBadge(weeklyAnalytics.weekOverWeek.engagement).tone}>
+                                            {formatChangeBadge(weeklyAnalytics.weekOverWeek.engagement).text}
+                                        </Badge>
+                                    )}
                                 </BlockStack>
                             </Card>
                         </Grid.Cell>
                     </Grid>
                 </Layout.Section>
+
+                {!isPremium && (
+                    <Layout.Section>
+                        <Banner
+                            tone="info"
+                            title="Basic plan active"
+                            action={{ content: "Upgrade Plan", url: "/app/plans" }}
+                        >
+                            <p>Basic plan includes all-time totals and last 7 days analysis. Upgrade to unlock 30/60/90-day insights and top performing posts.</p>
+                        </Banner>
+                    </Layout.Section>
+                )}
+
+                {isPremium && detailedRanges && (
+                    <Layout.Section>
+                        <Card>
+                            <Box padding="400">
+                                <BlockStack gap="300">
+                                    <Text variant="headingMd" as="h3">Detailed Period Insights</Text>
+                                    <Grid>
+                                        {[30, 60, 90].map((days) => {
+                                            const range = detailedRanges[days];
+                                            const engagement = (range?.totals.views || 0) + (range?.totals.clicks || 0);
+
+                                            return (
+                                                <Grid.Cell key={days} columnSpan={{ xs: 6, sm: 6, md: 2, lg: 2, xl: 2 }}>
+                                                    <Card>
+                                                        <Box padding="300">
+                                                            <BlockStack gap="150">
+                                                                <Text variant="headingSm" as="h4">{days} Days</Text>
+                                                                <Text variant="bodySm" as="p" tone="subdued">
+                                                                    Views: {(range?.totals.views || 0).toLocaleString()}
+                                                                </Text>
+                                                                <Text variant="bodySm" as="p" tone="subdued">
+                                                                    Clicks: {(range?.totals.clicks || 0).toLocaleString()}
+                                                                </Text>
+                                                                <Text variant="bodySm" as="p" tone="subdued">
+                                                                    CTR: {range?.totals.ctr || "0.00"}%
+                                                                </Text>
+                                                                <Badge tone="info">{engagement.toLocaleString()} interactions</Badge>
+                                                            </BlockStack>
+                                                        </Box>
+                                                    </Card>
+                                                </Grid.Cell>
+                                            );
+                                        })}
+                                    </Grid>
+                                </BlockStack>
+                            </Box>
+                        </Card>
+                    </Layout.Section>
+                )}
 
                 {/* Main Content Areas */}
                 <Layout.Section>
@@ -319,103 +414,105 @@ export default function AnalyticsPage() {
                 </Layout.Section>
 
                 {/* Top Performing Posts */}
-                <Layout.Section>
-                    <Card padding="0">
-                        <Box padding="400">
-                            <Text variant="headingMd" as="h3">Top Performing Posts</Text>
-                        </Box>
-                        {topPosts ? (
-                            <IndexTable
-                                resourceName={resourceName}
-                                itemCount={topPosts.length}
-                                headings={[
-                                    { title: 'Post' },
-                                    { title: 'Media ID' },
-                                    { title: 'Views' },
-                                    { title: 'Clicks' },
-                                    { title: 'CTR' },
-                                    { title: 'Link', alignment: 'end' },
-                                ]}
-                                selectable={false}
-                            >
-                                {topPosts.map((post, index) => (
-                                    <IndexTable.Row id={post.id} key={post.id} position={index}>
-                                        <IndexTable.Cell>
-                                            <div style={{ padding: '8px 0' }}>
-                                                {post.mediaUrl ? (
-                                                    <img
-                                                        src={post.mediaUrl}
-                                                        alt="Post preview"
-                                                        style={{
+                {isPremium && (
+                    <Layout.Section>
+                        <Card padding="0">
+                            <Box padding="400">
+                                <Text variant="headingMd" as="h3">Top Performing Posts</Text>
+                            </Box>
+                            {topPosts ? (
+                                <IndexTable
+                                    resourceName={resourceName}
+                                    itemCount={topPosts.length}
+                                    headings={[
+                                        { title: 'Post' },
+                                        { title: 'Media ID' },
+                                        { title: 'Views' },
+                                        { title: 'Clicks' },
+                                        { title: 'CTR' },
+                                        { title: 'Link', alignment: 'end' },
+                                    ]}
+                                    selectable={false}
+                                >
+                                    {topPosts.map((post, index) => (
+                                        <IndexTable.Row id={post.id} key={post.id} position={index}>
+                                            <IndexTable.Cell>
+                                                <div style={{ padding: '8px 0' }}>
+                                                    {post.mediaUrl ? (
+                                                        <img
+                                                            src={post.mediaUrl}
+                                                            alt="Post preview"
+                                                            style={{
+                                                                width: '40px',
+                                                                height: '40px',
+                                                                objectFit: 'cover',
+                                                                borderRadius: '4px',
+                                                                border: '1px solid #e1e3e5'
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <div style={{
                                                             width: '40px',
                                                             height: '40px',
-                                                            objectFit: 'cover',
+                                                            background: '#f1f1f1',
                                                             borderRadius: '4px',
-                                                            border: '1px solid #e1e3e5'
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    <div style={{
-                                                        width: '40px',
-                                                        height: '40px',
-                                                        background: '#f1f1f1',
-                                                        borderRadius: '4px',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center'
-                                                    }}>
-                                                        <Icon source={ViewIcon} tone="subdued" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </IndexTable.Cell>
-                                        <IndexTable.Cell>
-                                            <Text variant="bodyMd" tone="subdued" as="span">
-                                                {post.mediaId}
-                                            </Text>
-                                        </IndexTable.Cell>
-                                        <IndexTable.Cell>
-                                            <Text variant="bodyMd" as="span" fontWeight="medium">
-                                                {post.views.toLocaleString()}
-                                            </Text>
-                                        </IndexTable.Cell>
-                                        <IndexTable.Cell>
-                                            <Text variant="bodyMd" as="span" fontWeight="medium">
-                                                {post.clicks.toLocaleString()}
-                                            </Text>
-                                        </IndexTable.Cell>
-                                        <IndexTable.Cell>
-                                            <Badge tone={parseFloat(((post.clicks / post.views) * 100).toFixed(2)) > 15 ? 'success' : 'info'}>
-                                                {post.views > 0 ? ((post.clicks / post.views) * 100).toFixed(2) : '0.00'}%
-                                            </Badge>
-                                        </IndexTable.Cell>
-                                        <IndexTable.Cell>
-                                            <div style={{ textAlign: 'right' }}>
-                                                <Button
-                                                    variant="tertiary"
-                                                    icon={ArrowRightIcon}
-                                                    url={post.permalink || '#'}
-                                                    external
-                                                >
-                                                    View
-                                                </Button>
-                                            </div>
-                                        </IndexTable.Cell>
-                                    </IndexTable.Row>
-                                ))}
-                            </IndexTable>
-                        ) : (
-                            <Box padding="800">
-                                <EmptyState
-                                    heading="No post performance data yet"
-                                    image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/empty-state-cards_large.png"
-                                >
-                                    <p>Once users start interacting with your Instagram feed, detailed post-level analytics will appear here.</p>
-                                </EmptyState>
-                            </Box>
-                        )}
-                    </Card>
-                </Layout.Section>
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center'
+                                                        }}>
+                                                            <Icon source={ViewIcon} tone="subdued" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </IndexTable.Cell>
+                                            <IndexTable.Cell>
+                                                <Text variant="bodyMd" tone="subdued" as="span">
+                                                    {post.mediaId}
+                                                </Text>
+                                            </IndexTable.Cell>
+                                            <IndexTable.Cell>
+                                                <Text variant="bodyMd" as="span" fontWeight="medium">
+                                                    {post.views.toLocaleString()}
+                                                </Text>
+                                            </IndexTable.Cell>
+                                            <IndexTable.Cell>
+                                                <Text variant="bodyMd" as="span" fontWeight="medium">
+                                                    {post.clicks.toLocaleString()}
+                                                </Text>
+                                            </IndexTable.Cell>
+                                            <IndexTable.Cell>
+                                                <Badge tone={parseFloat(((post.clicks / post.views) * 100).toFixed(2)) > 15 ? 'success' : 'info'}>
+                                                    {post.views > 0 ? ((post.clicks / post.views) * 100).toFixed(2) : '0.00'}%
+                                                </Badge>
+                                            </IndexTable.Cell>
+                                            <IndexTable.Cell>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <Button
+                                                        variant="tertiary"
+                                                        icon={ArrowRightIcon}
+                                                        url={post.permalink || '#'}
+                                                        external
+                                                    >
+                                                        View
+                                                    </Button>
+                                                </div>
+                                            </IndexTable.Cell>
+                                        </IndexTable.Row>
+                                    ))}
+                                </IndexTable>
+                            ) : (
+                                <Box padding="800">
+                                    <EmptyState
+                                        heading="No post performance data yet"
+                                        image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/empty-state-cards_large.png"
+                                    >
+                                        <p>Once users start interacting with your Instagram feed, detailed post-level analytics will appear here.</p>
+                                    </EmptyState>
+                                </Box>
+                            )}
+                        </Card>
+                    </Layout.Section>
+                )}
             </Layout>
             <Box paddingBlockEnd="800" />
         </Page>

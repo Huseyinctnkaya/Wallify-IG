@@ -1,15 +1,37 @@
 import { prisma } from "../db.server";
 
-export async function getAnalytics(shop, days = 30) {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+function getStartOfDay(date) {
+    const day = new Date(date);
+    day.setHours(0, 0, 0, 0);
+    return day;
+}
 
-    // Get daily stats
-    const dailyStats = await prisma.analytics.findMany({
+function calculateChange(current, previous) {
+    if (previous === 0) {
+        return current > 0 ? 100 : 0;
+    }
+    return ((current - previous) / previous) * 100;
+}
+
+export async function getAnalytics(shop, days = 30) {
+    const safeDays = Math.max(1, Number(days) || 30);
+    const now = new Date();
+    const startDate = getStartOfDay(now);
+    startDate.setDate(startDate.getDate() - (safeDays - 1));
+
+    // Keep at least 14 days of source data for week-over-week comparison.
+    const comparisonWindowStart = getStartOfDay(now);
+    comparisonWindowStart.setDate(comparisonWindowStart.getDate() - 13);
+
+    const queryStartDate = comparisonWindowStart < startDate
+        ? comparisonWindowStart
+        : startDate;
+
+    const rawStats = await prisma.analytics.findMany({
         where: {
             shop,
             date: {
-                gte: startDate
+                gte: queryStartDate
             }
         },
         orderBy: {
@@ -17,7 +39,9 @@ export async function getAnalytics(shop, days = 30) {
         }
     });
 
-    // Aggregate totals
+    const dailyStats = rawStats.filter((stat) => new Date(stat.date) >= startDate);
+
+    // Aggregate totals for selected range
     const totals = dailyStats.reduce((acc, curr) => {
         acc.views += curr.views;
         acc.clicks += curr.clicks;
@@ -26,60 +50,41 @@ export async function getAnalytics(shop, days = 30) {
 
     const ctr = totals.views > 0 ? (totals.clicks / totals.views) * 100 : 0;
 
-    // Calculate week-over-week changes
-    const now = new Date();
-    const currentWeekStart = new Date(now);
-    currentWeekStart.setDate(now.getDate() - 7);
-    currentWeekStart.setHours(0, 0, 0, 0);
+    // Calculate week-over-week changes from the last 14 days.
+    const currentWeekStart = getStartOfDay(now);
+    currentWeekStart.setDate(currentWeekStart.getDate() - 6);
 
-    const previousWeekStart = new Date(now);
-    previousWeekStart.setDate(now.getDate() - 14);
-    previousWeekStart.setHours(0, 0, 0, 0);
+    const previousWeekStart = getStartOfDay(now);
+    previousWeekStart.setDate(previousWeekStart.getDate() - 13);
 
-    const previousWeekEnd = new Date(currentWeekStart);
-    previousWeekEnd.setSeconds(-1); // End of previous week
-
-    // Current week stats (last 7 days)
-    const currentWeekStats = dailyStats.filter(stat => {
+    const currentWeekStats = rawStats.filter(stat => {
         const statDate = new Date(stat.date);
         return statDate >= currentWeekStart;
     });
 
-    // Previous week stats (7-14 days ago)
-    const previousWeekStats = dailyStats.filter(stat => {
+    const previousWeekStats = rawStats.filter(stat => {
         const statDate = new Date(stat.date);
-        return statDate >= previousWeekStart && statDate <= previousWeekEnd;
+        return statDate >= previousWeekStart && statDate < currentWeekStart;
     });
 
-    // Calculate current week totals
     const currentWeekTotals = currentWeekStats.reduce((acc, curr) => {
         acc.views += curr.views;
         acc.clicks += curr.clicks;
         return acc;
     }, { views: 0, clicks: 0 });
 
-    // Calculate previous week totals
     const previousWeekTotals = previousWeekStats.reduce((acc, curr) => {
         acc.views += curr.views;
         acc.clicks += curr.clicks;
         return acc;
     }, { views: 0, clicks: 0 });
 
-    // Calculate CTR for both weeks
     const currentWeekCTR = currentWeekTotals.views > 0
         ? (currentWeekTotals.clicks / currentWeekTotals.views) * 100
         : 0;
     const previousWeekCTR = previousWeekTotals.views > 0
         ? (previousWeekTotals.clicks / previousWeekTotals.views) * 100
         : 0;
-
-    // Calculate percentage changes
-    const calculateChange = (current, previous) => {
-        if (previous === 0) {
-            return current > 0 ? 100 : 0; // If no previous data but have current, show 100% increase
-        }
-        return ((current - previous) / previous) * 100;
-    };
 
     const viewsChange = calculateChange(currentWeekTotals.views, previousWeekTotals.views);
     const clicksChange = calculateChange(currentWeekTotals.clicks, previousWeekTotals.clicks);
@@ -101,6 +106,26 @@ export async function getAnalytics(shop, days = 30) {
             ctr: ctrChange,
             engagement: engagementChange
         }
+    };
+}
+
+export async function getAnalyticsTotals(shop) {
+    const totals = await prisma.analytics.aggregate({
+        where: { shop },
+        _sum: {
+            views: true,
+            clicks: true,
+        },
+    });
+
+    const views = totals._sum.views || 0;
+    const clicks = totals._sum.clicks || 0;
+    const ctr = views > 0 ? (clicks / views) * 100 : 0;
+
+    return {
+        views,
+        clicks,
+        ctr: ctr.toFixed(2),
     };
 }
 

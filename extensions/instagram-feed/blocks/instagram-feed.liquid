@@ -6,6 +6,7 @@
 {% assign show_arrows = settings_metafield.showArrows | default: true %}
 {% assign post_spacing = settings_metafield.postSpacing | default: 'medium' %}
 {% assign border_radius = settings_metafield.borderRadius | default: 'medium' %}
+{% assign max_items = settings_metafield.mediaLimit | default: 12 %}
 
 {% comment %} Spacing values {% endcomment %}
 {% if post_spacing == 'none' %}
@@ -71,7 +72,7 @@
           {% endif %}
 
           <div class="instagram-slider-track">
-            {% for item in media_items limit: 12 %}
+            {% for item in media_items limit: max_items %}
               <div class="instagram-slide" data-slide-index="{{ forloop.index0 }}">
                 <div
                   class="instagram-feed-item"
@@ -143,7 +144,7 @@
       {% else %}
         {% comment %} Grid Layout {% endcomment %}
         <div class="instagram-grid" style="gap: {{ spacing_value }}px;">
-          {% for item in media_items limit: 12 %}
+          {% for item in media_items limit: max_items %}
             <div class="instagram-grid-item">
               <div
                 class="instagram-feed-item"

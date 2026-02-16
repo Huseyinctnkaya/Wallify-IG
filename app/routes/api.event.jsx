@@ -4,7 +4,8 @@ import { trackMetric } from "../models/analytics.server";
 
 export const action = async ({ request }) => {
     try {
-        const { shop } = await authenticate.public.appProxy(request);
+        const { session } = await authenticate.public.appProxy(request);
+        const shop = session?.shop;
 
         if (!shop) {
             console.error("Tracking API: Unauthorized App Proxy request");
