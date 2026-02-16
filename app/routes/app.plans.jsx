@@ -91,7 +91,6 @@ export default function Plans() {
                                                 <List.Item>Shoppable Posts (Tag Products)</List.Item>
                                                 <List.Item>Show Pinned Reels Only Filter</List.Item>
                                                 <List.Item>Real-time Sync</List.Item>
-                                                <List.Item>Video & Reels Support</List.Item>
                                                 <List.Item>Priority Support</List.Item>
                                             </List>
                                         </BlockStack>

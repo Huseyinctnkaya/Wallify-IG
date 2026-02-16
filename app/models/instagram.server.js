@@ -195,7 +195,7 @@ export async function syncInstagramToMetafields(shop, admin) {
     enrichedMedia = enrichedMedia.filter(item => !item.isHidden);
 
     // Filter: Apply showPinnedReels setting
-    if (settings.showPinnedReels) {
+    if (isPremium && settings.showPinnedReels) {
         enrichedMedia = enrichedMedia.filter(item => item.isPinned);
     }
 

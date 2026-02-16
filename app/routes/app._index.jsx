@@ -34,6 +34,7 @@ export async function loader({ request }) {
     const isPremium = await isPremiumShop(shop);
     const freeMediaLimit = Math.min(Number(settings.mediaLimit) || 12, 12);
     const effectiveMediaLimit = isPremium ? null : freeMediaLimit;
+    const effectiveShowPinnedReels = isPremium ? !!settings.showPinnedReels : false;
     let media = [];
 
     if (instagramAccount) {
@@ -63,7 +64,7 @@ export async function loader({ request }) {
             media = media.filter(item => !item.isHidden);
 
             // Filter: Apply showPinnedReels setting
-            if (settings.showPinnedReels) {
+            if (effectiveShowPinnedReels) {
                 const pinnedMedia = media.filter(item => item.isPinned);
                 // Only apply filter if there are pinned posts
                 // Otherwise show all media (ignore the setting)
@@ -111,7 +112,7 @@ export async function action({ request }) {
             title: formData.get("title"),
             subheading: formData.get("subheading"),
             feedType: isPremium ? formData.get("feedType") : "slider",
-            showPinnedReels: formData.get("showPinnedReels") === "true",
+            showPinnedReels: isPremium ? (formData.get("showPinnedReels") === "true") : false,
             mediaLimit: isPremium ? normalizedMediaLimit : Math.min(normalizedMediaLimit, 12),
             gridDesktopColumns: parseInt(formData.get("gridDesktopColumns")),
             gridMobileColumns: parseInt(formData.get("gridMobileColumns")),
@@ -293,7 +294,7 @@ export default function Dashboard() {
         formData.append("title", title);
         formData.append("subheading", subheading);
         formData.append("feedType", isPremium ? feedType : "slider");
-        formData.append("showPinnedReels", showPinnedReels);
+        formData.append("showPinnedReels", isPremium ? showPinnedReels : false);
         formData.append("mediaLimit", mediaLimit);
         formData.append("gridDesktopColumns", gridDesktopColumns);
         formData.append("gridMobileColumns", gridMobileColumns);
@@ -321,6 +322,7 @@ export default function Dashboard() {
 
     // Dashboard State
     const defaultFeedType = isPremium ? (settings?.feedType || "slider") : "slider";
+    const defaultShowPinnedReels = isPremium ? (settings?.showPinnedReels || false) : false;
     const defaultMediaLimit = isPremium
         ? (settings?.mediaLimit?.toString() || "12")
         : String(Math.min(Number(settings?.mediaLimit) || 12, 12));
@@ -336,7 +338,7 @@ export default function Dashboard() {
     const [title, setTitle] = useState(settings?.title || "INSTAGRAM'DA BİZ");
     const [subheading, setSubheading] = useState(settings?.subheading || "Daha Fazlası İçin Bizi Takip Edebilirsiniz");
     const [feedType, setFeedType] = useState(defaultFeedType);
-    const [showPinnedReels, setShowPinnedReels] = useState(settings?.showPinnedReels || false);
+    const [showPinnedReels, setShowPinnedReels] = useState(defaultShowPinnedReels);
     const [mediaLimit, setMediaLimit] = useState(defaultMediaLimit);
     const [gridDesktopColumns, setGridDesktopColumns] = useState(settings?.gridDesktopColumns?.toString() || "4");
     const [gridMobileColumns, setGridMobileColumns] = useState(settings?.gridMobileColumns?.toString() || "2");
@@ -428,7 +430,7 @@ export default function Dashboard() {
         title !== (settings?.title || "INSTAGRAM'DA BİZ") ||
         subheading !== (settings?.subheading || "Daha Fazlası İçin Bizi Takip Edebilirsiniz") ||
         feedType !== defaultFeedType ||
-        showPinnedReels !== (settings?.showPinnedReels || false) ||
+        showPinnedReels !== defaultShowPinnedReels ||
         mediaLimit !== defaultMediaLimit ||
         gridDesktopColumns !== (settings?.gridDesktopColumns?.toString() || "4") ||
         gridMobileColumns !== (settings?.gridMobileColumns?.toString() || "2") ||
@@ -629,6 +631,8 @@ export default function Dashboard() {
                                                         label="Show pinned reels only"
                                                         checked={showPinnedReels}
                                                         onChange={setShowPinnedReels}
+                                                        disabled={!isPremium}
+                                                        helpText={!isPremium ? "This feature is available on Premium plan." : undefined}
                                                     />
                                                     <TextField
                                                         label="Total posts to fetch"
