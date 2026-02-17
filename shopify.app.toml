@@ -2,7 +2,7 @@
 
 client_id = "e0471fb4646d0d4281ce490c807e6b91"
 name = "Wallify İG ‑ Instagram Feed"
-application_url = "https://directories-wool-jan-performs.trycloudflare.com"
+application_url = "https://judges-spy-durable-suite.trycloudflare.com"
 embedded = true
 
 [build]
@@ -24,10 +24,10 @@ api_version = "2026-04"
 scopes = "write_products,read_products"
 
 [auth]
-redirect_urls = [ "https://directories-wool-jan-performs.trycloudflare.com/auth/callback", "https://directories-wool-jan-performs.trycloudflare.com/auth/shopify/callback", "https://directories-wool-jan-performs.trycloudflare.com/api/auth/callback" ]
+redirect_urls = [ "https://judges-spy-durable-suite.trycloudflare.com/auth/callback", "https://judges-spy-durable-suite.trycloudflare.com/auth/shopify/callback", "https://judges-spy-durable-suite.trycloudflare.com/api/auth/callback" ]
 
 [app_proxy]
-url = "https://directories-wool-jan-performs.trycloudflare.com/api"
+url = "https://judges-spy-durable-suite.trycloudflare.com/api"
 subpath = "instagram-feed-track"
 prefix = "apps"
 

@@ -127,6 +127,7 @@ export async function action({ request }) {
             showViewsCount: formData.get("showViewsCount") === "true",
             showAuthorProfile: formData.get("showAuthorProfile") === "true",
             showAttachedProducts: formData.get("showAttachedProducts") === "true",
+            cleanDisplay: formData.get("cleanDisplay") === "true",
             titleColor: formData.get("titleColor"),
             subheadingColor: formData.get("subheadingColor"),
             arrowColor: formData.get("arrowColor"),
@@ -310,6 +311,7 @@ export default function Dashboard() {
         formData.append("showViewsCount", showViewsCount);
         formData.append("showAuthorProfile", showAuthorProfile);
         formData.append("showAttachedProducts", showAttachedProducts);
+        formData.append("cleanDisplay", cleanDisplay);
         formData.append("titleColor", titleColor);
         formData.append("subheadingColor", subheadingColor);
         formData.append("arrowColor", arrowColor);
@@ -354,6 +356,7 @@ export default function Dashboard() {
     const [showViewsCount, setShowViewsCount] = useState(settings?.showViewsCount || false);
     const [showAuthorProfile, setShowAuthorProfile] = useState(settings?.showAuthorProfile ?? true);
     const [showAttachedProducts, setShowAttachedProducts] = useState(settings?.showAttachedProducts ?? true);
+    const [cleanDisplay, setCleanDisplay] = useState(settings?.cleanDisplay || false);
     const [titleColor, setTitleColor] = useState(settings?.titleColor || "#000000");
     const [subheadingColor, setSubheadingColor] = useState(settings?.subheadingColor || "#6d7175");
     const [arrowColor, setArrowColor] = useState(settings?.arrowColor || "#000000");
@@ -446,6 +449,7 @@ export default function Dashboard() {
         showViewsCount !== (settings?.showViewsCount || false) ||
         showAuthorProfile !== (settings?.showAuthorProfile ?? true) ||
         showAttachedProducts !== (settings?.showAttachedProducts ?? true) ||
+        cleanDisplay !== (settings?.cleanDisplay || false) ||
         titleColor !== (settings?.titleColor || "#000000") ||
         subheadingColor !== (settings?.subheadingColor || "#6d7175") ||
         arrowColor !== (settings?.arrowColor || "#000000") ||
@@ -769,6 +773,12 @@ export default function Dashboard() {
                                                             checked={showAttachedProducts}
                                                             onChange={setShowAttachedProducts}
                                                         />
+                                                        <Checkbox
+                                                            label="Clean display (hide all text overlays)"
+                                                            checked={cleanDisplay}
+                                                            onChange={setCleanDisplay}
+                                                            helpText="Shows only images/videos without username, caption overlays, and badges"
+                                                        />
                                                         <Box opacity={isPremium ? "1" : "0.5"}>
                                                             <Checkbox
                                                                 label="Show 5 sec preview instead of 1 sec preview"
@@ -1019,7 +1029,7 @@ export default function Dashboard() {
                                                                                     style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", top: 0, left: 0 }}
                                                                                 />
                                                                             )}
-                                                                            {showAuthorProfile && (
+                                                                            {!cleanDisplay && showAuthorProfile && (
                                                                                 <div style={{ position: "absolute", top: 10, left: 10, display: "flex", alignItems: "center", gap: "5px" }}>
                                                                                     <div style={{ width: 20, height: 20, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.3)", overflow: "hidden", background: "#000" }}>
                                                                                         {instagramAccount?.profilePictureUrl && <img src={instagramAccount.profilePictureUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
@@ -1028,18 +1038,20 @@ export default function Dashboard() {
                                                                                 </div>
                                                                             )}
 
-                                                                            <div style={{ position: "absolute", bottom: 10, right: 10, display: "flex", gap: "8px" }}>
-                                                                                {showViewsCount && (
-                                                                                    <div style={{ display: "flex", alignItems: "center", gap: "4px", background: cardBadgeBackgroundColor, padding: "2px 6px", borderRadius: "4px" }}>
-                                                                                        <span style={{ color: cardBadgeIconColor, fontSize: "10px" }}>👁️ 1.2k</span>
-                                                                                    </div>
-                                                                                )}
-                                                                                {showAttachedProducts && (
-                                                                                    <div style={{ display: "flex", alignItems: "center", background: cardBadgeBackgroundColor, padding: "2px 6px", borderRadius: "4px" }}>
-                                                                                        <span style={{ color: cardBadgeIconColor, fontSize: "10px" }}>🛍️</span>
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
+                                                                            {!cleanDisplay && (
+                                                                                <div style={{ position: "absolute", bottom: 10, right: 10, display: "flex", gap: "8px" }}>
+                                                                                    {showViewsCount && (
+                                                                                        <div style={{ display: "flex", alignItems: "center", gap: "4px", background: cardBadgeBackgroundColor, padding: "2px 6px", borderRadius: "4px" }}>
+                                                                                            <span style={{ color: cardBadgeIconColor, fontSize: "10px" }}>👁️ 1.2k</span>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {showAttachedProducts && (
+                                                                                        <div style={{ display: "flex", alignItems: "center", background: cardBadgeBackgroundColor, padding: "2px 6px", borderRadius: "4px" }}>
+                                                                                            <span style={{ color: cardBadgeIconColor, fontSize: "10px" }}>🛍️</span>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                     )
                                                                 })}

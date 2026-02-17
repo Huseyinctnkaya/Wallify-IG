@@ -63,6 +63,7 @@ model Settings {
   showViewsCount  Boolean  @default(false)
   showAuthorProfile Boolean @default(true)
   showAttachedProducts Boolean @default(true)
+  cleanDisplay    Boolean  @default(false)
   titleColor      String   @default("#000000")
   subheadingColor String   @default("#6d7175")
   arrowColor      String   @default("#000000")

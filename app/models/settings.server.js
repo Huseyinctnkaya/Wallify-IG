@@ -27,6 +27,7 @@ export async function getSettings(shop) {
                 showViewsCount: false,
                 showAuthorProfile: true,
                 showAttachedProducts: true,
+                cleanDisplay: false,
                 titleColor: "#000000",
                 subheadingColor: "#6d7175",
                 arrowColor: "#000000",
