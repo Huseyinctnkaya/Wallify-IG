@@ -7,6 +7,16 @@ import {
     verifyAndExtractInstagramState,
 } from "../utils/instagram-oauth.server";
 
+/**
+ * Build the Shopify admin embedded app URL so we can redirect
+ * back into the embedded app after Instagram OAuth.
+ */
+function buildEmbeddedAppUrl(shop, queryParams = "") {
+    const apiKey = process.env.SHOPIFY_API_KEY;
+    // shop is like "devsapig.myshopify.com"
+    return `https://admin.shopify.com/store/${shop.replace(".myshopify.com", "")}/apps/${apiKey}${queryParams}`;
+}
+
 export const loader = async ({ request }) => {
     const url = new URL(request.url);
     const code = url.searchParams.get("code");
@@ -15,20 +25,24 @@ export const loader = async ({ request }) => {
         || url.searchParams.get("error_reason")
         || url.searchParams.get("error");
 
-    if (oauthError) {
-        const encoded = encodeURIComponent(String(oauthError).slice(0, 240));
-        return redirect(`/app?ig_connect=error&ig_error=${encoded}`);
-    }
-
     const appSecret = process.env.INSTAGRAM_APP_SECRET;
     const statePayload = appSecret ? verifyAndExtractInstagramState(state, appSecret) : null;
-    if (!statePayload?.shop) {
+    const shop = statePayload?.shop || "";
+
+    if (oauthError) {
+        if (shop) {
+            const encoded = encodeURIComponent(String(oauthError).slice(0, 240));
+            return redirect(buildEmbeddedAppUrl(shop, `?ig_connect=error&ig_error=${encoded}`));
+        }
+        return redirect("/app?ig_connect=error&ig_error=" + encodeURIComponent(String(oauthError).slice(0, 240)));
+    }
+
+    if (!shop) {
         return redirect("/app?ig_connect=error&ig_error=invalid_state");
     }
-    const shop = statePayload.shop;
 
     if (!code) {
-        return redirect("/app?ig_connect=error&ig_error=missing_code");
+        return redirect(buildEmbeddedAppUrl(shop, "?ig_connect=error&ig_error=missing_code"));
     }
 
     try {
@@ -63,11 +77,11 @@ export const loader = async ({ request }) => {
             await resetAnalyticsForShop(shop);
         }
 
-        return redirect(`/app?ig_connect=success`);
+        return redirect(buildEmbeddedAppUrl(shop, "?ig_connect=success"));
     } catch (error) {
         console.error("Instagram callback failed:", error);
         const encoded = encodeURIComponent(String(error?.message || "oauth_failed").slice(0, 240));
-        return redirect(`/app?ig_connect=error&ig_error=${encoded}`);
+        return redirect(buildEmbeddedAppUrl(shop, `?ig_connect=error&ig_error=${encoded}`));
     }
 };
 
