@@ -980,7 +980,9 @@ export default function Dashboard() {
                                                                     : "none"
                                                             }}>
                                                                 {displayMedia.map((item, index) => {
-                                                                    const src = typeof item === 'string' ? item : (item.media_type === 'VIDEO' ? (item.thumbnail_url || item.media_url) : item.media_url);
+                                                                    const isVideo = typeof item !== 'string' && (item.media_type === 'VIDEO' || item.media_type === 'REEL');
+                                                                    const src = typeof item === 'string' ? item : (isVideo ? (item.thumbnail_url || item.media_url) : item.media_url);
+                                                                    const videoSrc = isVideo ? item.media_url : null;
                                                                     return (
                                                                         <div key={index} style={{
                                                                             width: feedType === 'grid'
@@ -988,14 +990,13 @@ export default function Dashboard() {
                                                                                 : `calc(${(100 / (previewMode === 'desktop' ? parseInt(sliderDesktopColumns) : parseInt(sliderMobileColumns)))}% - ${spacingMap[postSpacing] || '12px'})`,
                                                                             flexShrink: 0,
                                                                             aspectRatio: "2/3",
-                                                                            backgroundImage: `url(${src})`,
-                                                                            backgroundSize: "cover",
-                                                                            backgroundPosition: "center",
+                                                                            ...(!videoSrc && { backgroundImage: `url(${src})`, backgroundSize: "cover", backgroundPosition: "center" }),
                                                                             borderRadius: radiusMap[borderRadius] || '12px',
                                                                             border: "1px solid #e1e3e5",
                                                                             boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
                                                                             position: "relative",
-                                                                            cursor: onClick === 'popup' ? 'pointer' : 'default'
+                                                                            cursor: onClick === 'popup' ? 'pointer' : 'default',
+                                                                            overflow: "hidden"
                                                                         }}
                                                                             onClick={() => {
                                                                                 if (onClick === 'popup') {
@@ -1006,6 +1007,17 @@ export default function Dashboard() {
                                                                                 }
                                                                             }}
                                                                         >
+                                                                            {videoSrc && (
+                                                                                <video
+                                                                                    src={videoSrc}
+                                                                                    poster={src}
+                                                                                    autoPlay
+                                                                                    muted
+                                                                                    loop
+                                                                                    playsInline
+                                                                                    style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", top: 0, left: 0 }}
+                                                                                />
+                                                                            )}
                                                                             {showAuthorProfile && (
                                                                                 <div style={{ position: "absolute", top: 10, left: 10, display: "flex", alignItems: "center", gap: "5px" }}>
                                                                                     <div style={{ width: 20, height: 20, background: "black", borderRadius: "50%", border: "1px solid rgba(255,255,255,0.3)" }}></div>

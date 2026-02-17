@@ -78,6 +78,8 @@
                   class="instagram-feed-item"
                   data-media-id="{{ item.id }}"
                   data-media-url="{{ item.thumbnail }}"
+                  data-video-url="{{ item.url }}"
+                  data-media-type="{{ item.type }}"
                   data-permalink="{{ item.permalink }}"
                   data-caption="{{ item.caption }}"
                   data-products='{{ item.products | json }}'
@@ -86,9 +88,11 @@
                   data-children='{{ item.children | json }}'
                   style="border-radius: {{ radius_value }};"
                 >
-                  {%- comment -%} Always show just the first image in feed {%- endcomment -%}
-                  {%- comment -%} Carousel slider will be in popup only {%- endcomment -%}
-                  <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy">
+                  {% if item.type == 'VIDEO' or item.type == 'REEL' %}
+                    <video src="{{ item.url }}" poster="{{ item.thumbnail }}" autoplay muted loop playsinline></video>
+                  {% else %}
+                    <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy">
+                  {% endif %}
 
                   {% if item.children.size > 1 %}
                     <div class="instagram-carousel-indicator">
@@ -150,6 +154,8 @@
                 class="instagram-feed-item"
                 data-media-id="{{ item.id }}"
                 data-media-url="{{ item.thumbnail }}"
+                data-video-url="{{ item.url }}"
+                data-media-type="{{ item.type }}"
                 data-permalink="{{ item.permalink }}"
                 data-caption="{{ item.caption }}"
                 data-products='{{ item.products | json }}'
@@ -158,9 +164,11 @@
                 data-children='{{ item.children | json }}'
                 style="border-radius: {{ radius_value }};"
               >
-                {%- comment -%} Always show just the first image in feed {%- endcomment -%}
-                {%- comment -%} Carousel slider will be in popup only {%- endcomment -%}
-                <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy">
+                {% if item.type == 'VIDEO' or item.type == 'REEL' %}
+                  <video src="{{ item.url }}" poster="{{ item.thumbnail }}" autoplay muted loop playsinline></video>
+                {% else %}
+                  <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy">
+                {% endif %}
 
                 {% if item.children.size > 1 %}
                   <div class="instagram-carousel-indicator">
@@ -221,6 +229,7 @@
           <div class="instagram-popup-image">
             {%- comment -%} Single image (will be updated via JS) {%- endcomment -%}
             <img src="" alt="" class="popup-single-image">
+            <video src="" class="popup-single-video" autoplay loop playsinline controls style="display: none;"></video>
 
             {%- comment -%} Carousel for multi-image posts (will be populated via JS) {%- endcomment -%}
             <div class="popup-carousel-container" style="display: none;">
@@ -417,24 +426,32 @@
           productsContainer.style.display = 'none';
         }
 
-        // Handle carousel vs single image
+        // Handle carousel vs single image vs video
         const singleImage = modal.querySelector('.popup-single-image');
+        const singleVideo = modal.querySelector('.popup-single-video');
         const carouselContainer = modal.querySelector('.popup-carousel-container');
+        const mediaType = item.dataset.mediaType || '';
+        const videoUrl = item.dataset.videoUrl || '';
+        const isVideo = mediaType === 'VIDEO' || mediaType === 'REEL';
 
         if (children && children.length > 0) {
           // Show carousel
           singleImage.style.display = 'none';
+          singleVideo.style.display = 'none';
+          singleVideo.pause();
           carouselContainer.style.display = 'block';
 
           // Populate carousel
           const track = carouselContainer.querySelector('.popup-carousel-track');
           const dotsContainer = carouselContainer.querySelector('.popup-carousel-dots');
 
-          track.innerHTML = children.map((child, idx) => `
-            <div class="popup-carousel-slide">
-              <img src="${child.thumbnail_url || child.media_url}" alt="${caption}">
-            </div>
-          `).join('');
+          track.innerHTML = children.map((child, idx) => {
+            const childIsVideo = child.media_type === 'VIDEO';
+            if (childIsVideo) {
+              return `<div class="popup-carousel-slide"><video src="${child.media_url}" poster="${child.thumbnail_url || ''}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:contain;"></video></div>`;
+            }
+            return `<div class="popup-carousel-slide"><img src="${child.thumbnail_url || child.media_url}" alt="${caption}"></div>`;
+          }).join('');
 
           dotsContainer.innerHTML = children.map((_, idx) => `
             <span class="popup-carousel-dot ${idx === 0 ? 'active' : ''}"></span>
@@ -476,9 +493,18 @@
           });
 
           updatePopupCarousel();
+        } else if (isVideo && videoUrl) {
+          // Show single video
+          singleImage.style.display = 'none';
+          singleVideo.style.display = 'block';
+          carouselContainer.style.display = 'none';
+          singleVideo.src = videoUrl;
+          singleVideo.play();
         } else {
           // Show single image
           singleImage.style.display = 'block';
+          singleVideo.style.display = 'none';
+          singleVideo.pause();
           carouselContainer.style.display = 'none';
           singleImage.src = mediaUrl;
         }
@@ -488,6 +514,8 @@
       }
 
       function closePopup() {
+        const video = modal.querySelector('.popup-single-video');
+        if (video) video.pause();
         modal.style.display = 'none';
         document.body.style.overflow = '';
       }
@@ -656,14 +684,16 @@
       background: #f5f5f5;
     }
 
-    .instagram-feed-item img {
+    .instagram-feed-item img,
+    .instagram-feed-item video {
       width: 100%;
       height: 100%;
       object-fit: cover;
       transition: transform 0.3s ease;
     }
 
-    .instagram-feed-item:hover img {
+    .instagram-feed-item:hover img,
+    .instagram-feed-item:hover video {
       transform: scale(1.05);
     }
 
@@ -915,7 +945,8 @@
       justify-content: center;
     }
 
-    .instagram-popup-image img {
+    .instagram-popup-image img,
+    .instagram-popup-image video {
       width: 100%;
       height: auto;
       max-height: 90vh;

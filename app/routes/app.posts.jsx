@@ -63,6 +63,7 @@ export const loader = async ({ request }) => {
                         year: 'numeric'
                     }).replace(/,/g, ''),
                     mediaUrl: item.thumbnail_url || item.media_url,
+                    videoUrl: (item.media_type === 'VIDEO' || item.media_type === 'REEL') ? item.media_url : null,
                     permalink: item.permalink,
                     mediaType: item.media_type,
                     caption: item.caption || '',
@@ -303,11 +304,23 @@ const PostCard = ({ post, isPremium, onEditProducts, onShowUpgrade }) => {
                         overflow: 'hidden',
                         background: '#f1f1f1'
                     }}>
-                        <img
-                            src={post.mediaUrl}
-                            alt="Instagram post"
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
+                        {post.videoUrl ? (
+                            <video
+                                src={post.videoUrl}
+                                poster={post.mediaUrl}
+                                autoPlay
+                                muted
+                                loop
+                                playsInline
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                        ) : (
+                            <img
+                                src={post.mediaUrl}
+                                alt="Instagram post"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                        )}
                     </div>
 
                     <BlockStack gap="100">
