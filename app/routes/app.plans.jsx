@@ -17,35 +17,24 @@ import { authenticate, PREMIUM_PLAN } from "../shopify.server";
 import { isPremiumShop } from "../utils/premium.server";
 
 export const loader = async ({ request }) => {
+    const requestUrl = new URL(request.url);
     const { session, admin } = await authenticate.admin(request);
     const { shop } = session;
     const isPremium = await isPremiumShop(shop, admin);
+    const billingError = requestUrl.searchParams.get("billing_error");
 
-    return json({ isPremium, shop });
+    return json({ isPremium, billingError });
 };
 
 export async function action({ request }) {
-    const { admin, billing } = await authenticate.admin(request);
+    const { admin } = await authenticate.admin(request);
 
     const formData = await request.formData();
     const actionType = formData.get("actionType");
 
-    if (actionType === "subscribe") {
-        await billing.require({
-            plans: [PREMIUM_PLAN],
-            isTest: true,
-            onFailure: async () =>
-                billing.request({
-                    plan: PREMIUM_PLAN,
-                    isTest: true,
-                }),
-        });
-
-        return json({ success: true });
-    }
-
     if (actionType === "cancel") {
-        const response = await admin.graphql(`
+        try {
+            const response = await admin.graphql(`
             query {
                 currentAppInstallation {
                     activeSubscriptions {
@@ -56,15 +45,15 @@ export async function action({ request }) {
                 }
             }
         `);
-        const data = await response.json();
-        const subscriptions = data?.data?.currentAppInstallation?.activeSubscriptions || [];
-        const premiumSub = subscriptions.find(
-            (sub) => sub.name === PREMIUM_PLAN && sub.status === "ACTIVE"
-        );
+            const data = await response.json();
+            const subscriptions = data?.data?.currentAppInstallation?.activeSubscriptions || [];
+            const premiumSub = subscriptions.find(
+                (sub) => sub.name === PREMIUM_PLAN && sub.status === "ACTIVE"
+            );
 
-        if (premiumSub) {
-            await admin.graphql(
-                `mutation AppSubscriptionCancel($id: ID!) {
+            if (premiumSub) {
+                await admin.graphql(
+                    `mutation AppSubscriptionCancel($id: ID!) {
                     appSubscriptionCancel(id: $id) {
                         userErrors {
                             field
@@ -76,24 +65,24 @@ export async function action({ request }) {
                         }
                     }
                 }`,
-                { variables: { id: premiumSub.id } }
-            );
-        }
+                    { variables: { id: premiumSub.id } }
+                );
+            }
 
-        return json({ success: true, cancelled: true });
+            return json({ success: true, cancelled: true });
+        } catch (error) {
+            console.error("Billing cancel failed:", error);
+            return json({ error: "Could not cancel subscription. Please try again." }, { status: 500 });
+        }
     }
 
     return null;
 }
 
 export default function Plans() {
-    const { isPremium } = useLoaderData();
+    const { isPremium, billingError } = useLoaderData();
     const fetcher = useFetcher();
     const isLoading = fetcher.state === "submitting";
-
-    const handleSubscribe = () => {
-        fetcher.submit({ actionType: "subscribe" }, { method: "post" });
-    };
 
     const handleCancel = () => {
         if (confirm("Are you sure you want to cancel your Premium subscription?")) {
@@ -105,10 +94,25 @@ export default function Plans() {
         <Page title="Plans">
             <Layout>
                 <Layout.Section>
+                    {billingError && (
+                        <Box paddingBlockEnd="400">
+                            <Banner tone="critical">
+                                <p>{billingError}</p>
+                            </Banner>
+                        </Box>
+                    )}
+
                     {fetcher.data?.cancelled && (
                         <Box paddingBlockEnd="400">
                             <Banner tone="info">
                                 <p>Your Premium subscription has been cancelled.</p>
+                            </Banner>
+                        </Box>
+                    )}
+                    {fetcher.data?.error && (
+                        <Box paddingBlockEnd="400">
+                            <Banner tone="critical">
+                                <p>{fetcher.data.error}</p>
                             </Banner>
                         </Box>
                     )}
@@ -185,7 +189,7 @@ export default function Plans() {
                                             {isPremium ? (
                                                 <Button variant="primary" fullWidth disabled>Current Plan</Button>
                                             ) : (
-                                                <Button variant="primary" fullWidth onClick={handleSubscribe} loading={isLoading}>
+                                                <Button variant="primary" fullWidth url="/app/plans/subscribe">
                                                     Upgrade to Premium
                                                 </Button>
                                             )}

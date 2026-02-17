@@ -9,6 +9,9 @@ import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prism
 import { prisma } from "./db.server";
 
 export const PREMIUM_PLAN = "Premium";
+export const BILLING_IS_TEST = process.env.BILLING_TEST_MODE
+  ? process.env.BILLING_TEST_MODE === "true"
+  : process.env.NODE_ENV !== "production";
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
