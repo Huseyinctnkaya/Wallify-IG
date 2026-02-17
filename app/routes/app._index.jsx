@@ -372,6 +372,7 @@ export default function Dashboard() {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [selectedMedia, setSelectedMedia] = useState(null);
     const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+    const [isSuccessBannerClosing, setIsSuccessBannerClosing] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
 
     // Color conversion helpers
@@ -489,8 +490,21 @@ export default function Dashboard() {
         if (fetcher.data?.success && fetcher.data?.message) {
             setSuccessMessage(fetcher.data.message);
             setShowSuccessBanner(true);
-            const timer = setTimeout(() => setShowSuccessBanner(false), 5500);
-            return () => clearTimeout(timer);
+            setIsSuccessBannerClosing(false);
+
+            const closeTimer = setTimeout(() => {
+                setIsSuccessBannerClosing(true);
+            }, 5200);
+
+            const hideTimer = setTimeout(() => {
+                setShowSuccessBanner(false);
+                setIsSuccessBannerClosing(false);
+            }, 5600);
+
+            return () => {
+                clearTimeout(closeTimer);
+                clearTimeout(hideTimer);
+            };
         }
     }, [fetcher.data?.success, fetcher.data?.message]);
 
@@ -888,11 +902,20 @@ export default function Dashboard() {
                                     <Grid.Cell columnSpan={{ xs: 6, sm: 6, md: 8, lg: 8, xl: 8 }}>
                                         <div style={{ position: "sticky", top: "20px", zIndex: 11 }}>
                                             {showSuccessBanner && successMessage && (
-                                                <Box paddingBlockEnd="200">
+                                                <div
+                                                    style={{
+                                                        overflow: "hidden",
+                                                        transition: "opacity 0.35s ease, transform 0.35s ease, max-height 0.35s ease, margin-bottom 0.35s ease",
+                                                        opacity: isSuccessBannerClosing ? 0 : 1,
+                                                        transform: isSuccessBannerClosing ? "translateY(-8px)" : "translateY(0)",
+                                                        maxHeight: isSuccessBannerClosing ? "0px" : "140px",
+                                                        marginBottom: isSuccessBannerClosing ? "0px" : "8px",
+                                                    }}
+                                                >
                                                     <Banner tone="success">
                                                         <p>{successMessage}</p>
                                                     </Banner>
-                                                </Box>
+                                                </div>
                                             )}
                                             {isDirty && (
                                                 <Box paddingBlockEnd="200">
