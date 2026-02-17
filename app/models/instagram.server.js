@@ -87,7 +87,7 @@ export async function fetchInstagramMedia(instagramUserId, accessToken, limit = 
  * Use 'me' endpoint to get the authenticated user's profile
  */
 export async function fetchUserProfile(accessToken) {
-    const fields = "id,username,account_type,media_count";
+    const fields = "id,username,account_type,media_count,profile_picture_url";
     const url = `${INSTAGRAM_GRAPH_URL}/me?fields=${fields}&access_token=${accessToken}`;
 
     const response = await fetch(url);
@@ -104,13 +104,14 @@ export async function fetchUserProfile(accessToken) {
 /**
  * Save Instagram account to database
  */
-export async function saveInstagramAccount({ shop, accessToken, userId, username }) {
+export async function saveInstagramAccount({ shop, accessToken, userId, username, profilePictureUrl }) {
     return prisma.instagramAccount.upsert({
         where: { shop },
         update: {
             accessToken,
             userId: String(userId),
             username: username || "Instagram User",
+            profilePictureUrl: profilePictureUrl || null,
             updatedAt: new Date(),
         },
         create: {
@@ -118,6 +119,7 @@ export async function saveInstagramAccount({ shop, accessToken, userId, username
             accessToken,
             userId: String(userId),
             username: username || "Instagram User",
+            profilePictureUrl: profilePictureUrl || null,
         },
     });
 }
@@ -148,6 +150,24 @@ export async function syncInstagramToMetafields(shop, admin) {
     const account = await getInstagramAccount(shop);
     if (!account) {
         throw new Error("No Instagram account connected");
+    }
+
+    // Always refresh profile picture
+    try {
+        const profile = await fetchUserProfile(account.accessToken);
+        console.log("Instagram profile response:", JSON.stringify(profile));
+        if (profile.profile_picture_url) {
+            await saveInstagramAccount({
+                shop,
+                accessToken: account.accessToken,
+                userId: account.userId,
+                username: account.username,
+                profilePictureUrl: profile.profile_picture_url,
+            });
+            account.profilePictureUrl = profile.profile_picture_url;
+        }
+    } catch (e) {
+        console.error("Failed to refresh profile picture:", e);
     }
 
     // Fetch settings and post records
@@ -228,6 +248,16 @@ export async function syncInstagramToMetafields(shop, admin) {
             ownerId: shopId
         }
     ];
+
+    if (account.profilePictureUrl) {
+        metafieldsPayload.push({
+            namespace: "instagram_feed",
+            key: "profile_picture_url",
+            type: "single_line_text_field",
+            value: account.profilePictureUrl,
+            ownerId: shopId
+        });
+    }
 
     const appUrl = process.env.SHOPIFY_APP_URL?.replace(/\/$/, "");
     if (appUrl) {

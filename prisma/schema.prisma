@@ -34,12 +34,13 @@ model Session {
 }
 
 model InstagramAccount {
-  id          String   @id @default(uuid())
-  shop        String   @unique
-  accessToken String
-  userId      String
-  username    String?
-  updatedAt   DateTime @updatedAt
+  id                String   @id @default(uuid())
+  shop              String   @unique
+  accessToken       String
+  userId            String
+  username          String?
+  profilePictureUrl String?
+  updatedAt         DateTime @updatedAt
 }
 
 model Settings {

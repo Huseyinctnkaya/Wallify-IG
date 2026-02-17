@@ -7,6 +7,7 @@
 {% assign post_spacing = settings_metafield.postSpacing | default: 'medium' %}
 {% assign border_radius = settings_metafield.borderRadius | default: 'medium' %}
 {% assign tracking_url = shop.metafields.instagram_feed.tracking_url.value %}
+{% assign profile_picture_url = shop.metafields.instagram_feed.profile_picture_url.value %}
 
 {% comment %} Spacing values {% endcomment %}
 {% if post_spacing == 'none' %}
@@ -115,6 +116,9 @@
                   {% endif %}
 
                   <div class="instagram-feed-overlay">
+                    {% if profile_picture_url %}
+                      <img src="{{ profile_picture_url }}" alt="" class="instagram-feed-avatar">
+                    {% endif %}
                     <span class="instagram-icon">@{{ item.username }}</span>
                   </div>
                 </div>
@@ -248,7 +252,12 @@
             </div>
           </div>
           <div class="instagram-popup-info">
-            <div class="instagram-popup-username"></div>
+            <div class="instagram-popup-user-header">
+              {% if profile_picture_url %}
+                <img src="{{ profile_picture_url }}" alt="" class="instagram-popup-avatar">
+              {% endif %}
+              <div class="instagram-popup-username"></div>
+            </div>
             <div class="instagram-popup-caption"></div>
             <div class="instagram-popup-products"></div>
             <a href="" target="_blank" class="instagram-popup-link">
@@ -272,6 +281,7 @@
       const mobileCols = {{ mobile_cols }};
       const shopDomain = {{ shop.permanent_domain | json }};
       const directTrackingUrl = {{ tracking_url | json }};
+      const profilePictureUrl = {{ profile_picture_url | json }};
       const proxyCandidates = [
         '/apps/instagram-feed-track',
         '/a/instagram-feed-track',
@@ -684,16 +694,16 @@
       background: #f5f5f5;
     }
 
-    .instagram-feed-item img,
-    .instagram-feed-item video {
+    .instagram-feed-item > img,
+    .instagram-feed-item > video {
       width: 100%;
       height: 100%;
       object-fit: cover;
       transition: transform 0.3s ease;
     }
 
-    .instagram-feed-item:hover img,
-    .instagram-feed-item:hover video {
+    .instagram-feed-item:hover > img,
+    .instagram-feed-item:hover > video {
       transform: scale(1.05);
     }
 
@@ -801,13 +811,23 @@
       bottom: 0;
       background: rgba(0, 0, 0, 0.5);
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 8px;
       opacity: 0;
       transition: opacity 0.3s ease;
       color: white;
       font-weight: bold;
       font-size: 18px;
+    }
+
+    .instagram-feed-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid white;
+      object-fit: cover;
     }
 
     .instagram-feed-item:hover .instagram-feed-overlay {
@@ -945,8 +965,8 @@
       justify-content: center;
     }
 
-    .instagram-popup-image img,
-    .instagram-popup-image video {
+    .instagram-popup-image > img,
+    .instagram-popup-image > video {
       width: 100%;
       height: auto;
       max-height: 90vh;
@@ -1062,10 +1082,23 @@
       max-height: 90vh;
     }
 
+    .instagram-popup-user-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .instagram-popup-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
     .instagram-popup-username {
       font-size: 18px;
       font-weight: bold;
-      margin-bottom: 15px;
       color: #262626;
     }
 

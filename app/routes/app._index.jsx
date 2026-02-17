@@ -171,6 +171,7 @@ export async function action({ request }) {
                 accessToken,
                 userId: profile.id,
                 username: profile.username,
+                profilePictureUrl: profile.profile_picture_url || null,
             });
 
             return json({ success: true, message: "Instagram connected successfully!" });
@@ -1020,7 +1021,9 @@ export default function Dashboard() {
                                                                             )}
                                                                             {showAuthorProfile && (
                                                                                 <div style={{ position: "absolute", top: 10, left: 10, display: "flex", alignItems: "center", gap: "5px" }}>
-                                                                                    <div style={{ width: 20, height: 20, background: "black", borderRadius: "50%", border: "1px solid rgba(255,255,255,0.3)" }}></div>
+                                                                                    <div style={{ width: 20, height: 20, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.3)", overflow: "hidden", background: "#000" }}>
+                                                                                        {instagramAccount?.profilePictureUrl && <img src={instagramAccount.profilePictureUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                                                                                    </div>
                                                                                     <span style={{ color: cardUserNameColor, fontSize: "12px", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>@{instagramAccount?.username || "username"}</span>
                                                                                 </div>
                                                                             )}
@@ -1106,7 +1109,9 @@ export default function Dashboard() {
                                 gap: "10px",
                                 zIndex: 1002
                             }}>
-                                <div style={{ width: 40, height: 40, background: "black", borderRadius: "50%", border: "1px solid white" }}></div>
+                                <div style={{ width: 40, height: 40, borderRadius: "50%", border: "1px solid white", overflow: "hidden", background: "#000" }}>
+                                    {instagramAccount?.profilePictureUrl && <img src={instagramAccount.profilePictureUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                                </div>
                                 <span style={{ color: "white", fontSize: "16px", fontWeight: "bold" }}>
                                     @{instagramAccount?.username || "username"}
                                 </span>
