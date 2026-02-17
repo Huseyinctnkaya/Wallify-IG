@@ -79,12 +79,12 @@ async function listThemes(admin) {
     return result?.data?.themes?.nodes || [];
 }
 
-async function fetchThemeFilesPage(admin, { themeId, after = null, query = null }) {
+async function fetchThemeFilesPage(admin, { themeId, after = null }) {
     const response = await admin.graphql(
         `#graphql
-        query ThemeFiles($themeId: ID!, $after: String, $query: String) {
+        query ThemeFiles($themeId: ID!, $after: String) {
             theme(id: $themeId) {
-                files(first: 100, after: $after, query: $query) {
+                files(first: 100, after: $after) {
                     nodes {
                         filename
                         body {
@@ -107,7 +107,6 @@ async function fetchThemeFilesPage(admin, { themeId, after = null, query = null 
             variables: {
                 themeId,
                 after,
-                query,
             },
         }
     );
@@ -145,34 +144,25 @@ async function checkInstagramBlockStatus(admin) {
             let hasNextPage = true;
             let scannedPages = 0;
             const maxPages = 8;
-            let themeFilesQuery = "filename:templates/*.json OR filename:sections/*.json";
 
             try {
                 while (hasNextPage && scannedPages < maxPages) {
-                    let filesConnection;
-                    try {
-                        filesConnection = await fetchThemeFilesPage(admin, {
-                            themeId: theme.id,
-                            after: afterCursor,
-                            query: themeFilesQuery,
-                        });
-                    } catch (queryError) {
-                        if (themeFilesQuery) {
-                            // Some stores/themes reject advanced file query syntax; fallback to unfiltered pagination.
-                            themeFilesQuery = null;
-                            filesConnection = await fetchThemeFilesPage(admin, {
-                                themeId: theme.id,
-                                after: afterCursor,
-                                query: null,
-                            });
-                        } else {
-                            throw queryError;
-                        }
-                    }
+                    const filesConnection = await fetchThemeFilesPage(admin, {
+                        themeId: theme.id,
+                        after: afterCursor,
+                    });
 
-                    const hasBlock = (filesConnection.nodes || []).some((file) => {
+                    // App block config lives in theme JSON templates/sections.
+                    const candidateFiles = (filesConnection.nodes || []).filter((file) => {
+                        const filename = file?.filename || "";
+                        return filename.endsWith(".json")
+                            && (filename.startsWith("templates/") || filename.startsWith("sections/"));
+                    });
+
+                    const hasBlock = candidateFiles.some((file) => {
                         const content = readThemeFileContent(file);
-                        return content.includes(INSTAGRAM_BLOCK_TYPE_FRAGMENT);
+                        return content.includes(INSTAGRAM_BLOCK_TYPE_FRAGMENT)
+                            || content.includes("/blocks/instagram-feed");
                     });
 
                     if (hasBlock) {
@@ -500,8 +490,21 @@ const SetupStepItem = ({
                     textAlign: "left",
                 }}
             >
-                <InlineStack align="space-between" blockAlign="center">
-                    <InlineStack gap="300" blockAlign="center">
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        width: "100%",
+                    }}
+                >
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "12px",
+                        }}
+                    >
                         <div
                             style={{
                                 width: "22px",
@@ -522,12 +525,14 @@ const SetupStepItem = ({
                         <Text variant="headingSm" as="h3">
                             {title}
                         </Text>
-                    </InlineStack>
-                    <Icon
-                        source={expanded ? ChevronUpIcon : ChevronDownIcon}
-                        tone="subdued"
-                    />
-                </InlineStack>
+                    </div>
+                    <div style={{ flexShrink: 0, marginLeft: "16px" }}>
+                        <Icon
+                            source={expanded ? ChevronUpIcon : ChevronDownIcon}
+                            tone="subdued"
+                        />
+                    </div>
+                </div>
             </button>
             <div
                 style={{
@@ -796,7 +801,8 @@ export default function Dashboard() {
         : (blockStatusUnavailable
             ? (themeBlockStatus?.message || "Could not verify block status right now.")
             : "Add the Instagram Feed app block in your theme editor, then click refresh.");
-    const themeEditorUrl = `https://${shop}/admin/themes`;
+    const storeHandle = shop?.replace(".myshopify.com", "");
+    const themeEditorUrl = `https://admin.shopify.com/store/${storeHandle}/themes`;
     const previewButtonText = buttonText?.trim() || "Open in Instagram";
     const previewButtonUrl = instagramAccount?.username
         ? `https://instagram.com/${instagramAccount.username}`
