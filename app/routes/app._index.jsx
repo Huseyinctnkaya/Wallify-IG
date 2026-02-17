@@ -679,8 +679,8 @@ export default function Dashboard() {
     const [isSetupGuideOpen, setIsSetupGuideOpen] = useState(true);
     const [openSetupSteps, setOpenSetupSteps] = useState({
         1: true,
-        2: true,
-        3: true,
+        2: false,
+        3: false,
     });
 
     // Color conversion helpers
