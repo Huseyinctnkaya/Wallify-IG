@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { json, redirect } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import {
     Page,
@@ -31,6 +31,168 @@ import { getSettings, saveSettings } from "../models/settings.server";
 import { isPremiumShop } from "../utils/premium.server";
 import { getPosts } from "../models/post.server";
 import { buildInstagramAuthUrl } from "../utils/instagram-oauth.server";
+
+const INSTAGRAM_BLOCK_TYPE_FRAGMENT = "/blocks/instagram-feed/";
+
+function readThemeFileContent(file) {
+    const textContent = file?.body?.content;
+    if (textContent && typeof textContent === "string") {
+        return textContent;
+    }
+
+    const base64Content = file?.body?.contentBase64;
+    if (base64Content && typeof base64Content === "string") {
+        try {
+            if (typeof Buffer !== "undefined") {
+                return Buffer.from(base64Content, "base64").toString("utf8");
+            }
+            if (typeof atob !== "undefined") {
+                return atob(base64Content);
+            }
+        } catch (error) {
+            console.error(`Failed to decode base64 content for ${file?.filename}:`, error);
+        }
+    }
+
+    return "";
+}
+
+async function getMainThemeId(admin) {
+    const response = await admin.graphql(`#graphql
+        query MainTheme {
+            themes(first: 1, roles: [MAIN]) {
+                nodes {
+                    id
+                }
+            }
+        }
+    `);
+    const result = await response.json();
+
+    if (result.errors?.length) {
+        throw new Error(result.errors[0].message);
+    }
+
+    return result?.data?.themes?.nodes?.[0]?.id || null;
+}
+
+async function fetchThemeFilesPage(admin, { themeId, after = null, query = null }) {
+    const response = await admin.graphql(
+        `#graphql
+        query ThemeFiles($themeId: ID!, $after: String, $query: String) {
+            theme(id: $themeId) {
+                files(first: 100, after: $after, query: $query) {
+                    nodes {
+                        filename
+                        body {
+                            ... on OnlineStoreThemeFileBodyText {
+                                content
+                            }
+                            ... on OnlineStoreThemeFileBodyBase64 {
+                                contentBase64
+                            }
+                        }
+                    }
+                    pageInfo {
+                        hasNextPage
+                        endCursor
+                    }
+                }
+            }
+        }`,
+        {
+            variables: {
+                themeId,
+                after,
+                query,
+            },
+        }
+    );
+
+    const result = await response.json();
+
+    if (result.errors?.length) {
+        throw new Error(result.errors[0].message);
+    }
+
+    return result?.data?.theme?.files || { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } };
+}
+
+async function checkInstagramBlockStatus(admin) {
+    try {
+        const themeId = await getMainThemeId(admin);
+        if (!themeId) {
+            return {
+                status: "unknown",
+                message: "Main theme not found.",
+            };
+        }
+
+        let afterCursor = null;
+        let hasNextPage = true;
+        let scannedPages = 0;
+        const maxPages = 8;
+        let themeFilesQuery = "filename:templates/*.json OR filename:sections/*.json";
+
+        while (hasNextPage && scannedPages < maxPages) {
+            let filesConnection;
+            try {
+                filesConnection = await fetchThemeFilesPage(admin, {
+                    themeId,
+                    after: afterCursor,
+                    query: themeFilesQuery,
+                });
+            } catch (queryError) {
+                if (themeFilesQuery) {
+                    // Some stores/themes reject advanced file query syntax; fallback to unfiltered pagination.
+                    themeFilesQuery = null;
+                    filesConnection = await fetchThemeFilesPage(admin, {
+                        themeId,
+                        after: afterCursor,
+                        query: null,
+                    });
+                } else {
+                    throw queryError;
+                }
+            }
+
+            const hasBlock = (filesConnection.nodes || []).some((file) => {
+                const content = readThemeFileContent(file);
+                return content.includes(INSTAGRAM_BLOCK_TYPE_FRAGMENT);
+            });
+
+            if (hasBlock) {
+                return {
+                    status: "detected",
+                    message: "Instagram Feed block detected in theme.",
+                };
+            }
+
+            hasNextPage = Boolean(filesConnection.pageInfo?.hasNextPage);
+            afterCursor = filesConnection.pageInfo?.endCursor || null;
+            scannedPages += 1;
+        }
+
+        return {
+            status: "not_detected",
+            message: "Instagram Feed block not detected yet.",
+        };
+    } catch (error) {
+        const rawMessage = String(error?.message || "Block check failed");
+        const lowered = rawMessage.toLowerCase();
+        const isScopeIssue = lowered.includes("access denied")
+            || lowered.includes("forbidden")
+            || lowered.includes("read_themes");
+
+        return {
+            status: "unavailable",
+            message: isScopeIssue
+                ? "Block status check requires theme read permission (read_themes)."
+                : "Could not verify block status right now.",
+            debug: rawMessage,
+        };
+    }
+}
 
 export async function loader({ request }) {
     const requestUrl = new URL(request.url);
@@ -95,6 +257,7 @@ export async function loader({ request }) {
 
     const igConnectStatus = requestUrl.searchParams.get("ig_connect");
     const igErrorDetail = requestUrl.searchParams.get("ig_error");
+    const themeBlockStatus = await checkInstagramBlockStatus(admin);
     let oauthNotice = null;
     if (igConnectStatus === "success") {
         oauthNotice = {
@@ -119,6 +282,7 @@ export async function loader({ request }) {
         hasCredentials,
         isPremium,
         oauthNotice,
+        themeBlockStatus,
     });
 }
 
@@ -267,12 +431,57 @@ const ColorSetting = ({ label, color, onChange, hexToHsb, hsbToHex }) => {
     );
 };
 
+const SetupStepItem = ({ stepNumber, title, description, completed, children, hideDivider = false }) => (
+    <div
+        style={{
+            padding: "16px 0",
+            borderBottom: hideDivider ? "none" : "1px solid #e1e3e5",
+        }}
+    >
+        <BlockStack gap="200">
+            <InlineStack gap="300" blockAlign="center">
+                <div
+                    style={{
+                        width: "22px",
+                        height: "22px",
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        color: completed ? "#ffffff" : "#616161",
+                        backgroundColor: completed ? "#1f1f1f" : "transparent",
+                        border: completed ? "none" : "2px dashed #8c9196",
+                    }}
+                >
+                    {completed ? "✓" : stepNumber}
+                </div>
+                <Text variant="headingSm" as="h3">
+                    {title}
+                </Text>
+            </InlineStack>
+            <Text variant="bodyMd" as="p" tone="subdued">
+                {description}
+            </Text>
+            {children && (
+                <InlineStack gap="200">
+                    {children}
+                </InlineStack>
+            )}
+        </BlockStack>
+    </div>
+);
+
 export default function Dashboard() {
-    const { instagramAccount, hasCredentials, media, settings, shop, isPremium, oauthNotice } = useLoaderData();
+    const { instagramAccount, hasCredentials, media, settings, shop, isPremium, oauthNotice, themeBlockStatus } = useLoaderData();
     const fetcher = useFetcher();
 
     const isLoading = fetcher.state === "submitting";
-    const isSaving = isLoading && fetcher.formData?.get("actionType") === "saveSettings";
+    const currentAction = fetcher.formData?.get("actionType");
+    const isSaving = isLoading && currentAction === "saveSettings";
+    const isConnecting = isLoading && currentAction === "connect";
+    const isSyncing = isLoading && currentAction === "sync";
 
     // ... (existing handlers)
 
@@ -486,12 +695,29 @@ export default function Dashboard() {
     ];
 
     const displayMedia = (media && media.length > 0) ? media : mockImages;
+    const isConnectedStepComplete = Boolean(instagramAccount);
+    const isSyncStepComplete = isConnectedStepComplete && Array.isArray(media) && media.length > 0;
+    const isBlockStepComplete = themeBlockStatus?.status === "detected";
+    const completedSetupSteps = [
+        isConnectedStepComplete,
+        isSyncStepComplete,
+        isBlockStepComplete,
+    ].filter(Boolean).length;
+    const blockStatusUnavailable = themeBlockStatus?.status === "unavailable";
+    const blockStepDescription = isBlockStepComplete
+        ? "Instagram Feed block is detected in your current theme."
+        : (blockStatusUnavailable
+            ? (themeBlockStatus?.message || "Could not verify block status right now.")
+            : "Add the Instagram Feed app block in your theme editor, then click refresh.");
+    const storeHandle = shop?.replace(".myshopify.com", "");
+    const themeEditorUrl = `https://admin.shopify.com/store/${storeHandle}/themes/current/editor?template=index`;
     const previewButtonText = buttonText?.trim() || "Open in Instagram";
     const previewButtonUrl = instagramAccount?.username
         ? `https://instagram.com/${instagramAccount.username}`
         : (typeof displayMedia[0] !== "string" && displayMedia[0]?.permalink
             ? displayMedia[0].permalink
             : "https://instagram.com");
+    const handleRefreshSetup = () => window.location.reload();
 
     useEffect(() => {
         if (fetcher.data?.authUrl) {
@@ -547,33 +773,99 @@ export default function Dashboard() {
                         )}
 
                         <Card>
-                            <BlockStack gap="300">
-                                <Text variant="headingMd" as="h2">
-                                    How it works
+                            <BlockStack gap="200">
+                                <InlineStack gap="300" blockAlign="center">
+                                    <Text variant="headingMd" as="h2">
+                                        Setup Guide
+                                    </Text>
+                                    <div
+                                        style={{
+                                            padding: "4px 10px",
+                                            borderRadius: "999px",
+                                            backgroundColor: "#f1f2f3",
+                                            fontSize: "13px",
+                                            color: "#616161",
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        {completedSetupSteps}/3 completed
+                                    </div>
+                                </InlineStack>
+                                <Text variant="bodyMd" as="p" tone="subdued">
+                                    Use this guide to complete your Instagram feed setup.
                                 </Text>
-                                <BlockStack gap="200">
-                                    <Text variant="bodyMd" as="p">
-                                        1. Connect your Instagram business account
-                                    </Text>
-                                    <Text variant="bodyMd" as="p">
-                                        2. Sync your media to fetch the latest posts
-                                    </Text>
-                                    <BlockStack gap="200">
-                                        <Text variant="bodyMd" as="p">
-                                            3. Add the Instagram Feed block to your theme
-                                        </Text>
-                                        <InlineStack align="start">
-                                            <Button
-                                                size="slim"
-                                                url={`https://${shop}/admin/themes`}
-                                                external
-                                            >
-                                                Open Theme Editor
-                                            </Button>
-                                        </InlineStack>
-                                    </BlockStack>
-                                </BlockStack>
                             </BlockStack>
+                            <div style={{ marginTop: "14px", borderTop: "1px solid #e1e3e5" }}>
+                                <SetupStepItem
+                                    stepNumber={1}
+                                    title="Connect Instagram account"
+                                    description={isConnectedStepComplete
+                                        ? `Connected as @${instagramAccount.username}.`
+                                        : "Connect your Instagram business account to start."
+                                    }
+                                    completed={isConnectedStepComplete}
+                                >
+                                    {isConnectedStepComplete ? (
+                                        <Button
+                                            size="slim"
+                                            onClick={handleDisconnect}
+                                            tone="critical"
+                                            loading={isLoading && currentAction === "disconnect"}
+                                        >
+                                            Disconnect
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            size="slim"
+                                            variant="primary"
+                                            onClick={handleConnect}
+                                            disabled={!hasCredentials}
+                                            loading={isConnecting}
+                                        >
+                                            Connect Instagram
+                                        </Button>
+                                    )}
+                                </SetupStepItem>
+                                <SetupStepItem
+                                    stepNumber={2}
+                                    title="Sync media"
+                                    description={isSyncStepComplete
+                                        ? `${media.length} post(s) available for preview and sync.`
+                                        : "Sync your media to fetch latest posts."
+                                    }
+                                    completed={isSyncStepComplete}
+                                >
+                                    <Button
+                                        size="slim"
+                                        onClick={handleSync}
+                                        disabled={!isConnectedStepComplete}
+                                        loading={isSyncing}
+                                    >
+                                        Sync Media
+                                    </Button>
+                                </SetupStepItem>
+                                <SetupStepItem
+                                    stepNumber={3}
+                                    title="Add block to theme"
+                                    description={blockStepDescription}
+                                    completed={isBlockStepComplete}
+                                    hideDivider
+                                >
+                                    <Button
+                                        size="slim"
+                                        url={themeEditorUrl}
+                                        external
+                                    >
+                                        Open Theme Editor
+                                    </Button>
+                                    <Button
+                                        size="slim"
+                                        onClick={handleRefreshSetup}
+                                    >
+                                        Refresh
+                                    </Button>
+                                </SetupStepItem>
+                            </div>
                         </Card>
 
                         {/* Contact Support Card */}
