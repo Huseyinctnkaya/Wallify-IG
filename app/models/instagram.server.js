@@ -173,8 +173,12 @@ export async function syncInstagramToMetafields(shop, admin) {
     // Fetch settings and post records
     const settings = await getSettings(shop);
     const isPremium = await isPremiumShop(shop);
+    const configuredMediaLimit = Number(settings.mediaLimit);
+    const premiumMediaLimit = Number.isFinite(configuredMediaLimit) && configuredMediaLimit > 0
+        ? configuredMediaLimit
+        : 12;
     const freeMediaLimit = Math.min(Number(settings.mediaLimit) || 12, 12);
-    const effectiveMediaLimit = isPremium ? null : freeMediaLimit;
+    const effectiveMediaLimit = isPremium ? premiumMediaLimit : freeMediaLimit;
     const postRecords = await getPosts(shop);
 
     let mediaItems = [];

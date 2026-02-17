@@ -34,7 +34,7 @@ export const loader = async ({ request }) => {
     const instagramAccount = await getInstagramAccount(shop);
     const isPremium = await isPremiumShop(shop);
     const freeMediaLimit = Math.min(Number(settings.mediaLimit) || 12, 12);
-    const premiumMediaLimit = Number(settings.mediaLimit) || null;
+    const premiumMediaLimit = Number(settings.mediaLimit) > 0 ? Number(settings.mediaLimit) : 12;
     const effectiveMediaLimit = isPremium ? premiumMediaLimit : freeMediaLimit;
     let posts = [];
 

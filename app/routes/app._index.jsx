@@ -33,7 +33,8 @@ export async function loader({ request }) {
     const settings = await getSettings(shop);
     const isPremium = await isPremiumShop(shop);
     const freeMediaLimit = Math.min(Number(settings.mediaLimit) || 12, 12);
-    const effectiveMediaLimit = isPremium ? null : freeMediaLimit;
+    const premiumMediaLimit = Number(settings.mediaLimit) > 0 ? Number(settings.mediaLimit) : 12;
+    const effectiveMediaLimit = isPremium ? premiumMediaLimit : freeMediaLimit;
     const effectiveShowPinnedReels = isPremium ? !!settings.showPinnedReels : false;
     let media = [];
 
@@ -678,7 +679,7 @@ export default function Dashboard() {
                                                         min={1}
                                                         max={isPremium ? undefined : 12}
                                                         helpText={isPremium
-                                                            ? "Premium plan fetches all available posts. This value is optional."
+                                                            ? "Premium plan fetches exactly this many posts."
                                                             : "Free plan allows up to 12 posts."
                                                         }
                                                     />
