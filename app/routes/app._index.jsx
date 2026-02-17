@@ -17,8 +17,9 @@ import {
     Box,
     Popover,
     ColorPicker,
+    Icon,
 } from "@shopify/polaris";
-import { MobileIcon, DesktopIcon } from "@shopify/polaris-icons";
+import { MobileIcon, DesktopIcon, ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import {
     getInstagramAccount,
@@ -57,12 +58,14 @@ function readThemeFileContent(file) {
     return "";
 }
 
-async function getMainThemeId(admin) {
+async function listThemes(admin) {
     const response = await admin.graphql(`#graphql
-        query MainTheme {
-            themes(first: 1, roles: [MAIN]) {
+        query ThemesForBlockCheck {
+            themes(first: 25) {
                 nodes {
                     id
+                    name
+                    role
                 }
             }
         }
@@ -73,7 +76,7 @@ async function getMainThemeId(admin) {
         throw new Error(result.errors[0].message);
     }
 
-    return result?.data?.themes?.nodes?.[0]?.id || null;
+    return result?.data?.themes?.nodes || [];
 }
 
 async function fetchThemeFilesPage(admin, { themeId, after = null, query = null }) {
@@ -120,62 +123,97 @@ async function fetchThemeFilesPage(admin, { themeId, after = null, query = null 
 
 async function checkInstagramBlockStatus(admin) {
     try {
-        const themeId = await getMainThemeId(admin);
-        if (!themeId) {
+        const themes = await listThemes(admin);
+        if (!themes.length) {
             return {
                 status: "unknown",
-                message: "Main theme not found.",
+                message: "No theme found for block check.",
             };
         }
 
-        let afterCursor = null;
-        let hasNextPage = true;
-        let scannedPages = 0;
-        const maxPages = 8;
-        let themeFilesQuery = "filename:templates/*.json OR filename:sections/*.json";
+        const sortedThemes = [...themes].sort((a, b) => {
+            if (a.role === "MAIN" && b.role !== "MAIN") return -1;
+            if (a.role !== "MAIN" && b.role === "MAIN") return 1;
+            return 0;
+        });
 
-        while (hasNextPage && scannedPages < maxPages) {
-            let filesConnection;
+        let checkedThemeCount = 0;
+        const themeCheckErrors = [];
+
+        for (const theme of sortedThemes) {
+            let afterCursor = null;
+            let hasNextPage = true;
+            let scannedPages = 0;
+            const maxPages = 8;
+            let themeFilesQuery = "filename:templates/*.json OR filename:sections/*.json";
+
             try {
-                filesConnection = await fetchThemeFilesPage(admin, {
-                    themeId,
-                    after: afterCursor,
-                    query: themeFilesQuery,
-                });
-            } catch (queryError) {
-                if (themeFilesQuery) {
-                    // Some stores/themes reject advanced file query syntax; fallback to unfiltered pagination.
-                    themeFilesQuery = null;
-                    filesConnection = await fetchThemeFilesPage(admin, {
-                        themeId,
-                        after: afterCursor,
-                        query: null,
+                while (hasNextPage && scannedPages < maxPages) {
+                    let filesConnection;
+                    try {
+                        filesConnection = await fetchThemeFilesPage(admin, {
+                            themeId: theme.id,
+                            after: afterCursor,
+                            query: themeFilesQuery,
+                        });
+                    } catch (queryError) {
+                        if (themeFilesQuery) {
+                            // Some stores/themes reject advanced file query syntax; fallback to unfiltered pagination.
+                            themeFilesQuery = null;
+                            filesConnection = await fetchThemeFilesPage(admin, {
+                                themeId: theme.id,
+                                after: afterCursor,
+                                query: null,
+                            });
+                        } else {
+                            throw queryError;
+                        }
+                    }
+
+                    const hasBlock = (filesConnection.nodes || []).some((file) => {
+                        const content = readThemeFileContent(file);
+                        return content.includes(INSTAGRAM_BLOCK_TYPE_FRAGMENT);
                     });
-                } else {
-                    throw queryError;
+
+                    if (hasBlock) {
+                        return {
+                            status: "detected",
+                            message: theme.role === "MAIN"
+                                ? "Instagram Feed block detected in your live theme."
+                                : `Instagram Feed block detected in theme: ${theme.name || "Draft theme"}.`,
+                        };
+                    }
+
+                    hasNextPage = Boolean(filesConnection.pageInfo?.hasNextPage);
+                    afterCursor = filesConnection.pageInfo?.endCursor || null;
+                    scannedPages += 1;
                 }
+
+                checkedThemeCount += 1;
+            } catch (themeError) {
+                themeCheckErrors.push(String(themeError?.message || themeError));
             }
+        }
 
-            const hasBlock = (filesConnection.nodes || []).some((file) => {
-                const content = readThemeFileContent(file);
-                return content.includes(INSTAGRAM_BLOCK_TYPE_FRAGMENT);
-            });
+        if (checkedThemeCount === 0 && themeCheckErrors.length > 0) {
+            const rawMessage = themeCheckErrors.join(" | ");
+            const lowered = rawMessage.toLowerCase();
+            const isScopeIssue = lowered.includes("access denied")
+                || lowered.includes("forbidden")
+                || lowered.includes("read_themes");
 
-            if (hasBlock) {
-                return {
-                    status: "detected",
-                    message: "Instagram Feed block detected in theme.",
-                };
-            }
-
-            hasNextPage = Boolean(filesConnection.pageInfo?.hasNextPage);
-            afterCursor = filesConnection.pageInfo?.endCursor || null;
-            scannedPages += 1;
+            return {
+                status: "unavailable",
+                message: isScopeIssue
+                    ? "Block status check requires theme read permission (read_themes)."
+                    : "Could not verify block status right now.",
+                debug: rawMessage,
+            };
         }
 
         return {
             status: "not_detected",
-            message: "Instagram Feed block not detected yet.",
+            message: "Instagram Feed block not detected in checked themes yet.",
         };
     } catch (error) {
         const rawMessage = String(error?.message || "Block check failed");
@@ -485,17 +523,10 @@ const SetupStepItem = ({
                             {title}
                         </Text>
                     </InlineStack>
-                    <span
-                        aria-hidden="true"
-                        style={{
-                            fontSize: "14px",
-                            color: "#616161",
-                            transition: "transform 180ms ease",
-                            transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-                        }}
-                    >
-                        ▼
-                    </span>
+                    <Icon
+                        source={expanded ? ChevronUpIcon : ChevronDownIcon}
+                        tone="subdued"
+                    />
                 </InlineStack>
             </button>
             <div
@@ -765,8 +796,7 @@ export default function Dashboard() {
         : (blockStatusUnavailable
             ? (themeBlockStatus?.message || "Could not verify block status right now.")
             : "Add the Instagram Feed app block in your theme editor, then click refresh.");
-    const storeHandle = shop?.replace(".myshopify.com", "");
-    const themeEditorUrl = `https://admin.shopify.com/store/${storeHandle}/themes/current/editor?template=index`;
+    const themeEditorUrl = `https://${shop}/admin/themes`;
     const previewButtonText = buttonText?.trim() || "Open in Instagram";
     const previewButtonUrl = instagramAccount?.username
         ? `https://instagram.com/${instagramAccount.username}`
@@ -856,10 +886,11 @@ export default function Dashboard() {
                                     </InlineStack>
                                     <Button
                                         size="slim"
+                                        variant="tertiary"
+                                        icon={isSetupGuideOpen ? ChevronUpIcon : ChevronDownIcon}
+                                        accessibilityLabel={isSetupGuideOpen ? "Collapse setup guide" : "Expand setup guide"}
                                         onClick={() => setIsSetupGuideOpen((prev) => !prev)}
-                                    >
-                                        {isSetupGuideOpen ? "Collapse" : "Expand"}
-                                    </Button>
+                                    />
                                 </InlineStack>
                                 <Text variant="bodyMd" as="p" tone="subdued">
                                     Use this guide to complete your Instagram feed setup.
