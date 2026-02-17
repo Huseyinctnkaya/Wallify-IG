@@ -1,6 +1,6 @@
 import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Page,
     Layout,
@@ -209,6 +209,31 @@ const ProBadge = () => (
 const PostCard = ({ post, isPremium, onEditProducts, onShowUpgrade }) => {
     const fetcher = useFetcher();
     const isLoading = fetcher.state === "submitting";
+    const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+    const [isSuccessBannerClosing, setIsSuccessBannerClosing] = useState(false);
+    const [successMessage, setSuccessMessage] = useState("");
+
+    useEffect(() => {
+        if (fetcher.data?.success && fetcher.data?.message) {
+            setSuccessMessage(fetcher.data.message);
+            setShowSuccessBanner(true);
+            setIsSuccessBannerClosing(false);
+
+            const closeTimer = setTimeout(() => {
+                setIsSuccessBannerClosing(true);
+            }, 5200);
+
+            const hideTimer = setTimeout(() => {
+                setShowSuccessBanner(false);
+                setIsSuccessBannerClosing(false);
+            }, 5600);
+
+            return () => {
+                clearTimeout(closeTimer);
+                clearTimeout(hideTimer);
+            };
+        }
+    }, [fetcher.data?.success, fetcher.data?.message]);
 
     const handleTogglePin = () => {
         if (!isPremium) {
@@ -238,6 +263,22 @@ const PostCard = ({ post, isPremium, onEditProducts, onShowUpgrade }) => {
             return;
         }
         onEditProducts(post);
+    };
+
+    const handleDeleteProducts = () => {
+        if (!isPremium) {
+            onShowUpgrade();
+            return;
+        }
+
+        fetcher.submit(
+            {
+                actionType: "updateProducts",
+                mediaId: post.id,
+                products: JSON.stringify([])
+            },
+            { method: "post" }
+        );
     };
 
     return (
@@ -338,7 +379,7 @@ const PostCard = ({ post, isPremium, onEditProducts, onShowUpgrade }) => {
                         )}
                     </BlockStack>
 
-                    <InlineStack align="start">
+                    <InlineStack align="start" gap="200">
                         <Button
                             size="slim"
                             onClick={handleEditProducts}
@@ -349,12 +390,37 @@ const PostCard = ({ post, isPremium, onEditProducts, onShowUpgrade }) => {
                                 {!isPremium && <ProBadge />}
                             </InlineStack>
                         </Button>
+                        {post.products && post.products.length > 0 && (
+                            <Button
+                                size="slim"
+                                tone="critical"
+                                onClick={handleDeleteProducts}
+                                disabled={!isPremium || isLoading}
+                            >
+                                <InlineStack gap="150" blockAlign="center">
+                                    <Text variant="bodySm" as="span">Delete products</Text>
+                                    {!isPremium && <ProBadge />}
+                                </InlineStack>
+                            </Button>
+                        )}
                     </InlineStack>
 
-                    {fetcher.data?.success && (
-                        <Banner tone="success">
-                            <Text variant="bodySm">{fetcher.data.message}</Text>
-                        </Banner>
+                    {showSuccessBanner && successMessage && (
+                        <div
+                            style={{
+                                overflow: 'hidden',
+                                transition: 'opacity 0.35s ease, transform 0.35s ease, max-height 0.35s ease, margin 0.35s ease',
+                                opacity: isSuccessBannerClosing ? 0 : 1,
+                                transform: isSuccessBannerClosing ? 'translateY(-8px)' : 'translateY(0)',
+                                maxHeight: isSuccessBannerClosing ? '0px' : '100px',
+                                marginTop: isSuccessBannerClosing ? '0px' : '0px',
+                                marginBottom: isSuccessBannerClosing ? '0px' : '0px',
+                            }}
+                        >
+                            <Banner tone="success">
+                                <Text variant="bodySm">{successMessage}</Text>
+                            </Banner>
+                        </div>
                     )}
 
                     {fetcher.data?.error && (
