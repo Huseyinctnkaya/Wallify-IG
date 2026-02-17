@@ -20,7 +20,13 @@ import {
 } from "@shopify/polaris";
 import { MobileIcon, DesktopIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
-import { getInstagramAccount, disconnectInstagramAccount, fetchInstagramMedia } from "../models/instagram.server";
+import {
+    getInstagramAccount,
+    disconnectInstagramAccount,
+    fetchInstagramMedia,
+    syncInstagramToMetafields,
+} from "../models/instagram.server";
+import { resetAnalyticsForShop } from "../models/analytics.server";
 import { getSettings, saveSettings } from "../models/settings.server";
 import { isPremiumShop } from "../utils/premium.server";
 import { getPosts } from "../models/post.server";
@@ -163,7 +169,6 @@ export async function action({ request }) {
         try {
             const account = await getInstagramAccount(shop);
             if (account) {
-                const { syncInstagramToMetafields } = await import("../models/instagram.server");
                 await syncInstagramToMetafields(shop, admin);
             }
         } catch (error) {
@@ -179,7 +184,6 @@ export async function action({ request }) {
     if (actionType === "disconnect") {
         await disconnectInstagramAccount(shop);
         try {
-            const { resetAnalyticsForShop } = await import("../models/analytics.server");
             await resetAnalyticsForShop(shop);
         } catch (error) {
             console.error("Analytics reset after disconnect failed:", error);
@@ -193,8 +197,6 @@ export async function action({ request }) {
             if (!account) {
                 return json({ error: "No Instagram account connected" }, { status: 400 });
             }
-
-            const { syncInstagramToMetafields } = await import("../models/instagram.server");
 
             // Sync Instagram media to metafields
             await syncInstagramToMetafields(shop, admin);

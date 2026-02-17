@@ -8,11 +8,9 @@ import {
     Text,
     Button,
     InlineStack,
-    Icon,
     Collapsible,
     Box,
 } from "@shopify/polaris";
-import { EmailIcon, QuestionCircleIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }) => {

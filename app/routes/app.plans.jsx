@@ -11,7 +11,6 @@ import {
     Box,
     Badge,
 } from "@shopify/polaris";
-import { CheckIcon } from "@shopify/polaris-icons";
 
 export default function Plans() {
     return (
