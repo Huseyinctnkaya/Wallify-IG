@@ -431,7 +431,16 @@ const ColorSetting = ({ label, color, onChange, hexToHsb, hsbToHex }) => {
     );
 };
 
-const SetupStepItem = ({ stepNumber, title, description, completed, children, hideDivider = false }) => (
+const SetupStepItem = ({
+    stepNumber,
+    title,
+    description,
+    completed,
+    expanded,
+    onToggle,
+    children,
+    hideDivider = false,
+}) => (
     <div
         style={{
             padding: "16px 0",
@@ -439,36 +448,77 @@ const SetupStepItem = ({ stepNumber, title, description, completed, children, hi
         }}
     >
         <BlockStack gap="200">
-            <InlineStack gap="300" blockAlign="center">
-                <div
-                    style={{
-                        width: "22px",
-                        height: "22px",
-                        borderRadius: "50%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "12px",
-                        fontWeight: 700,
-                        color: completed ? "#ffffff" : "#616161",
-                        backgroundColor: completed ? "#1f1f1f" : "transparent",
-                        border: completed ? "none" : "2px dashed #8c9196",
-                    }}
-                >
-                    {completed ? "✓" : stepNumber}
-                </div>
-                <Text variant="headingSm" as="h3">
-                    {title}
-                </Text>
-            </InlineStack>
-            <Text variant="bodyMd" as="p" tone="subdued">
-                {description}
-            </Text>
-            {children && (
-                <InlineStack gap="200">
-                    {children}
+            <button
+                type="button"
+                onClick={onToggle}
+                aria-expanded={expanded}
+                style={{
+                    width: "100%",
+                    border: "none",
+                    background: "transparent",
+                    padding: 0,
+                    margin: 0,
+                    cursor: "pointer",
+                    textAlign: "left",
+                }}
+            >
+                <InlineStack align="space-between" blockAlign="center">
+                    <InlineStack gap="300" blockAlign="center">
+                        <div
+                            style={{
+                                width: "22px",
+                                height: "22px",
+                                borderRadius: "50%",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "12px",
+                                fontWeight: 700,
+                                color: completed ? "#ffffff" : "#616161",
+                                backgroundColor: completed ? "#1f1f1f" : "transparent",
+                                border: completed ? "none" : "2px dashed #8c9196",
+                            }}
+                        >
+                            {completed ? "✓" : stepNumber}
+                        </div>
+                        <Text variant="headingSm" as="h3">
+                            {title}
+                        </Text>
+                    </InlineStack>
+                    <span
+                        aria-hidden="true"
+                        style={{
+                            fontSize: "14px",
+                            color: "#616161",
+                            transition: "transform 180ms ease",
+                            transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+                        }}
+                    >
+                        ▼
+                    </span>
                 </InlineStack>
-            )}
+            </button>
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateRows: expanded ? "1fr" : "0fr",
+                    transition: "grid-template-rows 220ms ease, opacity 220ms ease",
+                    opacity: expanded ? 1 : 0,
+                }}
+            >
+                <div style={{ overflow: "hidden", minHeight: 0 }}>
+                    <BlockStack gap="200">
+                        <Text variant="bodyMd" as="p" tone="subdued">
+                            {description}
+                        </Text>
+                        {children && (
+                            <InlineStack gap="200">
+                                {children}
+                            </InlineStack>
+                        )}
+                    </BlockStack>
+                </div>
+            </div>
         </BlockStack>
     </div>
 );
@@ -590,6 +640,12 @@ export default function Dashboard() {
     const [showSuccessBanner, setShowSuccessBanner] = useState(false);
     const [isSuccessBannerClosing, setIsSuccessBannerClosing] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
+    const [isSetupGuideOpen, setIsSetupGuideOpen] = useState(true);
+    const [openSetupSteps, setOpenSetupSteps] = useState({
+        1: true,
+        2: true,
+        3: true,
+    });
 
     // Color conversion helpers
     const hexToHsb = (hex) => {
@@ -718,6 +774,12 @@ export default function Dashboard() {
             ? displayMedia[0].permalink
             : "https://instagram.com");
     const handleRefreshSetup = () => window.location.reload();
+    const toggleSetupStep = (stepNumber) => {
+        setOpenSetupSteps((prev) => ({
+            ...prev,
+            [stepNumber]: !prev[stepNumber],
+        }));
+    };
 
     useEffect(() => {
         if (fetcher.data?.authUrl) {
@@ -774,97 +836,123 @@ export default function Dashboard() {
 
                         <Card>
                             <BlockStack gap="200">
-                                <InlineStack gap="300" blockAlign="center">
-                                    <Text variant="headingMd" as="h2">
-                                        Setup Guide
-                                    </Text>
-                                    <div
-                                        style={{
-                                            padding: "4px 10px",
-                                            borderRadius: "999px",
-                                            backgroundColor: "#f1f2f3",
-                                            fontSize: "13px",
-                                            color: "#616161",
-                                            fontWeight: 600,
-                                        }}
+                                <InlineStack align="space-between" blockAlign="center">
+                                    <InlineStack gap="300" blockAlign="center">
+                                        <Text variant="headingMd" as="h2">
+                                            Setup Guide
+                                        </Text>
+                                        <div
+                                            style={{
+                                                padding: "4px 10px",
+                                                borderRadius: "999px",
+                                                backgroundColor: "#f1f2f3",
+                                                fontSize: "13px",
+                                                color: "#616161",
+                                                fontWeight: 600,
+                                            }}
+                                        >
+                                            {completedSetupSteps}/3 completed
+                                        </div>
+                                    </InlineStack>
+                                    <Button
+                                        size="slim"
+                                        onClick={() => setIsSetupGuideOpen((prev) => !prev)}
                                     >
-                                        {completedSetupSteps}/3 completed
-                                    </div>
+                                        {isSetupGuideOpen ? "Collapse" : "Expand"}
+                                    </Button>
                                 </InlineStack>
                                 <Text variant="bodyMd" as="p" tone="subdued">
                                     Use this guide to complete your Instagram feed setup.
                                 </Text>
                             </BlockStack>
-                            <div style={{ marginTop: "14px", borderTop: "1px solid #e1e3e5" }}>
-                                <SetupStepItem
-                                    stepNumber={1}
-                                    title="Connect Instagram account"
-                                    description={isConnectedStepComplete
-                                        ? `Connected as @${instagramAccount.username}.`
-                                        : "Connect your Instagram business account to start."
-                                    }
-                                    completed={isConnectedStepComplete}
-                                >
-                                    {isConnectedStepComplete ? (
-                                        <Button
-                                            size="slim"
-                                            onClick={handleDisconnect}
-                                            tone="critical"
-                                            loading={isLoading && currentAction === "disconnect"}
+                            <div
+                                style={{
+                                    display: "grid",
+                                    gridTemplateRows: isSetupGuideOpen ? "1fr" : "0fr",
+                                    transition: "grid-template-rows 260ms ease, opacity 220ms ease",
+                                    opacity: isSetupGuideOpen ? 1 : 0,
+                                    marginTop: "14px",
+                                }}
+                            >
+                                <div style={{ overflow: "hidden", minHeight: 0 }}>
+                                    <div style={{ borderTop: "1px solid #e1e3e5" }}>
+                                        <SetupStepItem
+                                            stepNumber={1}
+                                            title="Connect Instagram account"
+                                            description={isConnectedStepComplete
+                                                ? `Connected as @${instagramAccount.username}.`
+                                                : "Connect your Instagram business account to start."
+                                            }
+                                            completed={isConnectedStepComplete}
+                                            expanded={openSetupSteps[1]}
+                                            onToggle={() => toggleSetupStep(1)}
                                         >
-                                            Disconnect
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            size="slim"
-                                            variant="primary"
-                                            onClick={handleConnect}
-                                            disabled={!hasCredentials}
-                                            loading={isConnecting}
+                                            {isConnectedStepComplete ? (
+                                                <Button
+                                                    size="slim"
+                                                    onClick={handleDisconnect}
+                                                    tone="critical"
+                                                    loading={isLoading && currentAction === "disconnect"}
+                                                >
+                                                    Disconnect
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    size="slim"
+                                                    variant="primary"
+                                                    onClick={handleConnect}
+                                                    disabled={!hasCredentials}
+                                                    loading={isConnecting}
+                                                >
+                                                    Connect Instagram
+                                                </Button>
+                                            )}
+                                        </SetupStepItem>
+                                        <SetupStepItem
+                                            stepNumber={2}
+                                            title="Sync media"
+                                            description={isSyncStepComplete
+                                                ? `${media.length} post(s) available for preview and sync.`
+                                                : "Sync your media to fetch latest posts."
+                                            }
+                                            completed={isSyncStepComplete}
+                                            expanded={openSetupSteps[2]}
+                                            onToggle={() => toggleSetupStep(2)}
                                         >
-                                            Connect Instagram
-                                        </Button>
-                                    )}
-                                </SetupStepItem>
-                                <SetupStepItem
-                                    stepNumber={2}
-                                    title="Sync media"
-                                    description={isSyncStepComplete
-                                        ? `${media.length} post(s) available for preview and sync.`
-                                        : "Sync your media to fetch latest posts."
-                                    }
-                                    completed={isSyncStepComplete}
-                                >
-                                    <Button
-                                        size="slim"
-                                        onClick={handleSync}
-                                        disabled={!isConnectedStepComplete}
-                                        loading={isSyncing}
-                                    >
-                                        Sync Media
-                                    </Button>
-                                </SetupStepItem>
-                                <SetupStepItem
-                                    stepNumber={3}
-                                    title="Add block to theme"
-                                    description={blockStepDescription}
-                                    completed={isBlockStepComplete}
-                                    hideDivider
-                                >
-                                    <Button
-                                        size="slim"
-                                        url={themeEditorUrl}
-                                        external
-                                    >
-                                        Open Theme Editor
-                                    </Button>
-                                    <Button
-                                        size="slim"
-                                        onClick={handleRefreshSetup}
-                                    >
-                                        Refresh
-                                    </Button>
-                                </SetupStepItem>
+                                            <Button
+                                                size="slim"
+                                                onClick={handleSync}
+                                                disabled={!isConnectedStepComplete}
+                                                loading={isSyncing}
+                                            >
+                                                Sync Media
+                                            </Button>
+                                        </SetupStepItem>
+                                        <SetupStepItem
+                                            stepNumber={3}
+                                            title="Add block to theme"
+                                            description={blockStepDescription}
+                                            completed={isBlockStepComplete}
+                                            expanded={openSetupSteps[3]}
+                                            onToggle={() => toggleSetupStep(3)}
+                                            hideDivider
+                                        >
+                                            <Button
+                                                size="slim"
+                                                url={themeEditorUrl}
+                                                external
+                                            >
+                                                Open Theme Editor
+                                            </Button>
+                                            <Button
+                                                size="slim"
+                                                onClick={handleRefreshSetup}
+                                            >
+                                                Refresh
+                                            </Button>
+                                        </SetupStepItem>
+                                    </div>
+                                </div>
                             </div>
                         </Card>
 
