@@ -566,8 +566,6 @@ export default function Dashboard() {
     const isLoading = fetcher.state === "submitting";
     const currentAction = fetcher.formData?.get("actionType");
     const isSaving = isLoading && currentAction === "saveSettings";
-    const isConnecting = isLoading && currentAction === "connect";
-    const isSyncing = isLoading && currentAction === "sync";
 
     // ... (existing handlers)
 
@@ -918,53 +916,26 @@ export default function Dashboard() {
                                             title="Connect Instagram account"
                                             description={isConnectedStepComplete
                                                 ? `Connected as @${instagramAccount.username}.`
-                                                : "Connect your Instagram business account to start."
+                                                : "Instagram account is not connected."
                                             }
                                             completed={isConnectedStepComplete}
                                             expanded={openSetupSteps[1]}
                                             onToggle={() => toggleSetupStep(1)}
-                                        >
-                                            {isConnectedStepComplete ? (
-                                                <Button
-                                                    size="slim"
-                                                    onClick={handleDisconnect}
-                                                    tone="critical"
-                                                    loading={isLoading && currentAction === "disconnect"}
-                                                >
-                                                    Disconnect
-                                                </Button>
-                                            ) : (
-                                                <Button
-                                                    size="slim"
-                                                    variant="primary"
-                                                    onClick={handleConnect}
-                                                    disabled={!hasCredentials}
-                                                    loading={isConnecting}
-                                                >
-                                                    Connect Instagram
-                                                </Button>
-                                            )}
-                                        </SetupStepItem>
+                                        />
                                         <SetupStepItem
                                             stepNumber={2}
                                             title="Sync media"
-                                            description={isSyncStepComplete
-                                                ? `${media.length} post(s) available for preview and sync.`
-                                                : "Sync your media to fetch latest posts."
+                                            description={!isConnectedStepComplete
+                                                ? "Instagram is not connected yet."
+                                                : (isSyncStepComplete
+                                                    ? `${media.length} post(s) available for preview and sync.`
+                                                    : "Media is not synced yet."
+                                                )
                                             }
                                             completed={isSyncStepComplete}
                                             expanded={openSetupSteps[2]}
                                             onToggle={() => toggleSetupStep(2)}
-                                        >
-                                            <Button
-                                                size="slim"
-                                                onClick={handleSync}
-                                                disabled={!isConnectedStepComplete}
-                                                loading={isSyncing}
-                                            >
-                                                Sync Media
-                                            </Button>
-                                        </SetupStepItem>
+                                        />
                                         <SetupStepItem
                                             stepNumber={3}
                                             title="Add block to theme"
