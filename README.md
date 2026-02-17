@@ -32,18 +32,6 @@ Goal: increase social proof, improve product discovery, and keep your storefront
 - **Free:** ideal for basic feed usage and getting started.
 - **Premium:** advanced display, filtering, analytics, and additional features.
 
-## Local development
-
-```bash
-npm install
-npm run dev
-```
-
-## Important note
-
-Shopify Billing API depends on app distribution type and store eligibility.  
-If public distribution is not enabled, billing may not be available.
-
 ## Support
 
 You can contact support from the **Contact** page inside the app.
