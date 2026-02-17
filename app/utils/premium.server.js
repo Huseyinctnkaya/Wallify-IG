@@ -8,9 +8,6 @@ import { PREMIUM_PLAN } from "../shopify.server";
  * @returns {Promise<boolean>} True if shop has premium access
  */
 export async function isPremiumShop(shop, admin) {
-  // Dev override
-  if (process.env.FORCE_PREMIUM_PLAN === "true") return true;
-
   if (!admin) return false;
 
   try {
