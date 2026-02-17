@@ -72,7 +72,11 @@ export default function Plans() {
                                                 For growing brands
                                             </Text>
                                             <Text variant="heading2xl" as="p">
-                                                $2.99 <Text variant="bodyMd" as="span" tone="subdued" style={{ textDecoration: "line-through" }}>$5.00</Text> <Text variant="bodyMd" as="span" tone="subdued">/month</Text>
+                                                $2.99{" "}
+                                                <span style={{ textDecorationLine: "line-through", color: "#6d7175", fontSize: "16px" }}>
+                                                    $5.00
+                                                </span>{" "}
+                                                <Text variant="bodyMd" as="span" tone="subdued">/month</Text>
                                             </Text>
                                         </BlockStack>
 

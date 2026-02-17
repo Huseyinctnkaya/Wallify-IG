@@ -265,26 +265,46 @@ export default function AnalyticsPage() {
                                     <Grid>
                                         {[30, 60, 90].map((days) => {
                                             const range = detailedRanges[days];
-                                            const engagement = (range?.totals.views || 0) + (range?.totals.clicks || 0);
+                                            const views = range?.totals.views || 0;
+                                            const clicks = range?.totals.clicks || 0;
+                                            const ctr = range?.totals.ctr || "0.00";
+                                            const engagement = views + clicks;
 
                                             return (
-                                                <Grid.Cell key={days} columnSpan={{ xs: 6, sm: 6, md: 2, lg: 2, xl: 2 }}>
-                                                    <Card>
-                                                        <Box padding="300">
-                                                            <BlockStack gap="150">
+                                                <Grid.Cell key={days} columnSpan={{ xs: 6, sm: 3, md: 4, lg: 4, xl: 4 }}>
+                                                    <Card padding="400">
+                                                        <BlockStack gap="300">
+                                                            <InlineStack align="space-between" blockAlign="center">
                                                                 <Text variant="headingSm" as="h4">{days} Days</Text>
-                                                                <Text variant="bodySm" as="p" tone="subdued">
-                                                                    Views: {(range?.totals.views || 0).toLocaleString()}
-                                                                </Text>
-                                                                <Text variant="bodySm" as="p" tone="subdued">
-                                                                    Clicks: {(range?.totals.clicks || 0).toLocaleString()}
-                                                                </Text>
-                                                                <Text variant="bodySm" as="p" tone="subdued">
-                                                                    CTR: {range?.totals.ctr || "0.00"}%
-                                                                </Text>
-                                                                <Badge tone="info">{engagement.toLocaleString()} interactions</Badge>
+                                                                <Badge tone="info">Period</Badge>
+                                                            </InlineStack>
+
+                                                            <BlockStack gap="200">
+                                                                <InlineStack align="space-between">
+                                                                    <Text variant="bodySm" as="span" tone="subdued">Views</Text>
+                                                                    <Text variant="bodyMd" as="span">{views.toLocaleString()}</Text>
+                                                                </InlineStack>
+                                                                <InlineStack align="space-between">
+                                                                    <Text variant="bodySm" as="span" tone="subdued">Clicks</Text>
+                                                                    <Text variant="bodyMd" as="span">{clicks.toLocaleString()}</Text>
+                                                                </InlineStack>
+                                                                <InlineStack align="space-between">
+                                                                    <Text variant="bodySm" as="span" tone="subdued">CTR</Text>
+                                                                    <Text variant="bodyMd" as="span">{ctr}%</Text>
+                                                                </InlineStack>
                                                             </BlockStack>
-                                                        </Box>
+
+                                                            <Box
+                                                                padding="250"
+                                                                borderRadius="200"
+                                                                background="bg-surface-secondary"
+                                                            >
+                                                                <InlineStack align="space-between" blockAlign="center">
+                                                                    <Text variant="bodySm" as="span" tone="subdued">Total interactions</Text>
+                                                                    <Text variant="headingSm" as="span">{engagement.toLocaleString()}</Text>
+                                                                </InlineStack>
+                                                            </Box>
+                                                        </BlockStack>
                                                     </Card>
                                                 </Grid.Cell>
                                             );
