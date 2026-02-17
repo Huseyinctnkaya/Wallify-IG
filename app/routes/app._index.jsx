@@ -794,7 +794,7 @@ export default function Dashboard() {
                                                             label="Clean display (hide all text overlays)"
                                                             checked={cleanDisplay}
                                                             onChange={setCleanDisplay}
-                                                            helpText="Shows only images/videos without username, caption overlays, and badges"
+                                                            helpText="Hides caption overlays and badges. Username and profile image remain visible."
                                                         />
                                                         <Box opacity={isPremium ? "1" : "0.5"}>
                                                             <Checkbox
@@ -1046,7 +1046,7 @@ export default function Dashboard() {
                                                                                     style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", top: 0, left: 0 }}
                                                                                 />
                                                                             )}
-                                                                            {!cleanDisplay && showAuthorProfile && (
+                                                                            {showAuthorProfile && (
                                                                                 <div style={{ position: "absolute", top: 10, left: 10, display: "flex", alignItems: "center", gap: "5px" }}>
                                                                                     <div style={{ width: 20, height: 20, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.3)", overflow: "hidden", background: "#000" }}>
                                                                                         {instagramAccount?.profilePictureUrl && <img src={instagramAccount.profilePictureUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}

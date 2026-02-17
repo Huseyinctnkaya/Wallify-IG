@@ -10,10 +10,16 @@
 {% assign profile_picture_url = shop.metafields.instagram_feed.profile_picture_url.value %}
 {% assign clean_display_raw = settings_metafield.cleanDisplay %}
 {% assign button_text = settings_metafield.buttonText | default: 'Open in Instagram' %}
+{% assign show_author_profile_raw = settings_metafield.showAuthorProfile %}
 {% if clean_display_raw == true or clean_display_raw == 'true' %}
   {% assign clean_display = true %}
 {% else %}
   {% assign clean_display = false %}
+{% endif %}
+{% if show_author_profile_raw == false or show_author_profile_raw == 'false' %}
+  {% assign show_author_profile = false %}
+{% else %}
+  {% assign show_author_profile = true %}
 {% endif %}
 {% assign button_url = 'https://instagram.com' %}
 {% if media_items and media_items.size > 0 %}
@@ -132,13 +138,18 @@
                       </div>
                     {% endif %}
 
-                    <div class="instagram-feed-overlay">
-                      {% if profile_picture_url %}
-                        <img src="{{ profile_picture_url }}" alt="" class="instagram-feed-avatar">
-                      {% endif %}
-                      <span class="instagram-icon">@{{ item.username }}</span>
-                    </div>
                   {% endunless %}
+
+                  {% if show_author_profile %}
+                    <div class="instagram-feed-overlay">
+                      <div class="instagram-feed-author">
+                        {% if profile_picture_url %}
+                          <img src="{{ profile_picture_url }}" alt="" class="instagram-feed-avatar">
+                        {% endif %}
+                        <span class="instagram-icon">@{{ item.username }}</span>
+                      </div>
+                    </div>
+                  {% endif %}
                 </div>
 
                 {% unless clean_display %}
@@ -215,10 +226,18 @@
                     </div>
                   {% endif %}
 
-                  <div class="instagram-feed-overlay">
-                    <span class="instagram-icon">@{{ item.username }}</span>
-                  </div>
                 {% endunless %}
+
+                {% if show_author_profile %}
+                  <div class="instagram-feed-overlay">
+                    <div class="instagram-feed-author">
+                      {% if profile_picture_url %}
+                        <img src="{{ profile_picture_url }}" alt="" class="instagram-feed-avatar">
+                      {% endif %}
+                      <span class="instagram-icon">@{{ item.username }}</span>
+                    </div>
+                  </div>
+                {% endif %}
               </div>
 
               {% unless clean_display %}
@@ -263,6 +282,14 @@
           </svg>
         </button>
         <div class="instagram-popup-clean-inner">
+          {% if show_author_profile %}
+            <div class="instagram-popup-clean-user-header">
+              {% if profile_picture_url %}
+                <img src="{{ profile_picture_url }}" alt="" class="instagram-popup-avatar instagram-popup-avatar-clean">
+              {% endif %}
+              <div class="instagram-popup-username-clean"></div>
+            </div>
+          {% endif %}
           <div class="instagram-popup-clean-media">
             <img src="" alt="" class="popup-single-image">
             <video src="" class="popup-single-video" autoplay loop playsinline controls style="display: none;"></video>
@@ -484,12 +511,14 @@
 
         // Update info section
         const popupUsername = modal.querySelector('.instagram-popup-username');
+        const popupUsernameClean = modal.querySelector('.instagram-popup-username-clean');
         const popupCaption = modal.querySelector('.instagram-popup-caption');
         const popupLink = modal.querySelector('.instagram-popup-link');
         const popupLinkClean = modal.querySelector('.instagram-popup-link-clean');
         const productsContainer = modal.querySelector('.instagram-popup-products');
 
         if (popupUsername) popupUsername.textContent = `@${username}`;
+        if (popupUsernameClean) popupUsernameClean.textContent = `@${username}`;
         if (popupCaption) popupCaption.textContent = caption;
         if (popupLink) popupLink.href = permalink || 'https://instagram.com';
         if (popupLinkClean) popupLinkClean.href = permalink || 'https://instagram.com';
@@ -907,28 +936,48 @@
       bottom: 0;
       background: rgba(0, 0, 0, 0.5);
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+      align-items: flex-start;
+      justify-content: flex-start;
+      padding: 10px;
       opacity: 0;
       transition: opacity 0.3s ease;
       color: white;
-      font-weight: bold;
-      font-size: 18px;
+      pointer-events: none;
+    }
+
+    .instagram-feed-author {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 999px;
+      padding: 4px 10px 4px 4px;
     }
 
     .instagram-feed-avatar {
-      width: 36px;
-      height: 36px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
-      border: 2px solid white;
+      border: 1px solid rgba(255, 255, 255, 0.8);
       object-fit: cover;
+    }
+
+    .instagram-icon {
+      color: {{ settings_metafield.cardUserNameColor | default: '#ffffff' }};
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1;
     }
 
     .instagram-feed-item:hover .instagram-feed-overlay {
       opacity: 1;
     }
+
+    {% if clean_display %}
+    .instagram-feed-overlay {
+      opacity: 1;
+    }
+    {% endif %}
 
     /* Product Badge */
     .instagram-product-badge {
@@ -1302,7 +1351,35 @@
       z-index: 2;
     }
 
+    .instagram-popup-clean-user-header {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 4;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.52);
+      border-radius: 999px;
+      padding: 4px 12px 4px 4px;
+      color: #fff;
+    }
+
+    .instagram-popup-avatar-clean {
+      width: 26px;
+      height: 26px;
+      border: 1px solid rgba(255, 255, 255, 0.85);
+    }
+
+    .instagram-popup-username-clean {
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+    }
+
     .instagram-popup-clean .instagram-popup-clean-media {
+      position: relative;
       width: 100%;
       height: min(78vh, 760px);
       border-radius: 14px;
@@ -1421,6 +1498,11 @@
       .instagram-popup-clean .instagram-popup-clean-inner {
         width: 95vw;
         margin-top: 6vh;
+      }
+
+      .instagram-popup-clean-user-header {
+        top: 10px;
+        left: 10px;
       }
 
       .instagram-popup-clean .instagram-popup-clean-media {
