@@ -9,10 +9,20 @@
 {% assign tracking_url = shop.metafields.instagram_feed.tracking_url.value %}
 {% assign profile_picture_url = shop.metafields.instagram_feed.profile_picture_url.value %}
 {% assign clean_display_raw = settings_metafield.cleanDisplay %}
+{% assign button_text = settings_metafield.buttonText | default: 'Open in Instagram' %}
 {% if clean_display_raw == true or clean_display_raw == 'true' %}
   {% assign clean_display = true %}
 {% else %}
   {% assign clean_display = false %}
+{% endif %}
+{% assign button_url = 'https://instagram.com' %}
+{% if media_items and media_items.size > 0 %}
+  {% assign first_item = media_items.first %}
+  {% if first_item.username and first_item.username != blank %}
+    {% assign button_url = 'https://instagram.com/' | append: first_item.username %}
+  {% elsif first_item.permalink and first_item.permalink != blank %}
+    {% assign button_url = first_item.permalink %}
+  {% endif %}
 {% endif %}
 
 {% comment %} Spacing values {% endcomment %}
@@ -232,6 +242,14 @@
         </div>
       {% endif %}
     </div>
+
+    {% if button_text and button_text != blank %}
+      <div class="instagram-feed-cta-wrap">
+        <a href="{{ button_url }}" target="_blank" rel="noopener noreferrer" class="instagram-feed-cta">
+          {{ button_text }}
+        </a>
+      </div>
+    {% endif %}
 
     {% comment %} Popup Modal {% endcomment %}
     <div class="instagram-popup-modal {% if clean_display %}instagram-popup-clean{% endif %}" id="instagram-popup-{{ block.id }}" style="display: none;">
@@ -670,6 +688,34 @@
     .instagram-feed-subheading {
       font-size: 16px;
       margin-bottom: 30px;
+    }
+
+    .instagram-feed-cta-wrap {
+      margin-top: 22px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .instagram-feed-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 28px;
+      border-radius: 999px;
+      text-decoration: none;
+      background: #ffffff;
+      color: #222;
+      font-size: 16px;
+      font-weight: 700;
+      border: 1px solid rgba(0, 0, 0, 0.14);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .instagram-feed-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
     }
 
     /* Grid Layout */

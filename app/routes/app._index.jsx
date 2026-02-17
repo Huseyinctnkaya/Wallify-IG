@@ -111,6 +111,7 @@ export async function action({ request }) {
         const settings = {
             title: formData.get("title"),
             subheading: formData.get("subheading"),
+            buttonText: formData.get("buttonText"),
             feedType: isPremium ? formData.get("feedType") : "slider",
             showPinnedReels: isPremium ? (formData.get("showPinnedReels") === "true") : false,
             mediaLimit: isPremium ? normalizedMediaLimit : Math.min(normalizedMediaLimit, 12),
@@ -295,6 +296,7 @@ export default function Dashboard() {
         formData.append("actionType", "saveSettings");
         formData.append("title", title);
         formData.append("subheading", subheading);
+        formData.append("buttonText", buttonText);
         formData.append("feedType", isPremium ? feedType : "slider");
         formData.append("showPinnedReels", isPremium ? showPinnedReels : false);
         formData.append("mediaLimit", mediaLimit);
@@ -340,6 +342,7 @@ export default function Dashboard() {
 
     const [title, setTitle] = useState(settings?.title || "INSTAGRAM'DA BİZ");
     const [subheading, setSubheading] = useState(settings?.subheading || "Daha Fazlası İçin Bizi Takip Edebilirsiniz");
+    const [buttonText, setButtonText] = useState(settings?.buttonText || "Open in Instagram");
     const [feedType, setFeedType] = useState(defaultFeedType);
     const [showPinnedReels, setShowPinnedReels] = useState(defaultShowPinnedReels);
     const [mediaLimit, setMediaLimit] = useState(defaultMediaLimit);
@@ -433,6 +436,7 @@ export default function Dashboard() {
     const isDirty = (
         title !== (settings?.title || "INSTAGRAM'DA BİZ") ||
         subheading !== (settings?.subheading || "Daha Fazlası İçin Bizi Takip Edebilirsiniz") ||
+        buttonText !== (settings?.buttonText || "Open in Instagram") ||
         feedType !== defaultFeedType ||
         showPinnedReels !== defaultShowPinnedReels ||
         mediaLimit !== defaultMediaLimit ||
@@ -471,6 +475,12 @@ export default function Dashboard() {
     ];
 
     const displayMedia = (media && media.length > 0) ? media : mockImages;
+    const previewButtonText = buttonText?.trim() || "Open in Instagram";
+    const previewButtonUrl = instagramAccount?.username
+        ? `https://instagram.com/${instagramAccount.username}`
+        : (typeof displayMedia[0] !== "string" && displayMedia[0]?.permalink
+            ? displayMedia[0].permalink
+            : "https://instagram.com");
 
     return (
         <Page
@@ -624,6 +634,13 @@ export default function Dashboard() {
                                                         onChange={setSubheading}
                                                         autoComplete="off"
                                                         multiline={2}
+                                                    />
+                                                    <TextField
+                                                        label="Button text"
+                                                        value={buttonText}
+                                                        onChange={setButtonText}
+                                                        autoComplete="off"
+                                                        helpText="Shown below posts in preview and storefront."
                                                     />
                                                     <Select
                                                         label="Feed type"
@@ -1057,6 +1074,14 @@ export default function Dashboard() {
                                                                 })}
                                                             </div>
                                                         </div>
+
+                                                        <Box paddingBlockStart="400">
+                                                            <InlineStack align="center">
+                                                                <Button onClick={() => window.open(previewButtonUrl, '_blank')}>
+                                                                    {previewButtonText}
+                                                                </Button>
+                                                            </InlineStack>
+                                                        </Box>
                                                     </div>
                                                 </BlockStack>
                                             </Card>

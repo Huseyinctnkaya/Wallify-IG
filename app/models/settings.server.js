@@ -11,6 +11,7 @@ export async function getSettings(shop) {
             return {
                 title: "INSTAGRAM'DA BİZ",
                 subheading: "Daha Fazlası İçin Bizi Takip Edebilirsiniz",
+                buttonText: "Open in Instagram",
                 feedType: "slider",
                 showPinnedReels: false,
                 gridDesktopColumns: 4,
@@ -45,6 +46,7 @@ export async function getSettings(shop) {
         return {
             title: "INSTAGRAM'DA BİZ",
             subheading: "Daha Fazlası İçin Bizi Takip Edebilirsiniz",
+            buttonText: "Open in Instagram",
             feedType: "slider",
             showPinnedReels: false,
             gridDesktopColumns: 4,
@@ -89,10 +91,13 @@ export async function saveSettings(shop, settings, admin = null) {
     } catch (error) {
         console.error("Critical: Prisma save failed with full object:", error.message);
 
-        // Fallback: If it's a validation error about mediaLimit, try saving without it
-        if (error.message.includes("Unknown argument `mediaLimit`")) {
-            console.log("Retrying save without mediaLimit due to client mismatch...");
-            const { mediaLimit, ...safeSettings } = settings;
+        // Fallback: If prisma client is stale, retry by stripping unknown fields.
+        if (
+            error.message.includes("Unknown argument `mediaLimit`") ||
+            error.message.includes("Unknown argument `buttonText`")
+        ) {
+            console.log("Retrying save without unsupported fields due to client mismatch...");
+            const { mediaLimit, buttonText, ...safeSettings } = settings;
             updatedSettings = await prisma.settings.upsert({
                 where: { shop },
                 update: {
