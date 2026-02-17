@@ -15,7 +15,7 @@ export function getInstagramRedirectUri() {
     if (!appUrl) {
         throw new Error("SHOPIFY_APP_URL is not configured");
     }
-    return `${appUrl}/app/instagram/callback`;
+    return `${appUrl}/instagram/callback`;
 }
 
 export function buildInstagramAuthUrl({ shop }) {

@@ -1,6 +1,5 @@
 import { redirect } from "@remix-run/node";
-import { authenticate } from "../shopify.server";
-import { fetchUserProfile, saveInstagramAccount, syncInstagramToMetafields, getInstagramAccount } from "../models/instagram.server";
+import { fetchUserProfile, saveInstagramAccount, getInstagramAccount } from "../models/instagram.server";
 import { resetAnalyticsForShop } from "../models/analytics.server";
 import {
     exchangeCodeForShortLivedToken,
@@ -41,7 +40,6 @@ export const loader = async ({ request }) => {
             const longLived = await exchangeForLongLivedToken(accessToken);
             accessToken = longLived.access_token;
         } catch (error) {
-            // Keep short-lived token as fallback if long-lived exchange fails.
             console.error("Long-lived token exchange failed, using short-lived token:", error);
         }
 
@@ -65,14 +63,7 @@ export const loader = async ({ request }) => {
             await resetAnalyticsForShop(shop);
         }
 
-        try {
-            const { admin } = await authenticate.admin(request);
-            await syncInstagramToMetafields(shop, admin);
-        } catch (error) {
-            console.error("Initial metafield sync skipped (admin session missing):", error);
-        }
-
-        return redirect("/app?ig_connect=success");
+        return redirect(`/app?ig_connect=success`);
     } catch (error) {
         console.error("Instagram callback failed:", error);
         const encoded = encodeURIComponent(String(error?.message || "oauth_failed").slice(0, 240));
