@@ -8,6 +8,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 export const prisma = global.prismaGlobal ?? new PrismaClient();
+export default prisma;
 
 if (process.env.NODE_ENV !== "production") {
   // Debug: Log available models to console to verify Client is up to date
@@ -19,5 +20,4 @@ if (process.env.NODE_ENV !== "production") {
     console.log("⚠️ Prisma Client Initialized. Checking keys:", Object.keys(prisma));
   }
 }
-
 

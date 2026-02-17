@@ -30,7 +30,7 @@ export default function Contact() {
     const faqs = [
         {
             question: "How do I connect my Instagram account?",
-            answer: "Go to the Dashboard, add your Instagram credentials to the .env file (INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET, INSTAGRAM_ACCESS_TOKEN), then click 'Connect Instagram' button."
+            answer: "Go to the Dashboard and click 'Connect Instagram'. You will be redirected to Instagram Login to authorize your own account."
         },
         {
             question: "My feed is not showing on the storefront, what should I do?",

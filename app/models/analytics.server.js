@@ -189,3 +189,10 @@ export async function trackMetric(shop, type, { mediaId = null, mediaUrl = null,
         });
     }
 }
+
+export async function resetAnalyticsForShop(shop) {
+    await prisma.$transaction([
+        prisma.analytics.deleteMany({ where: { shop } }),
+        prisma.postAnalytics.deleteMany({ where: { shop } }),
+    ]);
+}

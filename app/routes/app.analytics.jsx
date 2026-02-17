@@ -24,8 +24,9 @@ import {
     CalendarIcon
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
-import { getAnalytics, getAnalyticsTotals, getTopPostsAnalytics } from "../models/analytics.server";
+import { getAnalytics, getAnalyticsTotals, getTopPostsAnalytics, resetAnalyticsForShop } from "../models/analytics.server";
 import { isPremiumShop } from "../utils/premium.server";
+import { getInstagramAccount } from "../models/instagram.server";
 
 function createEmptyAnalytics() {
     return {
@@ -50,6 +51,36 @@ export const loader = async ({ request }) => {
     const { session } = await authenticate.admin(request);
     const { shop } = session;
     const premium = await isPremiumShop(shop);
+    const instagramAccount = await getInstagramAccount(shop);
+
+    // If no connected account, wipe stale analytics so previous account data never leaks into UI.
+    if (!instagramAccount) {
+        await resetAnalyticsForShop(shop);
+
+        const empty = createEmptyAnalytics();
+        const emptyTotals = {
+            views: 0,
+            clicks: 0,
+            ctr: "0.00",
+        };
+        const emptyDetailedRanges = premium
+            ? {
+                30: empty,
+                60: empty,
+                90: empty,
+            }
+            : null;
+
+        return json({
+            allTimeTotals: emptyTotals,
+            weeklyAnalytics: empty,
+            detailedRanges: emptyDetailedRanges,
+            topPosts: null,
+            isPremium: premium,
+            shop,
+            hasRealData: false
+        });
+    }
 
     const [allTimeTotals, weeklyAnalytics] = await Promise.all([
         getAnalyticsTotals(shop),

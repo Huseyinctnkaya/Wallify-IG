@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { json } from "@remix-run/node";
+import { json, redirect } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import {
     Page,
@@ -20,12 +20,13 @@ import {
 } from "@shopify/polaris";
 import { MobileIcon, DesktopIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
-import { getInstagramAccount, saveInstagramAccount, disconnectInstagramAccount, fetchInstagramMedia } from "../models/instagram.server";
+import { getInstagramAccount, disconnectInstagramAccount, fetchInstagramMedia } from "../models/instagram.server";
 import { getSettings, saveSettings } from "../models/settings.server";
 import { isPremiumShop } from "../utils/premium.server";
 import { getPosts } from "../models/post.server";
 
 export async function loader({ request }) {
+    const requestUrl = new URL(request.url);
     const { session } = await authenticate.admin(request);
     const { shop } = session;
 
@@ -82,8 +83,26 @@ export async function loader({ request }) {
     const hasCredentials = !!(
         process.env.INSTAGRAM_APP_ID &&
         process.env.INSTAGRAM_APP_SECRET &&
-        process.env.INSTAGRAM_ACCESS_TOKEN
+        process.env.SHOPIFY_APP_URL
     );
+
+    const igConnectStatus = requestUrl.searchParams.get("ig_connect");
+    const igErrorDetail = requestUrl.searchParams.get("ig_error");
+    let oauthNotice = null;
+    if (igConnectStatus === "success") {
+        oauthNotice = {
+            tone: "success",
+            message: "Instagram connected successfully!",
+        };
+    } else if (igConnectStatus === "error") {
+        const detailText = igErrorDetail
+            ? ` Details: ${igErrorDetail}`
+            : "";
+        oauthNotice = {
+            tone: "critical",
+            message: `Instagram connection failed. Please verify Meta app callback/scopes and try again.${detailText}`,
+        };
+    }
 
     return json({
         instagramAccount,
@@ -92,6 +111,7 @@ export async function loader({ request }) {
         shop,
         hasCredentials,
         isPremium,
+        oauthNotice,
     });
 }
 
@@ -153,39 +173,17 @@ export async function action({ request }) {
     }
 
     if (actionType === "connect") {
-        // Connect using environment variables
-        const appId = process.env.INSTAGRAM_APP_ID;
-        const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
-
-        if (!appId || !accessToken) {
-            return json({
-                error: "Instagram credentials not configured in .env file"
-            }, { status: 500 });
-        }
-
-        try {
-            // Fetch user profile to get username
-            const { fetchUserProfile } = await import("../models/instagram.server");
-            const profile = await fetchUserProfile(accessToken);
-
-            // Save to database
-            await saveInstagramAccount({
-                shop,
-                accessToken,
-                userId: profile.id,
-                username: profile.username,
-                profilePictureUrl: profile.profile_picture_url || null,
-            });
-
-            return json({ success: true, message: "Instagram connected successfully!" });
-        } catch (error) {
-            console.error("Connect error:", error);
-            return json({ error: error.message || "Failed to connect Instagram" }, { status: 500 });
-        }
+        return redirect("/app/instagram/auth");
     }
 
     if (actionType === "disconnect") {
         await disconnectInstagramAccount(shop);
+        try {
+            const { resetAnalyticsForShop } = await import("../models/analytics.server");
+            await resetAnalyticsForShop(shop);
+        } catch (error) {
+            console.error("Analytics reset after disconnect failed:", error);
+        }
         return json({ success: true, message: "Instagram disconnected" });
     }
 
@@ -261,7 +259,7 @@ const ColorSetting = ({ label, color, onChange, hexToHsb, hsbToHex }) => {
 };
 
 export default function Dashboard() {
-    const { instagramAccount, hasCredentials, media, settings, shop, isPremium } = useLoaderData();
+    const { instagramAccount, hasCredentials, media, settings, shop, isPremium, oauthNotice } = useLoaderData();
     const fetcher = useFetcher();
 
     const isLoading = fetcher.state === "submitting";
@@ -270,10 +268,14 @@ export default function Dashboard() {
     // ... (existing handlers)
 
     const handleConnect = () => {
-        fetcher.submit(
-            { actionType: "connect" },
-            { method: "post" }
-        );
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            if (!params.get("shop") && shop) {
+                params.set("shop", shop);
+            }
+            const query = params.toString();
+            window.open(`/app/instagram/auth${query ? `?${query}` : ""}`, "_top");
+        }
     };
 
     const handleDisconnect = () => {
@@ -517,7 +519,13 @@ export default function Dashboard() {
                     <BlockStack gap="400">
                         {!hasCredentials && (
                             <Banner tone="warning">
-                                <p>Instagram credentials not configured. Please add INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET, and INSTAGRAM_ACCESS_TOKEN to your .env file.</p>
+                                <p>Instagram credentials not configured. Please add INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET, and SHOPIFY_APP_URL to your .env file.</p>
+                            </Banner>
+                        )}
+
+                        {oauthNotice && (
+                            <Banner tone={oauthNotice.tone}>
+                                <p>{oauthNotice.message}</p>
                             </Banner>
                         )}
 
@@ -619,7 +627,6 @@ export default function Dashboard() {
                                             <Button
                                                 variant="primary"
                                                 onClick={handleConnect}
-                                                loading={isLoading}
                                                 disabled={!hasCredentials}
                                             >
                                                 Connect Instagram

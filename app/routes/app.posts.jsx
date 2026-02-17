@@ -19,7 +19,6 @@ import {
     PinIcon,
     HideIcon,
 } from "@shopify/polaris-icons";
-import { Modal } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { getInstagramAccount, fetchInstagramMedia, syncInstagramToMetafields } from "../models/instagram.server";
 import { getSettings } from "../models/settings.server";
@@ -32,6 +31,7 @@ export const loader = async ({ request }) => {
 
     const settings = await getSettings(shop);
     const instagramAccount = await getInstagramAccount(shop);
+    const instagramConnected = !!instagramAccount;
     const isPremium = await isPremiumShop(shop);
     const freeMediaLimit = Math.min(Number(settings.mediaLimit) || 12, 12);
     const premiumMediaLimit = Number(settings.mediaLimit) > 0 ? Number(settings.mediaLimit) : 12;
@@ -82,65 +82,10 @@ export const loader = async ({ request }) => {
         }
     }
 
-    // Fallback mock data if no real data exists
-    if (posts.length === 0) {
-        const mockPosts = [
-            {
-                id: '1',
-                date: 'Tue Feb 10 2026',
-                mediaUrl: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=400&auto=format&fit=crop',
-                isPinned: false,
-                isHidden: false,
-                products: []
-            },
-            {
-                id: '2',
-                date: 'Fri Jan 23 2026',
-                mediaUrl: 'https://images.unsplash.com/photo-1529139572764-7ff73077af4c?q=80&w=400&auto=format&fit=crop',
-                isPinned: false,
-                isHidden: false,
-                products: []
-            },
-            {
-                id: '3',
-                date: 'Fri Jan 09 2026',
-                mediaUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?q=80&w=400&auto=format&fit=crop',
-                isPinned: false,
-                isHidden: false,
-                products: []
-            },
-            {
-                id: '4',
-                date: 'Wed Jan 07 2026',
-                mediaUrl: 'https://images.unsplash.com/photo-1511130523564-071a9426f030?q=80&w=400&auto=format&fit=crop',
-                isPinned: false,
-                isHidden: false,
-                products: []
-            },
-            {
-                id: '5',
-                date: 'Mon Jan 05 2026',
-                mediaUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop',
-                isPinned: false,
-                isHidden: false,
-                products: []
-            },
-            {
-                id: '6',
-                date: 'Sun Jan 04 2026',
-                mediaUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=400&auto=format&fit=crop',
-                isPinned: false,
-                isHidden: false,
-                products: []
-            }
-        ];
-        // Slice mock data only for free plan cap
-        posts = isPremium ? mockPosts : mockPosts.slice(0, freeMediaLimit);
-    }
-
     return json({
         posts,
         isPremium,
+        instagramConnected,
     });
 };
 
@@ -435,7 +380,7 @@ const PostCard = ({ post, isPremium, onEditProducts, onShowUpgrade }) => {
 };
 
 export default function PostsPage() {
-    const { posts, isPremium } = useLoaderData();
+    const { posts, isPremium, instagramConnected } = useLoaderData();
     const fetcher = useFetcher();
 
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -491,7 +436,47 @@ export default function PostsPage() {
             subtitle="Manage your Instagram posts and reels"
         >
             <Layout>
-                {!isPremium && (
+                {!instagramConnected && (
+                    <Layout.Section>
+                        <Card>
+                            <Box padding="800">
+                                <BlockStack gap="300" inlineAlign="center">
+                                    <Text variant="headingLg" as="h3">
+                                        No Instagram account connected
+                                    </Text>
+                                    <Text variant="bodyMd" as="p" tone="subdued">
+                                        There is no connected Instagram account right now. Please connect your account from the dashboard.
+                                    </Text>
+                                    <Button variant="primary" url="/app">
+                                        Go to Dashboard
+                                    </Button>
+                                </BlockStack>
+                            </Box>
+                        </Card>
+                    </Layout.Section>
+                )}
+
+                {instagramConnected && posts.length === 0 && (
+                    <Layout.Section>
+                        <Card>
+                            <Box padding="800">
+                                <BlockStack gap="300" inlineAlign="center">
+                                    <Text variant="headingLg" as="h3">
+                                        No posts found yet
+                                    </Text>
+                                    <Text variant="bodyMd" as="p" tone="subdued">
+                                        Your Instagram account is connected, but no media is synced yet. Go to dashboard and click Sync Media.
+                                    </Text>
+                                    <Button variant="primary" url="/app">
+                                        Go to Dashboard
+                                    </Button>
+                                </BlockStack>
+                            </Box>
+                        </Card>
+                    </Layout.Section>
+                )}
+
+                {instagramConnected && !isPremium && (
                     <Layout.Section>
                         <Banner
                             title="You're on the free plan"
@@ -506,20 +491,22 @@ export default function PostsPage() {
                     </Layout.Section>
                 )}
 
-                <Layout.Section>
-                    <Grid>
-                        {posts.map((post) => (
-                            <Grid.Cell key={post.id} columnSpan={{ xs: 6, sm: 3, md: 4, lg: 4, xl: 4 }}>
-                                <PostCard
-                                    post={post}
-                                    isPremium={isPremium}
-                                    onEditProducts={handleEditProducts}
-                                    onShowUpgrade={handleShowUpgrade}
-                                />
-                            </Grid.Cell>
-                        ))}
-                    </Grid>
-                </Layout.Section>
+                {instagramConnected && posts.length > 0 && (
+                    <Layout.Section>
+                        <Grid>
+                            {posts.map((post) => (
+                                <Grid.Cell key={post.id} columnSpan={{ xs: 6, sm: 3, md: 4, lg: 4, xl: 4 }}>
+                                    <PostCard
+                                        post={post}
+                                        isPremium={isPremium}
+                                        onEditProducts={handleEditProducts}
+                                        onShowUpgrade={handleShowUpgrade}
+                                    />
+                                </Grid.Cell>
+                            ))}
+                        </Grid>
+                    </Layout.Section>
+                )}
             </Layout>
             <Box paddingBlockEnd="800" />
 
