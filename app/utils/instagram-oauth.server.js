@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-const INSTAGRAM_AUTH_URL = "https://api.instagram.com/oauth/authorize";
+const INSTAGRAM_AUTH_URL = "https://www.instagram.com/oauth/authorize";
 const INSTAGRAM_TOKEN_URL = "https://api.instagram.com/oauth/access_token";
 const INSTAGRAM_LONG_LIVED_URL = "https://graph.instagram.com/access_token";
 const INSTAGRAM_DEFAULT_SCOPES = "instagram_business_basic";
