@@ -30,6 +30,7 @@ import { resetAnalyticsForShop } from "../models/analytics.server";
 import { getSettings, saveSettings } from "../models/settings.server";
 import { isPremiumShop } from "../utils/premium.server";
 import { getPosts } from "../models/post.server";
+import { buildInstagramAuthUrl } from "../utils/instagram-oauth.server";
 
 export async function loader({ request }) {
     const requestUrl = new URL(request.url);
@@ -178,7 +179,13 @@ export async function action({ request }) {
     }
 
     if (actionType === "connect") {
-        return redirect("/app/instagram/auth");
+        try {
+            const authUrl = buildInstagramAuthUrl({ shop });
+            return json({ authUrl });
+        } catch (error) {
+            console.error("Instagram auth URL build failed:", error);
+            return json({ error: "Failed to start Instagram connection" }, { status: 500 });
+        }
     }
 
     if (actionType === "disconnect") {
@@ -270,14 +277,10 @@ export default function Dashboard() {
     // ... (existing handlers)
 
     const handleConnect = () => {
-        if (typeof window !== "undefined") {
-            const params = new URLSearchParams(window.location.search);
-            if (!params.get("shop") && shop) {
-                params.set("shop", shop);
-            }
-            const query = params.toString();
-            window.open(`/app/instagram/auth${query ? `?${query}` : ""}`, "_top");
-        }
+        fetcher.submit(
+            { actionType: "connect" },
+            { method: "post" }
+        );
     };
 
     const handleDisconnect = () => {
@@ -489,6 +492,12 @@ export default function Dashboard() {
         : (typeof displayMedia[0] !== "string" && displayMedia[0]?.permalink
             ? displayMedia[0].permalink
             : "https://instagram.com");
+
+    useEffect(() => {
+        if (fetcher.data?.authUrl) {
+            window.open(fetcher.data.authUrl, "_top");
+        }
+    }, [fetcher.data?.authUrl]);
 
     useEffect(() => {
         if (fetcher.data?.success && fetcher.data?.message) {
