@@ -26,13 +26,13 @@ import { getPosts, togglePin, toggleHide, updateProducts } from "../models/post.
 import { isPremiumShop } from "../utils/premium.server";
 
 export const loader = async ({ request }) => {
-    const { session } = await authenticate.admin(request);
+    const { session, admin } = await authenticate.admin(request);
     const { shop } = session;
 
     const settings = await getSettings(shop);
     const instagramAccount = await getInstagramAccount(shop);
     const instagramConnected = !!instagramAccount;
-    const isPremium = await isPremiumShop(shop);
+    const isPremium = await isPremiumShop(shop, admin);
     const freeMediaLimit = Math.min(Number(settings.mediaLimit) || 12, 12);
     const premiumMediaLimit = Number(settings.mediaLimit) > 0 ? Number(settings.mediaLimit) : 12;
     const effectiveMediaLimit = isPremium ? premiumMediaLimit : freeMediaLimit;
@@ -96,7 +96,7 @@ export async function action({ request }) {
     const actionType = formData.get("actionType");
 
     // Check premium status
-    const isPremium = await isPremiumShop(shop);
+    const isPremium = await isPremiumShop(shop, admin);
 
     // Premium feature gate
     if (!isPremium && ["togglePin", "toggleHide", "updateProducts"].includes(actionType)) {

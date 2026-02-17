@@ -1,4 +1,5 @@
-
+import { json } from "@remix-run/node";
+import { useLoaderData, useFetcher } from "@remix-run/react";
 import {
     Page,
     Layout,
@@ -10,13 +11,108 @@ import {
     List,
     Box,
     Badge,
+    Banner,
 } from "@shopify/polaris";
+import { authenticate, PREMIUM_PLAN } from "../shopify.server";
+import { isPremiumShop } from "../utils/premium.server";
+
+export const loader = async ({ request }) => {
+    const { session, admin } = await authenticate.admin(request);
+    const { shop } = session;
+    const isPremium = await isPremiumShop(shop, admin);
+
+    return json({ isPremium, shop });
+};
+
+export async function action({ request }) {
+    const { admin, billing } = await authenticate.admin(request);
+
+    const formData = await request.formData();
+    const actionType = formData.get("actionType");
+
+    if (actionType === "subscribe") {
+        await billing.require({
+            plans: [PREMIUM_PLAN],
+            isTest: true,
+            onFailure: async () =>
+                billing.request({
+                    plan: PREMIUM_PLAN,
+                    isTest: true,
+                }),
+        });
+
+        return json({ success: true });
+    }
+
+    if (actionType === "cancel") {
+        const response = await admin.graphql(`
+            query {
+                currentAppInstallation {
+                    activeSubscriptions {
+                        id
+                        name
+                        status
+                    }
+                }
+            }
+        `);
+        const data = await response.json();
+        const subscriptions = data?.data?.currentAppInstallation?.activeSubscriptions || [];
+        const premiumSub = subscriptions.find(
+            (sub) => sub.name === PREMIUM_PLAN && sub.status === "ACTIVE"
+        );
+
+        if (premiumSub) {
+            await admin.graphql(
+                `mutation AppSubscriptionCancel($id: ID!) {
+                    appSubscriptionCancel(id: $id) {
+                        userErrors {
+                            field
+                            message
+                        }
+                        appSubscription {
+                            id
+                            status
+                        }
+                    }
+                }`,
+                { variables: { id: premiumSub.id } }
+            );
+        }
+
+        return json({ success: true, cancelled: true });
+    }
+
+    return null;
+}
 
 export default function Plans() {
+    const { isPremium } = useLoaderData();
+    const fetcher = useFetcher();
+    const isLoading = fetcher.state === "submitting";
+
+    const handleSubscribe = () => {
+        fetcher.submit({ actionType: "subscribe" }, { method: "post" });
+    };
+
+    const handleCancel = () => {
+        if (confirm("Are you sure you want to cancel your Premium subscription?")) {
+            fetcher.submit({ actionType: "cancel" }, { method: "post" });
+        }
+    };
+
     return (
         <Page title="Plans">
             <Layout>
                 <Layout.Section>
+                    {fetcher.data?.cancelled && (
+                        <Box paddingBlockEnd="400">
+                            <Banner tone="info">
+                                <p>Your Premium subscription has been cancelled.</p>
+                            </Banner>
+                        </Box>
+                    )}
+
                     <div style={{ marginTop: "20px" }}>
                         <Grid>
                             {/* Free Plan */}
@@ -36,7 +132,13 @@ export default function Plans() {
                                         </BlockStack>
 
                                         <Box paddingBlockStart="200" paddingBlockEnd="200">
-                                            <Button fullWidth>Current Plan</Button>
+                                            {!isPremium ? (
+                                                <Button fullWidth disabled>Current Plan</Button>
+                                            ) : (
+                                                <Button fullWidth onClick={handleCancel} loading={isLoading} tone="critical">
+                                                    Downgrade to Free
+                                                </Button>
+                                            )}
                                         </Box>
 
                                         <BlockStack gap="300">
@@ -80,7 +182,13 @@ export default function Plans() {
                                         </BlockStack>
 
                                         <Box paddingBlockStart="200" paddingBlockEnd="200">
-                                            <Button variant="primary" fullWidth>Upgrade to Premium</Button>
+                                            {isPremium ? (
+                                                <Button variant="primary" fullWidth disabled>Current Plan</Button>
+                                            ) : (
+                                                <Button variant="primary" fullWidth onClick={handleSubscribe} loading={isLoading}>
+                                                    Upgrade to Premium
+                                                </Button>
+                                            )}
                                         </Box>
 
                                         <BlockStack gap="300">
@@ -104,7 +212,7 @@ export default function Plans() {
                         </Grid>
                     </div>
                 </Layout.Section>
-            </Layout >
-        </Page >
+            </Layout>
+        </Page>
     );
 }

@@ -34,12 +34,12 @@ import { buildInstagramAuthUrl } from "../utils/instagram-oauth.server";
 
 export async function loader({ request }) {
     const requestUrl = new URL(request.url);
-    const { session } = await authenticate.admin(request);
+    const { session, admin } = await authenticate.admin(request);
     const { shop } = session;
 
     const instagramAccount = await getInstagramAccount(shop);
     const settings = await getSettings(shop);
-    const isPremium = await isPremiumShop(shop);
+    const isPremium = await isPremiumShop(shop, admin);
     const freeMediaLimit = Math.min(Number(settings.mediaLimit) || 12, 12);
     const premiumMediaLimit = Number(settings.mediaLimit) > 0 ? Number(settings.mediaLimit) : 12;
     const effectiveMediaLimit = isPremium ? premiumMediaLimit : freeMediaLimit;
@@ -131,7 +131,7 @@ export async function action({ request }) {
     const actionType = formData.get("actionType");
 
     if (actionType === "saveSettings") {
-        const isPremium = await isPremiumShop(shop);
+        const isPremium = await isPremiumShop(shop, admin);
         const parsedMediaLimit = parseInt(formData.get("mediaLimit"), 10);
         const normalizedMediaLimit = Number.isFinite(parsedMediaLimit) && parsedMediaLimit > 0
             ? parsedMediaLimit

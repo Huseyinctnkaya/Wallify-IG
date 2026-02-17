@@ -48,9 +48,9 @@ function createEmptyAnalytics() {
 }
 
 export const loader = async ({ request }) => {
-    const { session } = await authenticate.admin(request);
+    const { session, admin } = await authenticate.admin(request);
     const { shop } = session;
-    const premium = await isPremiumShop(shop);
+    const premium = await isPremiumShop(shop, admin);
     const instagramAccount = await getInstagramAccount(shop);
 
     // If no connected account, wipe stale analytics so previous account data never leaks into UI.
