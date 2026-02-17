@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import {
@@ -371,6 +371,8 @@ export default function Dashboard() {
     const [previewMode, setPreviewMode] = useState("desktop"); // desktop | mobile
     const [currentSlide, setCurrentSlide] = useState(0);
     const [selectedMedia, setSelectedMedia] = useState(null);
+    const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+    const [successMessage, setSuccessMessage] = useState("");
 
     // Color conversion helpers
     const hexToHsb = (hex) => {
@@ -483,6 +485,15 @@ export default function Dashboard() {
             ? displayMedia[0].permalink
             : "https://instagram.com");
 
+    useEffect(() => {
+        if (fetcher.data?.success && fetcher.data?.message) {
+            setSuccessMessage(fetcher.data.message);
+            setShowSuccessBanner(true);
+            const timer = setTimeout(() => setShowSuccessBanner(false), 5500);
+            return () => clearTimeout(timer);
+        }
+    }, [fetcher.data?.success, fetcher.data?.message]);
+
     return (
         <Page
             title="Wallify İG ‑ Instagram Feed"
@@ -499,12 +510,6 @@ export default function Dashboard() {
                         {fetcher.data?.error && (
                             <Banner tone="critical">
                                 <p>{fetcher.data.error}</p>
-                            </Banner>
-                        )}
-
-                        {fetcher.data?.success && fetcher.data?.message && (
-                            <Banner tone="success">
-                                <p>{fetcher.data.message}</p>
                             </Banner>
                         )}
 
@@ -882,6 +887,13 @@ export default function Dashboard() {
 
                                     <Grid.Cell columnSpan={{ xs: 6, sm: 6, md: 8, lg: 8, xl: 8 }}>
                                         <div style={{ position: "sticky", top: "20px", zIndex: 11 }}>
+                                            {showSuccessBanner && successMessage && (
+                                                <Box paddingBlockEnd="200">
+                                                    <Banner tone="success">
+                                                        <p>{successMessage}</p>
+                                                    </Banner>
+                                                </Box>
+                                            )}
                                             {isDirty && (
                                                 <Box paddingBlockEnd="200">
                                                     <Banner tone="warning" title="Unsaved Changes">
