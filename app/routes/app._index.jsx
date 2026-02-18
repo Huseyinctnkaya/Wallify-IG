@@ -744,6 +744,8 @@ export default function Dashboard() {
     const [showSuccessBanner, setShowSuccessBanner] = useState(false);
     const [isSuccessBannerClosing, setIsSuccessBannerClosing] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
+    const [showOauthNotice, setShowOauthNotice] = useState(Boolean(oauthNotice));
+    const [isOauthNoticeClosing, setIsOauthNoticeClosing] = useState(false);
     const [isSetupGuideOpen, setIsSetupGuideOpen] = useState(true);
     const [openSetupSteps, setOpenSetupSteps] = useState({
         1: true,
@@ -924,6 +926,31 @@ export default function Dashboard() {
     }, [blockStatusFetcher]);
 
     useEffect(() => {
+        if (!oauthNotice) {
+            setShowOauthNotice(false);
+            setIsOauthNoticeClosing(false);
+            return;
+        }
+
+        setShowOauthNotice(true);
+        setIsOauthNoticeClosing(false);
+
+        const closeTimer = setTimeout(() => {
+            setIsOauthNoticeClosing(true);
+        }, 2000);
+
+        const hideTimer = setTimeout(() => {
+            setShowOauthNotice(false);
+            setIsOauthNoticeClosing(false);
+        }, 2400);
+
+        return () => {
+            clearTimeout(closeTimer);
+            clearTimeout(hideTimer);
+        };
+    }, [oauthNotice]);
+
+    useEffect(() => {
         if (fetcher.data?.success && fetcher.data?.message) {
             setSuccessMessage(fetcher.data.message);
             setShowSuccessBanner(true);
@@ -958,10 +985,21 @@ export default function Dashboard() {
                             </Banner>
                         )}
 
-                        {oauthNotice && (
-                            <Banner tone={oauthNotice.tone}>
-                                <p>{oauthNotice.message}</p>
-                            </Banner>
+                        {showOauthNotice && oauthNotice && (
+                            <div
+                                style={{
+                                    overflow: "hidden",
+                                    transition: "opacity 0.35s ease, transform 0.35s ease, max-height 0.35s ease, margin-bottom 0.35s ease",
+                                    opacity: isOauthNoticeClosing ? 0 : 1,
+                                    transform: isOauthNoticeClosing ? "translateY(-8px)" : "translateY(0)",
+                                    maxHeight: isOauthNoticeClosing ? "0px" : "140px",
+                                    marginBottom: isOauthNoticeClosing ? "0px" : "8px",
+                                }}
+                            >
+                                <Banner tone={oauthNotice.tone}>
+                                    <p>{oauthNotice.message}</p>
+                                </Banner>
+                            </div>
                         )}
 
                         {fetcher.data?.error && (
