@@ -6,6 +6,7 @@ import {
     exchangeForLongLivedToken,
     verifyAndExtractInstagramState,
 } from "../utils/instagram-oauth.server";
+import { igAuthShopCookie } from "../utils/cookies.server";
 
 /**
  * Build the Shopify admin embedded app URL so we can redirect
@@ -13,6 +14,7 @@ import {
  */
 function buildEmbeddedAppUrl(shop, queryParams = "") {
     const apiKey = process.env.SHOPIFY_API_KEY;
+    if (!shop) return `/app${queryParams}`;
     // shop is like "devsapig.myshopify.com"
     return `https://admin.shopify.com/store/${shop.replace(".myshopify.com", "")}/apps/${apiKey}${queryParams}`;
 }
@@ -25,24 +27,29 @@ export const loader = async ({ request }) => {
         || url.searchParams.get("error_reason")
         || url.searchParams.get("error");
 
+    const cookieHeader = request.headers.get("Cookie");
+    const cookieShop = (await igAuthShopCookie.parse(cookieHeader)) || "";
+
     const appSecret = process.env.INSTAGRAM_APP_SECRET;
     const statePayload = appSecret ? verifyAndExtractInstagramState(state, appSecret) : null;
-    const shop = statePayload?.shop || "";
+    let shop = statePayload?.shop || cookieShop || "";
+
+    // Clear the cookie in all cases once we're done with the fallback
+    const headers = {
+        "Set-Cookie": await igAuthShopCookie.serialize("", { maxAge: 0 }),
+    };
 
     if (oauthError) {
-        if (shop) {
-            const encoded = encodeURIComponent(String(oauthError).slice(0, 240));
-            return redirect(buildEmbeddedAppUrl(shop, `?ig_connect=error&ig_error=${encoded}`));
-        }
-        return redirect("/app?ig_connect=error&ig_error=" + encodeURIComponent(String(oauthError).slice(0, 240)));
+        const encoded = encodeURIComponent(String(oauthError).slice(0, 240));
+        return redirect(buildEmbeddedAppUrl(shop, `?ig_connect=error&ig_error=${encoded}`), { headers });
     }
 
     if (!shop) {
-        return redirect("/app?ig_connect=error&ig_error=invalid_state");
+        return redirect("/app?ig_connect=error&ig_error=invalid_state", { headers });
     }
 
     if (!code) {
-        return redirect(buildEmbeddedAppUrl(shop, "?ig_connect=error&ig_error=missing_code"));
+        return redirect(buildEmbeddedAppUrl(shop, "?ig_connect=error&ig_error=missing_code"), { headers });
     }
 
     try {
@@ -77,11 +84,11 @@ export const loader = async ({ request }) => {
             await resetAnalyticsForShop(shop);
         }
 
-        return redirect(buildEmbeddedAppUrl(shop, "?ig_connect=success"));
+        return redirect(buildEmbeddedAppUrl(shop, "?ig_connect=success"), { headers });
     } catch (error) {
         console.error("Instagram callback failed:", error);
         const encoded = encodeURIComponent(String(error?.message || "oauth_failed").slice(0, 240));
-        return redirect(buildEmbeddedAppUrl(shop, `?ig_connect=error&ig_error=${encoded}`));
+        return redirect(buildEmbeddedAppUrl(shop, `?ig_connect=error&ig_error=${encoded}`), { headers });
     }
 };
 
