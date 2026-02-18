@@ -99,7 +99,7 @@ export default function Contact() {
                                                 Email
                                             </Text>
                                             <Text variant="bodyMd" as="p">
-                                                support@34devs.com
+                                                info@34devs.com
                                             </Text>
                                         </BlockStack>
                                     </InlineStack>
@@ -153,7 +153,7 @@ export default function Contact() {
                                     <Box paddingBlockStart="200">
                                         <Button
                                             variant="primary"
-                                            url="mailto:support@34devs.com"
+                                            url="mailto:info@34devs.com"
                                             external
                                             fullWidth
                                         >
