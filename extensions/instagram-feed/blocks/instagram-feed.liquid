@@ -473,6 +473,7 @@
 
           function updateSlider() {
             if (!slides[currentIndex]) return;
+            // offsetLeft is now stable because track is relative
             const offsetPx = slides[currentIndex].offsetLeft;
             track.style.transform = `translateX(-${offsetPx}px)`;
 
@@ -481,15 +482,13 @@
           }
 
           function moveSlider(direction) {
-            // Step size: 1 item at a time for smoother control on mobile/desktop
-            const step = 1;
             if (direction < 0 && currentIndex > 0) {
-              currentIndex = Math.max(0, currentIndex - step);
+              currentIndex = Math.max(0, currentIndex - 1);
               updateSlider();
             }
 
             if (direction > 0 && currentIndex < maxIndex) {
-              currentIndex = Math.min(maxIndex, currentIndex + step);
+              currentIndex = Math.min(maxIndex, currentIndex + 1);
               updateSlider();
             }
           }
@@ -843,15 +842,21 @@
     }
 
     /* Slider Layout */
-    .instagram-slider-wrapper {
-      position: relative;
-      overflow: hidden;
-    }
-
     .instagram-slider-track {
       display: flex;
       transition: transform 0.3s ease;
       gap: {{ spacing_value }}px;
+      position: relative; /* Ensure offsetLeft is relative to track */
+    }
+
+    .instagram-slider-wrapper * {
+      box-sizing: border-box;
+    }
+
+    .instagram-slider-wrapper {
+      position: relative;
+      overflow: hidden;
+      touch-action: pan-y; /* Allow vertical scrolling, handle horizontal swipe */
     }
 
     .instagram-slide {
