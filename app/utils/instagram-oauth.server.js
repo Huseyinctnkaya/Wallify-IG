@@ -47,7 +47,7 @@ export function buildInstagramAuthUrl({ shop }) {
     );
     url.searchParams.set(
         "force_authentication",
-        process.env.INSTAGRAM_FORCE_AUTHENTICATION || "0"
+        process.env.INSTAGRAM_FORCE_AUTHENTICATION || "1"
     );
 
     return url.toString();
