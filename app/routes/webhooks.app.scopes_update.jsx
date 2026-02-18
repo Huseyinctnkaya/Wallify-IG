@@ -2,21 +2,30 @@ import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
 export const action = async ({ request }) => {
-  const { payload, session, topic, shop } = await authenticate.webhook(request);
+  try {
+    const { payload, shop } = await authenticate.webhook(request);
+    const currentScope = Array.isArray(payload?.current)
+      ? payload.current.join(",")
+      : String(payload?.current ?? "");
 
-  console.log(`Received ${topic} webhook for ${shop}`);
-  const current = payload.current;
+    // Ack webhook quickly, then update all sessions for this shop in background.
+    if (currentScope) {
+      void db.session
+        .updateMany({
+          where: { shop },
+          data: { scope: currentScope },
+        })
+        .catch((error) => {
+          console.error("Failed to update scope after APP_SCOPES_UPDATE", {
+            shop,
+            error,
+          });
+        });
+    }
 
-  if (session) {
-    await db.session.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        scope: current.toString(),
-      },
-    });
+    return new Response(null, { status: 200 });
+  } catch (error) {
+    console.error("Failed to process APP_SCOPES_UPDATE webhook", error);
+    return new Response("Unauthorized", { status: 401 });
   }
-
-  return new Response();
 };
