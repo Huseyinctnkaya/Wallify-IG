@@ -435,30 +435,35 @@
       // Slider functionality
       if (feedType === 'slider') {
         const wrapper = document.querySelector(`[data-feed-id="${feedId}"] .instagram-slider-wrapper`);
-        const track = wrapper.querySelector('.instagram-slider-track');
+        const sliderTrack = wrapper.querySelector('.instagram-slider-track');
         const prevBtn = wrapper.querySelector('.instagram-slider-prev');
         const nextBtn = wrapper.querySelector('.instagram-slider-next');
-        const slides = track.querySelectorAll('.instagram-slide');
+        const slides = sliderTrack.querySelectorAll('.instagram-slide');
 
         let currentIndex = 0;
-        const isMobile = window.innerWidth <= 768;
-        const slidesToShow = isMobile ? mobileCols : desktopCols;
+        let slidesToShow = window.innerWidth <= 768 ? mobileCols : desktopCols;
         const totalSlides = slides.length;
-        const maxIndex = Math.max(0, totalSlides - slidesToShow);
+
+        function getMaxIndex() {
+          return Math.max(0, totalSlides - slidesToShow);
+        }
 
         function updateSlider() {
-          const slideWidth = 100 / slidesToShow;
-          const offset = -(currentIndex * slideWidth);
-          track.style.transform = `translateX(${offset}%)`;
+          if (slides.length === 0) return;
+          const slideEl = slides[0];
+          const slideWidth = slideEl.offsetWidth;
+          const gap = parseFloat(getComputedStyle(sliderTrack).gap) || 0;
+          const offset = currentIndex * (slideWidth + gap);
+          sliderTrack.style.transform = 'translateX(-' + offset + 'px)';
 
           if (prevBtn) prevBtn.disabled = currentIndex === 0;
-          if (nextBtn) nextBtn.disabled = currentIndex >= maxIndex;
+          if (nextBtn) nextBtn.disabled = currentIndex >= getMaxIndex();
         }
 
         if (prevBtn) {
           prevBtn.addEventListener('click', () => {
             if (currentIndex > 0) {
-              currentIndex = Math.max(0, currentIndex - slidesToShow);
+              currentIndex = Math.max(0, currentIndex - 1);
               updateSlider();
             }
           });
@@ -466,8 +471,9 @@
 
         if (nextBtn) {
           nextBtn.addEventListener('click', () => {
-            if (currentIndex < maxIndex) {
-              currentIndex = Math.min(maxIndex, currentIndex + slidesToShow);
+            const maxIdx = getMaxIndex();
+            if (currentIndex < maxIdx) {
+              currentIndex = Math.min(maxIdx, currentIndex + 1);
               updateSlider();
             }
           });
@@ -475,12 +481,58 @@
 
         updateSlider();
 
-        window.addEventListener('resize', () => {
-          const newIsMobile = window.innerWidth <= 768;
-          const newSlidesToShow = newIsMobile ? mobileCols : desktopCols;
-          if (newSlidesToShow !== slidesToShow) {
-            location.reload();
+        // Touch swipe support
+        let touchStartX = 0;
+        let touchEndX = 0;
+        let isSwiping = false;
+
+        sliderTrack.addEventListener('touchstart', (e) => {
+          touchStartX = e.touches[0].clientX;
+          isSwiping = true;
+          sliderTrack.style.transition = 'none';
+        }, { passive: true });
+
+        sliderTrack.addEventListener('touchmove', (e) => {
+          if (!isSwiping) return;
+          touchEndX = e.touches[0].clientX;
+          const diff = touchEndX - touchStartX;
+          if (slides.length === 0) return;
+          const slideWidth = slides[0].offsetWidth;
+          const gap = parseFloat(getComputedStyle(sliderTrack).gap) || 0;
+          const baseOffset = currentIndex * (slideWidth + gap);
+          sliderTrack.style.transform = 'translateX(' + (-baseOffset + diff) + 'px)';
+        }, { passive: true });
+
+        sliderTrack.addEventListener('touchend', () => {
+          if (!isSwiping) return;
+          isSwiping = false;
+          sliderTrack.style.transition = 'transform 0.3s ease';
+          const diff = touchEndX - touchStartX;
+          const threshold = 50;
+
+          if (diff < -threshold && currentIndex < getMaxIndex()) {
+            currentIndex++;
+          } else if (diff > threshold && currentIndex > 0) {
+            currentIndex--;
           }
+          touchStartX = 0;
+          touchEndX = 0;
+          updateSlider();
+        });
+
+        // Handle resize without page reload
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => {
+            const newSlidesToShow = window.innerWidth <= 768 ? mobileCols : desktopCols;
+            if (newSlidesToShow !== slidesToShow) {
+              slidesToShow = newSlidesToShow;
+              const maxIdx = getMaxIndex();
+              if (currentIndex > maxIdx) currentIndex = maxIdx;
+            }
+            updateSlider();
+          }, 150);
         });
       }
 
