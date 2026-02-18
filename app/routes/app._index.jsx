@@ -120,7 +120,7 @@ async function fetchThemeFilesPage(admin, { themeId, after = null }) {
     return result?.data?.theme?.files || { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } };
 }
 
-async function checkInstagramBlockStatus(admin, { maxPagesPerTheme = 8 } = {}) {
+async function checkInstagramBlockStatus(admin, { maxPagesPerTheme = 8, onlyMainTheme = false } = {}) {
     try {
         const themes = await listThemes(admin);
         if (!themes.length) {
@@ -136,10 +136,17 @@ async function checkInstagramBlockStatus(admin, { maxPagesPerTheme = 8 } = {}) {
             return 0;
         });
 
+        const themesToCheck = onlyMainTheme
+            ? (() => {
+                const mainTheme = sortedThemes.find((theme) => theme.role === "MAIN");
+                return mainTheme ? [mainTheme] : sortedThemes.slice(0, 1);
+            })()
+            : sortedThemes;
+
         let checkedThemeCount = 0;
         const themeCheckErrors = [];
 
-        for (const theme of sortedThemes) {
+        for (const theme of themesToCheck) {
             let afterCursor = null;
             let hasNextPage = true;
             let scannedPages = 0;
@@ -314,14 +321,15 @@ export async function loader({ request }) {
     const igErrorDetail = requestUrl.searchParams.get("ig_error");
     const themeBlockStatus = await withTimeout(
         checkInstagramBlockStatus(admin, {
-            maxPagesPerTheme: forceDeepBlockCheck ? 8 : 2,
+            maxPagesPerTheme: forceDeepBlockCheck ? 8 : 3,
+            onlyMainTheme: !forceDeepBlockCheck,
         }),
-        forceDeepBlockCheck ? 5000 : 2000,
+        forceDeepBlockCheck ? 7000 : 4500,
         {
             status: "unavailable",
             message: forceDeepBlockCheck
-                ? "Block status check timed out. Please click Refresh again."
-                : "Quick block check timed out. Click Refresh for full check.",
+                ? "Could not complete full block check. Please click Refresh again."
+                : "Could not verify block status quickly. Click Refresh for full check.",
         },
         "Theme block status check"
     );
