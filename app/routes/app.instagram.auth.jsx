@@ -1,7 +1,6 @@
 import { redirect } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { buildInstagramAuthUrl } from "../utils/instagram-oauth.server";
-import { igAuthShopCookie } from "../utils/cookies.server";
 
 export const loader = async ({ request }) => {
     const requestUrl = new URL(request.url);
@@ -22,11 +21,7 @@ export const loader = async ({ request }) => {
 
     try {
         const authUrl = buildInstagramAuthUrl({ shop });
-        return redirect(authUrl, {
-            headers: {
-                "Set-Cookie": await igAuthShopCookie.serialize(shop),
-            },
-        });
+        return redirect(authUrl);
     } catch (error) {
         console.error("Instagram auth start failed:", error);
         return redirect("/app?ig_connect=error");
