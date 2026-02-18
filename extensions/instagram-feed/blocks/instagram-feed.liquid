@@ -435,53 +435,129 @@
       // Slider functionality
       if (feedType === 'slider') {
         const wrapper = document.querySelector(`[data-feed-id="${feedId}"] .instagram-slider-wrapper`);
-        const track = wrapper.querySelector('.instagram-slider-track');
-        const prevBtn = wrapper.querySelector('.instagram-slider-prev');
-        const nextBtn = wrapper.querySelector('.instagram-slider-next');
-        const slides = track.querySelectorAll('.instagram-slide');
+        if (!wrapper) {
+          console.warn('Instagram slider wrapper not found for feed:', feedId);
+        } else {
 
-        let currentIndex = 0;
-        const isMobile = window.innerWidth <= 768;
-        const slidesToShow = isMobile ? mobileCols : desktopCols;
-        const totalSlides = slides.length;
-        const maxIndex = Math.max(0, totalSlides - slidesToShow);
+          const track = wrapper.querySelector('.instagram-slider-track');
+          const prevBtn = wrapper.querySelector('.instagram-slider-prev');
+          const nextBtn = wrapper.querySelector('.instagram-slider-next');
+          const slides = track.querySelectorAll('.instagram-slide');
 
-        function updateSlider() {
-          const slideWidth = 100 / slidesToShow;
-          const offset = -(currentIndex * slideWidth);
-          track.style.transform = `translateX(${offset}%)`;
+          let currentIndex = 0;
+          let slidesToShow = window.innerWidth <= 768 ? mobileCols : desktopCols;
+          const totalSlides = slides.length;
+          let maxIndex = Math.max(0, totalSlides - slidesToShow);
 
-          if (prevBtn) prevBtn.disabled = currentIndex === 0;
-          if (nextBtn) nextBtn.disabled = currentIndex >= maxIndex;
-        }
-
-        if (prevBtn) {
-          prevBtn.addEventListener('click', () => {
-            if (currentIndex > 0) {
-              currentIndex = Math.max(0, currentIndex - slidesToShow);
-              updateSlider();
-            }
-          });
-        }
-
-        if (nextBtn) {
-          nextBtn.addEventListener('click', () => {
-            if (currentIndex < maxIndex) {
-              currentIndex = Math.min(maxIndex, currentIndex + slidesToShow);
-              updateSlider();
-            }
-          });
-        }
-
-        updateSlider();
-
-        window.addEventListener('resize', () => {
-          const newIsMobile = window.innerWidth <= 768;
-          const newSlidesToShow = newIsMobile ? mobileCols : desktopCols;
-          if (newSlidesToShow !== slidesToShow) {
-            location.reload();
+          function getGapPx() {
+            const styles = window.getComputedStyle(track);
+            const gapValue = styles.columnGap || styles.gap || '0';
+            const parsedGap = parseFloat(gapValue);
+            return Number.isFinite(parsedGap) ? parsedGap : 0;
           }
-        });
+
+          function getSlideWidthPx() {
+            if (!slides.length) return 0;
+            return slides[0].getBoundingClientRect().width;
+          }
+
+          function getSlideStep() {
+            return window.innerWidth <= 768 ? 1 : slidesToShow;
+          }
+
+          function updateSlider() {
+            const slideWidthPx = getSlideWidthPx();
+            const gapPx = getGapPx();
+            const offsetPx = currentIndex * (slideWidthPx + gapPx);
+            track.style.transform = `translateX(-${offsetPx}px)`;
+
+            if (prevBtn) prevBtn.disabled = currentIndex === 0;
+            if (nextBtn) nextBtn.disabled = currentIndex >= maxIndex;
+          }
+
+          function moveSlider(direction) {
+            const step = getSlideStep();
+            if (direction < 0 && currentIndex > 0) {
+              currentIndex = Math.max(0, currentIndex - step);
+              updateSlider();
+            }
+
+            if (direction > 0 && currentIndex < maxIndex) {
+              currentIndex = Math.min(maxIndex, currentIndex + step);
+              updateSlider();
+            }
+          }
+
+          if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+              moveSlider(-1);
+            });
+          }
+
+          if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+              moveSlider(1);
+            });
+          }
+
+          let touchStartX = 0;
+          let touchStartY = 0;
+          let isTouchActive = false;
+
+          wrapper.addEventListener('touchstart', (event) => {
+            const touch = event.touches?.[0];
+            if (!touch) return;
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            isTouchActive = true;
+          }, { passive: true });
+
+          wrapper.addEventListener('touchmove', (event) => {
+            if (!isTouchActive) return;
+            const touch = event.touches?.[0];
+            if (!touch) return;
+
+            const deltaX = touch.clientX - touchStartX;
+            const deltaY = touch.clientY - touchStartY;
+
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+              event.preventDefault();
+            }
+          }, { passive: false });
+
+          wrapper.addEventListener('touchend', (event) => {
+            if (!isTouchActive) return;
+            const touch = event.changedTouches?.[0];
+            if (!touch) return;
+
+            const deltaX = touch.clientX - touchStartX;
+            const deltaY = touch.clientY - touchStartY;
+            const swipeThreshold = 40;
+
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > swipeThreshold) {
+              moveSlider(deltaX > 0 ? -1 : 1);
+            }
+
+            isTouchActive = false;
+          }, { passive: true });
+
+          wrapper.addEventListener('touchcancel', () => {
+            isTouchActive = false;
+          }, { passive: true });
+
+          updateSlider();
+
+          let resizeTimer;
+          window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+              slidesToShow = window.innerWidth <= 768 ? mobileCols : desktopCols;
+              maxIndex = Math.max(0, totalSlides - slidesToShow);
+              currentIndex = Math.min(currentIndex, maxIndex);
+              updateSlider();
+            }, 120);
+          });
+        }
       }
 
       // Popup functionality
