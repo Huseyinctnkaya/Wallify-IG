@@ -20,7 +20,7 @@ export default function App() {
     <AppProvider isEmbeddedApp apiKey={apiKey}>
       <NavMenu>
         <Link to="/app" rel="home">
-          Wallify İG ‑ Instagram Feed
+          Wallify IG ‑ Instagram Feed
         </Link>
         <Link to="/app/posts">Posts & Reels</Link>
         <Link to="/app/analytics">Analytics</Link>

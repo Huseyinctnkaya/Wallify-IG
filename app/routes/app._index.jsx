@@ -974,7 +974,7 @@ export default function Dashboard() {
 
     return (
         <Page
-            title="Wallify İG ‑ Instagram Feed"
+            title="Wallify IG ‑ Instagram Feed"
         >
             <Layout>
                 <Layout.Section>
