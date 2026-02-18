@@ -120,7 +120,7 @@ async function fetchThemeFilesPage(admin, { themeId, after = null }) {
     return result?.data?.theme?.files || { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } };
 }
 
-async function checkInstagramBlockStatus(admin) {
+async function checkInstagramBlockStatus(admin, { maxPagesPerTheme = 8 } = {}) {
     try {
         const themes = await listThemes(admin);
         if (!themes.length) {
@@ -143,10 +143,9 @@ async function checkInstagramBlockStatus(admin) {
             let afterCursor = null;
             let hasNextPage = true;
             let scannedPages = 0;
-            const maxPages = 8;
 
             try {
-                while (hasNextPage && scannedPages < maxPages) {
+                while (hasNextPage && scannedPages < maxPagesPerTheme) {
                     const filesConnection = await fetchThemeFilesPage(admin, {
                         themeId: theme.id,
                         after: afterCursor,
@@ -246,7 +245,7 @@ export async function loader({ request }) {
     const requestUrl = new URL(request.url);
     const { session, admin } = await authenticate.admin(request);
     const { shop } = session;
-    const shouldCheckBlockStatus = requestUrl.searchParams.get("check_block") === "1";
+    const forceDeepBlockCheck = requestUrl.searchParams.get("check_block") === "1";
 
     const [instagramAccount, settings, isPremium] = await Promise.all([
         getInstagramAccount(shop),
@@ -313,20 +312,19 @@ export async function loader({ request }) {
 
     const igConnectStatus = requestUrl.searchParams.get("ig_connect");
     const igErrorDetail = requestUrl.searchParams.get("ig_error");
-    const themeBlockStatus = shouldCheckBlockStatus
-        ? await withTimeout(
-            checkInstagramBlockStatus(admin),
-            5000,
-            {
-                status: "unavailable",
-                message: "Block status check timed out. Please click Refresh again.",
-            },
-            "Theme block status check"
-        )
-        : {
-            status: "unknown",
-            message: "Block status check is skipped for fast loading. Click Refresh to verify.",
-        };
+    const themeBlockStatus = await withTimeout(
+        checkInstagramBlockStatus(admin, {
+            maxPagesPerTheme: forceDeepBlockCheck ? 8 : 2,
+        }),
+        forceDeepBlockCheck ? 5000 : 2000,
+        {
+            status: "unavailable",
+            message: forceDeepBlockCheck
+                ? "Block status check timed out. Please click Refresh again."
+                : "Quick block check timed out. Click Refresh for full check.",
+        },
+        "Theme block status check"
+    );
     let oauthNotice = null;
     if (igConnectStatus === "success") {
         oauthNotice = {
@@ -352,6 +350,7 @@ export async function loader({ request }) {
         isPremium,
         oauthNotice,
         themeBlockStatus,
+        forceDeepBlockCheck,
     });
 }
 
@@ -601,7 +600,17 @@ const SetupStepItem = ({
 );
 
 export default function Dashboard() {
-    const { instagramAccount, hasCredentials, media, settings, shop, isPremium, oauthNotice, themeBlockStatus } = useLoaderData();
+    const {
+        instagramAccount,
+        hasCredentials,
+        media,
+        settings,
+        shop,
+        isPremium,
+        oauthNotice,
+        themeBlockStatus,
+        forceDeepBlockCheck,
+    } = useLoaderData();
     const fetcher = useFetcher();
 
     const isLoading = fetcher.state === "submitting";
@@ -834,9 +843,12 @@ export default function Dashboard() {
         isSyncStepComplete,
         isBlockStepComplete,
     ].filter(Boolean).length;
+    const blockScanNotice = themeBlockStatus?.status === "not_detected" && !forceDeepBlockCheck
+        ? " Quick scan did not find it yet. Click Refresh for full check."
+        : "";
     const blockStepDescription = isBlockStepComplete
         ? "Instagram Feed block is detected in your current theme."
-        : (themeBlockStatus?.message || "Add the Instagram Feed app block in your theme editor, then click refresh.");
+        : `${themeBlockStatus?.message || "Add the Instagram Feed app block in your theme editor, then click refresh."}${blockScanNotice}`;
     const storeHandle = shop?.endsWith(".myshopify.com")
         ? shop.replace(".myshopify.com", "")
         : "";
