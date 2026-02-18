@@ -1,9 +1,5 @@
 import { PREMIUM_PLAN } from "../shopify.server";
 
-function isForcedPremiumInDevelopment() {
-  return process.env.NODE_ENV !== "production" && process.env.FORCE_DEV_PREMIUM !== "false";
-}
-
 /**
  * Check if a shop has premium features enabled via Shopify Billing API
  *
@@ -12,7 +8,6 @@ function isForcedPremiumInDevelopment() {
  * @returns {Promise<boolean>} True if shop has premium access
  */
 export async function isPremiumShop(shop, admin) {
-  if (isForcedPremiumInDevelopment()) return true;
   if (!admin) return false;
 
   try {
