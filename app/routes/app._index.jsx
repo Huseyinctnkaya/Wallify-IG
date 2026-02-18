@@ -640,10 +640,12 @@ export default function Dashboard() {
     // ... (existing handlers)
 
     const handleConnect = () => {
-        fetcher.submit(
-            { actionType: "connect" },
-            { method: "post" }
-        );
+        const authStartUrl = `/app/instagram/auth?shop=${encodeURIComponent(shop || "")}`;
+        const popup = window.open(authStartUrl, "_blank", "noopener,noreferrer");
+        if (!popup) {
+            // Fallback if popup is blocked by browser settings.
+            window.location.assign(authStartUrl);
+        }
     };
 
     const handleDisconnect = () => {
