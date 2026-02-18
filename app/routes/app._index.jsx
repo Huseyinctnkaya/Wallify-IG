@@ -222,14 +222,37 @@ async function checkInstagramBlockStatus(admin) {
     }
 }
 
+async function withTimeout(promise, timeoutMs, fallbackValue, label) {
+    let timeoutId;
+
+    const timeoutPromise = new Promise((resolve) => {
+        timeoutId = setTimeout(() => {
+            console.warn(`${label} timed out after ${timeoutMs}ms`);
+            resolve(fallbackValue);
+        }, timeoutMs);
+    });
+
+    try {
+        return await Promise.race([promise, timeoutPromise]);
+    } catch (error) {
+        console.error(`${label} failed:`, error);
+        return fallbackValue;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
 export async function loader({ request }) {
     const requestUrl = new URL(request.url);
     const { session, admin } = await authenticate.admin(request);
     const { shop } = session;
+    const shouldCheckBlockStatus = requestUrl.searchParams.get("check_block") === "1";
 
-    const instagramAccount = await getInstagramAccount(shop);
-    const settings = await getSettings(shop);
-    const isPremium = await isPremiumShop(shop, admin);
+    const [instagramAccount, settings, isPremium] = await Promise.all([
+        getInstagramAccount(shop),
+        getSettings(shop),
+        isPremiumShop(shop, admin),
+    ]);
     const freeMediaLimit = Math.min(Number(settings.mediaLimit) || 12, 12);
     const premiumMediaLimit = Number(settings.mediaLimit) > 0 ? Number(settings.mediaLimit) : 12;
     const effectiveMediaLimit = isPremium ? premiumMediaLimit : freeMediaLimit;
@@ -238,19 +261,24 @@ export async function loader({ request }) {
 
     if (instagramAccount) {
         try {
-            // Fetch Instagram media
-            const rawMedia = await fetchInstagramMedia(
-                instagramAccount.userId,
-                instagramAccount.accessToken,
-                effectiveMediaLimit
-            );
-
-            // Fetch Post records from database
-            const postRecords = await getPosts(shop);
+            const [rawMedia, postRecords] = await Promise.all([
+                withTimeout(
+                    fetchInstagramMedia(
+                        instagramAccount.userId,
+                        instagramAccount.accessToken,
+                        effectiveMediaLimit
+                    ),
+                    8000,
+                    [],
+                    "Instagram media fetch"
+                ),
+                getPosts(shop),
+            ]);
+            const postRecordMap = new Map(postRecords.map((post) => [post.mediaId, post]));
 
             // Merge Instagram data with Post metadata
             media = rawMedia.map(item => {
-                const record = postRecords.find(p => p.mediaId === item.id);
+                const record = postRecordMap.get(item.id);
 
                 return {
                     ...item,
@@ -285,7 +313,20 @@ export async function loader({ request }) {
 
     const igConnectStatus = requestUrl.searchParams.get("ig_connect");
     const igErrorDetail = requestUrl.searchParams.get("ig_error");
-    const themeBlockStatus = await checkInstagramBlockStatus(admin);
+    const themeBlockStatus = shouldCheckBlockStatus
+        ? await withTimeout(
+            checkInstagramBlockStatus(admin),
+            5000,
+            {
+                status: "unavailable",
+                message: "Block status check timed out. Please click Refresh again.",
+            },
+            "Theme block status check"
+        )
+        : {
+            status: "unknown",
+            message: "Block status check is skipped for fast loading. Click Refresh to verify.",
+        };
     let oauthNotice = null;
     if (igConnectStatus === "success") {
         oauthNotice = {
@@ -793,12 +834,9 @@ export default function Dashboard() {
         isSyncStepComplete,
         isBlockStepComplete,
     ].filter(Boolean).length;
-    const blockStatusUnavailable = themeBlockStatus?.status === "unavailable";
     const blockStepDescription = isBlockStepComplete
         ? "Instagram Feed block is detected in your current theme."
-        : (blockStatusUnavailable
-            ? (themeBlockStatus?.message || "Could not verify block status right now.")
-            : "Add the Instagram Feed app block in your theme editor, then click refresh.");
+        : (themeBlockStatus?.message || "Add the Instagram Feed app block in your theme editor, then click refresh.");
     const storeHandle = shop?.replace(".myshopify.com", "");
     const themeEditorUrl = `https://admin.shopify.com/store/${storeHandle}/themes`;
     const previewButtonText = buttonText?.trim() || "Open in Instagram";
@@ -807,7 +845,7 @@ export default function Dashboard() {
         : (typeof displayMedia[0] !== "string" && displayMedia[0]?.permalink
             ? displayMedia[0].permalink
             : "https://instagram.com");
-    const handleRefreshSetup = () => window.location.reload();
+    const handleRefreshSetup = () => window.location.assign("/app?check_block=1");
     const toggleSetupStep = (stepNumber) => {
         setOpenSetupSteps((prev) => ({
             ...prev,
