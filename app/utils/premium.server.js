@@ -1,7 +1,6 @@
 import { PREMIUM_PLAN } from "../shopify.server";
 
 function isForcedPremiumInDevelopment() {
-  if (process.env.FORCE_DEV_PREMIUM === "true") return true;
   return process.env.NODE_ENV !== "production" && process.env.FORCE_DEV_PREMIUM !== "false";
 }
 
