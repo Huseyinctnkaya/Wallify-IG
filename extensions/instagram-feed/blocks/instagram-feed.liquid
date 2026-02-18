@@ -462,7 +462,7 @@
           }
 
           function getSlideStep() {
-            return slidesToShow;
+            return window.innerWidth <= 768 ? 1 : slidesToShow;
           }
 
           function updateSlider() {
