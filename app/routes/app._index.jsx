@@ -79,12 +79,12 @@ async function listThemes(admin) {
     return result?.data?.themes?.nodes || [];
 }
 
-async function fetchThemeFilesPage(admin, { themeId, after = null }) {
+async function fetchThemeFilesPage(admin, { themeId, after = null, first = 100 }) {
     const response = await admin.graphql(
         `#graphql
-        query ThemeFiles($themeId: ID!, $after: String) {
+        query ThemeFiles($themeId: ID!, $after: String, $first: Int!) {
             theme(id: $themeId) {
-                files(first: 100, after: $after) {
+                files(first: $first, after: $after) {
                     nodes {
                         filename
                         body {
@@ -107,6 +107,7 @@ async function fetchThemeFilesPage(admin, { themeId, after = null }) {
             variables: {
                 themeId,
                 after,
+                first,
             },
         }
     );
@@ -120,7 +121,10 @@ async function fetchThemeFilesPage(admin, { themeId, after = null }) {
     return result?.data?.theme?.files || { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } };
 }
 
-async function checkInstagramBlockStatus(admin, { maxPagesPerTheme = 8, onlyMainTheme = false } = {}) {
+async function checkInstagramBlockStatus(
+    admin,
+    { maxPagesPerTheme = 8, onlyMainTheme = false, filesPerPage = 100 } = {}
+) {
     try {
         const themes = await listThemes(admin);
         if (!themes.length) {
@@ -156,6 +160,7 @@ async function checkInstagramBlockStatus(admin, { maxPagesPerTheme = 8, onlyMain
                     const filesConnection = await fetchThemeFilesPage(admin, {
                         themeId: theme.id,
                         after: afterCursor,
+                        first: filesPerPage,
                     });
 
                     // App block config lives in theme JSON templates/sections.
@@ -362,10 +367,11 @@ export async function action({ request }) {
         const mode = formData.get("mode") === "deep" ? "deep" : "quick";
         const themeBlockStatus = await withTimeout(
             checkInstagramBlockStatus(admin, {
-                maxPagesPerTheme: mode === "deep" ? 8 : 3,
+                maxPagesPerTheme: mode === "deep" ? 8 : 1,
                 onlyMainTheme: mode !== "deep",
+                filesPerPage: mode === "deep" ? 100 : 35,
             }),
-            mode === "deep" ? 7000 : 4500,
+            mode === "deep" ? 7000 : 2500,
             {
                 status: "unavailable",
                 message: mode === "deep"
