@@ -1043,6 +1043,12 @@
       right: 0;
       bottom: 0;
       z-index: 10000;
+      background: rgba(18, 18, 18, 0.62);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      box-sizing: border-box;
     }
 
     .instagram-popup-overlay {
@@ -1051,15 +1057,16 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.8);
+      background: rgba(24, 24, 24, 0.72);
+      backdrop-filter: blur(3px);
     }
 
     .instagram-popup-content {
       position: relative;
-      width: 90%;
+      width: min(90vw, 900px);
       max-width: 900px;
-      max-height: 90vh;
-      margin: 5vh auto;
+      max-height: calc(100vh - 32px);
+      margin: 0;
       background: white;
       border-radius: 12px;
       overflow: hidden;
@@ -1343,7 +1350,7 @@
     .instagram-popup-clean .instagram-popup-clean-inner {
       position: relative;
       width: min(92vw, 430px);
-      margin: 7vh auto 0;
+      margin: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -1497,7 +1504,7 @@
 
       .instagram-popup-clean .instagram-popup-clean-inner {
         width: 95vw;
-        margin-top: 6vh;
+        margin-top: 0;
       }
 
       .instagram-popup-clean-user-header {
