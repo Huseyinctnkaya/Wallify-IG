@@ -472,11 +472,10 @@
           let maxIndex = Math.max(0, totalSlides - slidesToShow);
 
           function updateSlider() {
-            // Formula from app preview: move by (100 / cols)% per index
-            // This works because the track width is 100% of the wrapper
-            // and slides are calc(100% / cols) wide but flex-shrink: 0.
-            const offsetPercent = currentIndex * (100 / slidesToShow);
-            track.style.transform = `translateX(-${offsetPercent}%)`;
+            if (!slides[currentIndex]) return;
+            // offsetLeft is now stable because track is relative
+            const offsetPx = slides[currentIndex].offsetLeft;
+            track.style.transform = `translateX(-${offsetPx}px)`;
 
             if (prevBtn) prevBtn.disabled = currentIndex === 0;
             if (nextBtn) nextBtn.disabled = currentIndex >= maxIndex;
@@ -528,7 +527,8 @@
             const deltaX = touch.clientX - touchStartX;
             const deltaY = touch.clientY - touchStartY;
 
-            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+            // Prevent page scroll only if swiping horizontally
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 5) {
               if (event.cancelable) event.preventDefault();
             }
           }, { passive: false });
@@ -540,7 +540,7 @@
 
             const deltaX = touch.clientX - touchStartX;
             const deltaY = touch.clientY - touchStartY;
-            const swipeThreshold = 40;
+            const swipeThreshold = 30;
 
             if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > swipeThreshold) {
               moveSlider(deltaX > 0 ? -1 : 1);
@@ -563,7 +563,7 @@
               maxIndex = Math.max(0, totalSlides - slidesToShow);
               currentIndex = Math.min(currentIndex, maxIndex);
               updateSlider();
-            }, 200);
+            }, 150);
           });
         }
       }
@@ -844,10 +844,9 @@
     /* Slider Layout */
     .instagram-slider-track {
       display: flex;
-      transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      transition: transform 0.3s ease;
       gap: {{ spacing_value }}px;
       position: relative; /* Ensure offsetLeft is relative to track */
-      width: 100%; /* Critical for percentage-based translation */
     }
 
     .instagram-slider-wrapper * {
@@ -861,7 +860,7 @@
     }
 
     .instagram-slide {
-      flex: 0 0 calc(100% / {{ desktop_cols }} - {{ spacing_value }}px);
+      flex: 0 0 calc(100% / {{ desktop_cols }} - {{ spacing_value }}px * ({{ desktop_cols }} - 1) / {{ desktop_cols }});
       min-width: 0;
     }
 
