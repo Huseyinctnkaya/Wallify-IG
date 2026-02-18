@@ -143,8 +143,8 @@ export default function Contact() {
                                                 Website
                                             </Text>
                                             <Text variant="bodyMd" as="p">
-                                                <a href="https://34devs.com" target="_blank" rel="noopener noreferrer" style={{ color: '#005bd3', textDecoration: 'none' }}>
-                                                    www.34devs.com
+                                                <a href="https://landing.wallifyig.app/" target="_blank" rel="noopener noreferrer" style={{ color: '#005bd3', textDecoration: 'none' }}>
+                                                    landing.wallifyig.app
                                                 </a>
                                             </Text>
                                         </BlockStack>
