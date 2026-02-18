@@ -85,97 +85,96 @@
     <div class="instagram-feed-container instagram-feed-{{ feed_type }}" data-feed-type="{{ feed_type }}">
       {% if feed_type == 'slider' %}
         {% comment %} Slider Layout {% endcomment %}
-        <div class="instagram-slider-wrapper">
+        <div class="instagram-slider-container">
           {% if show_arrows %}
             <button class="instagram-slider-arrow instagram-slider-prev" aria-label="Previous">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="15 18 9 12 15 6"></polyline>
               </svg>
             </button>
-          {% endif %}
-
-          <div class="instagram-slider-track">
-            {% for item in media_items %}
-              <div class="instagram-slide" data-slide-index="{{ forloop.index0 }}">
-                <div
-                  class="instagram-feed-item"
-                  data-media-id="{{ item.id }}"
-                  data-media-url="{{ item.thumbnail }}"
-                  data-video-url="{{ item.url }}"
-                  data-media-type="{{ item.type }}"
-                  data-permalink="{{ item.permalink }}"
-                  data-caption="{{ item.caption }}"
-                  data-products="{{ item.products | json }}"
-                  data-username="{{ item.username }}"
-                  data-has-carousel="{{ item.children.size | default: 0 }}"
-                  data-children="{{ item.children | json }}"
-                  style="border-radius: {{ radius_value }};"
-                >
-                  {% if item.type == 'VIDEO' or item.type == 'REEL' %}
-                    <video src="{{ item.url }}" poster="{{ item.thumbnail }}" autoplay muted loop playsinline></video>
-                  {% else %}
-                    <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy">
-                  {% endif %}
-
-                  {% unless clean_display %}
-                    {% if item.children.size > 1 %}
-                      <div class="instagram-carousel-indicator">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-                          <rect x="3" y="3" width="7" height="7" rx="1"/>
-                          <rect x="14" y="3" width="7" height="7" rx="1"/>
-                          <rect x="3" y="14" width="7" height="7" rx="1"/>
-                          <rect x="14" y="14" width="7" height="7" rx="1"/>
-                        </svg>
-                      </div>
-                    {% endif %}
-
-                    {% if item.products.size > 0 %}
-                      <div class="instagram-product-badge">
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                          <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/>
-                        </svg>
-                        <span>{{ item.products.size }}</span>
-                      </div>
-                    {% endif %}
-                  {% endunless %}
-
-                  {% if show_author_profile %}
-                    <div class="instagram-feed-overlay">
-                      <div class="instagram-feed-author">
-                        {% if profile_picture_url %}
-                          <img src="{{ profile_picture_url }}" alt="" class="instagram-feed-avatar">
-                        {% endif %}
-                        <span class="instagram-icon">@{{ item.username }}</span>
-                      </div>
-                    </div>
-                  {% endif %}
-                </div>
-
-                {% unless clean_display %}
-                  {% if item.products.size > 0 and settings_metafield.showAttachedProducts %}
-                    <div class="instagram-product-tags">
-                      {% for product in item.products limit: 3 %}
-                        <a href="/products/{{ product.handle }}" class="instagram-product-tag">
-                          {{ product.title }}
-                        </a>
-                      {% endfor %}
-                      {% if item.products.size > 3 %}
-                        <span class="instagram-product-tag-more"> +{{ item.products.size | minus: 3 }} more </span>
-                      {% endif %}
-                    </div>
-                  {% endif %}
-                {% endunless %}
-              </div>
-            {% endfor %}
-          </div>
-
-          {% if show_arrows %}
             <button class="instagram-slider-arrow instagram-slider-next" aria-label="Next">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
             </button>
           {% endif %}
+
+          <div class="instagram-slider-wrapper">
+            <div class="instagram-slider-track">
+              {% for item in media_items %}
+                <div class="instagram-slide" data-slide-index="{{ forloop.index0 }}">
+                  <div
+                    class="instagram-feed-item"
+                    data-media-id="{{ item.id }}"
+                    data-media-url="{{ item.thumbnail }}"
+                    data-video-url="{{ item.url }}"
+                    data-media-type="{{ item.type }}"
+                    data-permalink="{{ item.permalink }}"
+                    data-caption="{{ item.caption }}"
+                    data-products="{{ item.products | json }}"
+                    data-username="{{ item.username }}"
+                    data-has-carousel="{{ item.children.size | default: 0 }}"
+                    data-children="{{ item.children | json }}"
+                    style="border-radius: {{ radius_value }};"
+                  >
+                    {% if item.type == 'VIDEO' or item.type == 'REEL' %}
+                      <video src="{{ item.url }}" poster="{{ item.thumbnail }}" autoplay muted loop playsinline></video>
+                    {% else %}
+                      <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy">
+                    {% endif %}
+
+                    {% unless clean_display %}
+                      {% if item.children.size > 1 %}
+                        <div class="instagram-carousel-indicator">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                            <rect x="3" y="3" width="7" height="7" rx="1"/>
+                            <rect x="14" y="3" width="7" height="7" rx="1"/>
+                            <rect x="3" y="14" width="7" height="7" rx="1"/>
+                            <rect x="14" y="14" width="7" height="7" rx="1"/>
+                          </svg>
+                        </div>
+                      {% endif %}
+
+                      {% if item.products.size > 0 %}
+                        <div class="instagram-product-badge">
+                          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/>
+                          </svg>
+                          <span>{{ item.products.size }}</span>
+                        </div>
+                      {% endif %}
+                    {% endunless %}
+
+                    {% if show_author_profile %}
+                      <div class="instagram-feed-overlay">
+                        <div class="instagram-feed-author">
+                          {% if profile_picture_url %}
+                            <img src="{{ profile_picture_url }}" alt="" class="instagram-feed-avatar">
+                          {% endif %}
+                          <span class="instagram-icon">@{{ item.username }}</span>
+                        </div>
+                      </div>
+                    {% endif %}
+                  </div>
+
+                  {% unless clean_display %}
+                    {% if item.products.size > 0 and settings_metafield.showAttachedProducts %}
+                      <div class="instagram-product-tags">
+                        {% for product in item.products limit: 3 %}
+                          <a href="/products/{{ product.handle }}" class="instagram-product-tag">
+                            {{ product.title }}
+                          </a>
+                        {% endfor %}
+                        {% if item.products.size > 3 %}
+                          <span class="instagram-product-tag-more"> +{{ item.products.size | minus: 3 }} more </span>
+                        {% endif %}
+                      </div>
+                    {% endif %}
+                  {% endunless %}
+                </div>
+              {% endfor %}
+            </div>
+          </div>
         </div>
       {% else %}
         {% comment %} Grid Layout {% endcomment %}
@@ -456,49 +455,45 @@
 
       // Slider functionality
       if (feedType === 'slider') {
-        const wrapper = document.querySelector(`[data-feed-id="${feedId}"] .instagram-slider-wrapper`);
-        if (!wrapper) {
-          console.warn('Instagram slider wrapper not found for feed:', feedId);
+        const container = document.querySelector(`[data-feed-id="${feedId}"] .instagram-slider-container`);
+        if (!container) {
+          console.warn('Instagram slider container not found for feed:', feedId);
         } else {
+          const wrapper = container.querySelector('.instagram-slider-wrapper');
 
           const track = wrapper.querySelector('.instagram-slider-track');
           const prevBtn = wrapper.querySelector('.instagram-slider-prev');
           const nextBtn = wrapper.querySelector('.instagram-slider-next');
           const slides = track.querySelectorAll('.instagram-slide');
 
-          let currentIndex = 0;
-          let slidesToShow = window.innerWidth <= 768 ? mobileCols : desktopCols;
-          const totalSlides = slides.length;
-          let maxIndex = Math.max(0, totalSlides - slidesToShow);
-
-          function updateSlider() {
-            // Formula from app preview: move by (100 / cols)% per index
-            // This works because the track width is 100% of the wrapper
-            // and slides are calc(100% / cols) wide but flex-shrink: 0.
-            const offsetPercent = currentIndex * (100 / slidesToShow);
-            track.style.transform = `translateX(-${offsetPercent}%)`;
-
-            if (prevBtn) prevBtn.disabled = currentIndex === 0;
-            if (nextBtn) nextBtn.disabled = currentIndex >= maxIndex;
+          function updateButtons() {
+            if (!prevBtn || !nextBtn) return;
+            const scrollLeft = wrapper.scrollLeft;
+            const maxScroll = wrapper.scrollWidth - wrapper.clientWidth;
+            
+            prevBtn.disabled = scrollLeft <= 5;
+            nextBtn.disabled = scrollLeft >= maxScroll - 5;
           }
 
-          function moveSlider(direction) {
-            // Strictly one by one: step is always 1
-            const step = 1;
-            if (direction < 0 && currentIndex > 0) {
-              currentIndex -= step;
-              updateSlider();
-            } else if (direction > 0 && currentIndex < maxIndex) {
-              currentIndex += step;
-              updateSlider();
-            }
+          function scrollToIndex(index) {
+            if (!slides[index]) return;
+            const slide = slides[index];
+            const scrollPos = slide.offsetLeft;
+            
+            wrapper.scrollTo({
+              left: scrollPos,
+              behavior: 'smooth'
+            });
           }
 
           if (prevBtn) {
             prevBtn.addEventListener('click', (e) => {
               e.preventDefault();
               e.stopPropagation();
-              moveSlider(-1);
+              // Find the current active index by scroll position
+              const slideWidth = slides[0].offsetWidth + parseInt(getComputedStyle(track).gap || 0);
+              const currentIndex = Math.round(wrapper.scrollLeft / slideWidth);
+              scrollToIndex(Math.max(0, currentIndex - 1));
             });
           }
 
@@ -506,69 +501,26 @@
             nextBtn.addEventListener('click', (e) => {
               e.preventDefault();
               e.stopPropagation();
-              moveSlider(1);
+              const slideWidth = slides[0].offsetWidth + parseInt(getComputedStyle(track).gap || 0);
+              const currentIndex = Math.round(wrapper.scrollLeft / slideWidth);
+              const slidesToShow = window.innerWidth <= 768 ? mobileCols : desktopCols;
+              scrollToIndex(Math.min(slides.length - slidesToShow, currentIndex + 1));
             });
           }
 
-          let touchStartX = 0;
-          let touchStartY = 0;
-          let isMoving = false;
+          // Update buttons on scroll
+          wrapper.addEventListener('scroll', updateButtons, { passive: true });
+          
+          // Initial check
+          setTimeout(updateButtons, 100);
 
-          wrapper.addEventListener('touchstart', (event) => {
-            const touch = event.touches?.[0];
-            if (!touch) return;
-            touchStartX = touch.clientX;
-            touchStartY = touch.clientY;
-            isMoving = true;
-          }, { passive: true });
-
-          wrapper.addEventListener('touchmove', (event) => {
-            if (!isMoving) return;
-            const touch = event.touches?.[0];
-            if (!touch) return;
-
-            const deltaX = touch.clientX - touchStartX;
-            const deltaY = touch.clientY - touchStartY;
-
-            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
-              if (event.cancelable) event.preventDefault();
-            }
-          }, { passive: false });
-
-          wrapper.addEventListener('touchend', (event) => {
-            if (!isMoving) return;
-            const touch = event.changedTouches?.[0];
-            if (!touch) return;
-
-            const deltaX = touch.clientX - touchStartX;
-            const deltaY = touch.clientY - touchStartY;
-            
-            // Lower threshold for "snappier" feel (move 1 by 1)
-            const swipeThreshold = 30; 
-
-            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > swipeThreshold) {
-              moveSlider(deltaX > 0 ? -1 : 1);
-            }
-
-            isMoving = false;
-          }, { passive: true });
-
-          wrapper.addEventListener('touchcancel', () => {
-            isMoving = false;
-          }, { passive: true });
-
-          updateSlider();
-
+          // Handle window resize
           let resizeTimer;
           window.addEventListener('resize', () => {
             clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => {
-              slidesToShow = window.innerWidth <= 768 ? mobileCols : desktopCols;
-              maxIndex = Math.max(0, totalSlides - slidesToShow);
-              currentIndex = Math.min(currentIndex, maxIndex);
-              updateSlider();
-            }, 200);
+            resizeTimer = setTimeout(updateButtons, 200);
           });
+
         }
       }
 
@@ -846,27 +798,38 @@
     }
 
     /* Slider Layout */
-    .instagram-slider-track {
-      display: flex;
-      transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-      gap: {{ spacing_value }}px;
-      position: relative; /* Ensure offsetLeft is relative to track */
-      width: 100%; /* Critical for percentage-based translation */
-    }
-
-    .instagram-slider-wrapper * {
-      box-sizing: border-box;
+    .instagram-slider-container {
+       position: relative;
+       width: 100%;
     }
 
     .instagram-slider-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .instagram-slider-wrapper::-webkit-scrollbar {
+      display: none;
+    }
+
+    .instagram-slider-track {
+      display: flex;
+      gap: {{ spacing_value }}px;
       position: relative;
-      overflow: hidden;
-      touch-action: pan-y; /* Allow vertical scrolling, handle horizontal swipe */
+      width: max-content;
+      padding-bottom: 5px; /* Prevent potential overflow clip */
     }
 
     .instagram-slide {
       flex: 0 0 calc(100% / {{ desktop_cols }} - {{ spacing_value }}px);
       min-width: 0;
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
     }
 
     .instagram-slider-arrow {
