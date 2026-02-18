@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import {
@@ -252,7 +252,6 @@ export async function loader({ request }) {
     const requestUrl = new URL(request.url);
     const { session, admin } = await authenticate.admin(request);
     const { shop } = session;
-    const forceDeepBlockCheck = requestUrl.searchParams.get("check_block") === "1";
 
     const [instagramAccount, settings, isPremium] = await Promise.all([
         getInstagramAccount(shop),
@@ -319,20 +318,10 @@ export async function loader({ request }) {
 
     const igConnectStatus = requestUrl.searchParams.get("ig_connect");
     const igErrorDetail = requestUrl.searchParams.get("ig_error");
-    const themeBlockStatus = await withTimeout(
-        checkInstagramBlockStatus(admin, {
-            maxPagesPerTheme: forceDeepBlockCheck ? 8 : 3,
-            onlyMainTheme: !forceDeepBlockCheck,
-        }),
-        forceDeepBlockCheck ? 7000 : 4500,
-        {
-            status: "unavailable",
-            message: forceDeepBlockCheck
-                ? "Could not complete full block check. Please click Refresh again."
-                : "Could not verify block status quickly. Click Refresh for full check.",
-        },
-        "Theme block status check"
-    );
+    const themeBlockStatus = {
+        status: "unknown",
+        message: "Checking block status...",
+    };
     let oauthNotice = null;
     if (igConnectStatus === "success") {
         oauthNotice = {
@@ -358,7 +347,6 @@ export async function loader({ request }) {
         isPremium,
         oauthNotice,
         themeBlockStatus,
-        forceDeepBlockCheck,
     });
 }
 
@@ -369,6 +357,26 @@ export async function action({ request }) {
     const { shop } = session;
     const formData = await request.formData();
     const actionType = formData.get("actionType");
+
+    if (actionType === "checkBlockStatus") {
+        const mode = formData.get("mode") === "deep" ? "deep" : "quick";
+        const themeBlockStatus = await withTimeout(
+            checkInstagramBlockStatus(admin, {
+                maxPagesPerTheme: mode === "deep" ? 8 : 3,
+                onlyMainTheme: mode !== "deep",
+            }),
+            mode === "deep" ? 7000 : 4500,
+            {
+                status: "unavailable",
+                message: mode === "deep"
+                    ? "Could not complete full block check. Please click Refresh again."
+                    : "Could not verify block status quickly. Click Refresh for full check.",
+            },
+            "Theme block status check"
+        );
+
+        return json({ themeBlockStatus, mode });
+    }
 
     if (actionType === "saveSettings") {
         const isPremium = await isPremiumShop(shop, admin);
@@ -617,13 +625,17 @@ export default function Dashboard() {
         isPremium,
         oauthNotice,
         themeBlockStatus,
-        forceDeepBlockCheck,
     } = useLoaderData();
     const fetcher = useFetcher();
+    const blockStatusFetcher = useFetcher();
+    const hasTriggeredQuickBlockCheck = useRef(false);
 
     const isLoading = fetcher.state === "submitting";
     const currentAction = fetcher.formData?.get("actionType");
     const isSaving = isLoading && currentAction === "saveSettings";
+    const activeThemeBlockStatus = blockStatusFetcher.data?.themeBlockStatus || themeBlockStatus;
+    const blockCheckMode = blockStatusFetcher.data?.mode || "quick";
+    const isCheckingBlockStatus = blockStatusFetcher.state !== "idle";
 
     // ... (existing handlers)
 
@@ -845,18 +857,21 @@ export default function Dashboard() {
     const displayMedia = (media && media.length > 0) ? media : mockImages;
     const isConnectedStepComplete = Boolean(instagramAccount);
     const isSyncStepComplete = isConnectedStepComplete && Array.isArray(media) && media.length > 0;
-    const isBlockStepComplete = themeBlockStatus?.status === "detected";
+    const isBlockStepComplete = activeThemeBlockStatus?.status === "detected";
     const completedSetupSteps = [
         isConnectedStepComplete,
         isSyncStepComplete,
         isBlockStepComplete,
     ].filter(Boolean).length;
-    const blockScanNotice = themeBlockStatus?.status === "not_detected" && !forceDeepBlockCheck
+    const blockScanNotice = activeThemeBlockStatus?.status === "not_detected" && blockCheckMode !== "deep"
         ? " Quick scan did not find it yet. Click Refresh for full check."
         : "";
     const blockStepDescription = isBlockStepComplete
         ? "Instagram Feed block is detected in your current theme."
-        : `${themeBlockStatus?.message || "Add the Instagram Feed app block in your theme editor, then click refresh."}${blockScanNotice}`;
+        : `${isCheckingBlockStatus
+            ? "Checking block status..."
+            : (activeThemeBlockStatus?.message || "Add the Instagram Feed app block in your theme editor, then click refresh.")
+        }${blockScanNotice}`;
     const storeHandle = shop?.endsWith(".myshopify.com")
         ? shop.replace(".myshopify.com", "")
         : "";
@@ -869,7 +884,12 @@ export default function Dashboard() {
         : (typeof displayMedia[0] !== "string" && displayMedia[0]?.permalink
             ? displayMedia[0].permalink
             : "https://instagram.com");
-    const handleRefreshSetup = () => window.location.assign("/app?check_block=1");
+    const handleRefreshSetup = () => {
+        blockStatusFetcher.submit(
+            { actionType: "checkBlockStatus", mode: "deep" },
+            { method: "post" }
+        );
+    };
     const handleOpenThemeEditor = () => {
         if (!themeEditorUrl) return;
 
@@ -892,6 +912,16 @@ export default function Dashboard() {
             window.open(fetcher.data.authUrl, "_top");
         }
     }, [fetcher.data?.authUrl]);
+
+    useEffect(() => {
+        if (hasTriggeredQuickBlockCheck.current) return;
+        hasTriggeredQuickBlockCheck.current = true;
+
+        blockStatusFetcher.submit(
+            { actionType: "checkBlockStatus", mode: "quick" },
+            { method: "post" }
+        );
+    }, [blockStatusFetcher]);
 
     useEffect(() => {
         if (fetcher.data?.success && fetcher.data?.message) {
@@ -1026,6 +1056,7 @@ export default function Dashboard() {
                                             </Button>
                                             <Button
                                                 size="slim"
+                                                loading={isCheckingBlockStatus}
                                                 onClick={handleRefreshSetup}
                                             >
                                                 Refresh
