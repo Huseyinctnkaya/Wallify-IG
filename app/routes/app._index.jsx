@@ -837,8 +837,12 @@ export default function Dashboard() {
     const blockStepDescription = isBlockStepComplete
         ? "Instagram Feed block is detected in your current theme."
         : (themeBlockStatus?.message || "Add the Instagram Feed app block in your theme editor, then click refresh.");
-    const storeHandle = shop?.replace(".myshopify.com", "");
-    const themeEditorUrl = `https://admin.shopify.com/store/${storeHandle}/themes`;
+    const storeHandle = shop?.endsWith(".myshopify.com")
+        ? shop.replace(".myshopify.com", "")
+        : "";
+    const themeEditorUrl = storeHandle
+        ? `https://admin.shopify.com/store/${storeHandle}/themes`
+        : (shop ? `https://${shop}/admin/themes` : "");
     const previewButtonText = buttonText?.trim() || "Open in Instagram";
     const previewButtonUrl = instagramAccount?.username
         ? `https://instagram.com/${instagramAccount.username}`
@@ -846,6 +850,16 @@ export default function Dashboard() {
             ? displayMedia[0].permalink
             : "https://instagram.com");
     const handleRefreshSetup = () => window.location.assign("/app?check_block=1");
+    const handleOpenThemeEditor = () => {
+        if (!themeEditorUrl) return;
+
+        try {
+            window.open(themeEditorUrl, "_top");
+        } catch (error) {
+            console.error("Failed to open theme editor in top frame:", error);
+            window.open(themeEditorUrl, "_blank");
+        }
+    };
     const toggleSetupStep = (stepNumber) => {
         setOpenSetupSteps((prev) => ({
             ...prev,
@@ -985,8 +999,8 @@ export default function Dashboard() {
                                         >
                                             <Button
                                                 size="slim"
-                                                url={themeEditorUrl}
-                                                external
+                                                onClick={handleOpenThemeEditor}
+                                                disabled={!themeEditorUrl}
                                             >
                                                 Open Theme Editor
                                             </Button>
