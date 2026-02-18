@@ -640,10 +640,12 @@ export default function Dashboard() {
     // ... (existing handlers)
 
     const handleConnect = () => {
-        fetcher.submit(
-            { actionType: "connect" },
-            { method: "post" }
-        );
+        const authStartUrl = `/app/instagram/auth?shop=${encodeURIComponent(shop || "")}`;
+        const popup = window.open(authStartUrl, "_blank", "noopener,noreferrer");
+        if (!popup) {
+            // Fallback if popup is blocked by browser settings.
+            window.location.assign(authStartUrl);
+        }
     };
 
     const handleDisconnect = () => {
@@ -911,10 +913,7 @@ export default function Dashboard() {
 
     useEffect(() => {
         if (fetcher.data?.authUrl) {
-            const popup = window.open(fetcher.data.authUrl, "_blank", "noopener,noreferrer");
-            if (!popup) {
-                window.location.assign(fetcher.data.authUrl);
-            }
+            window.open(fetcher.data.authUrl, "_top");
         }
     }, [fetcher.data?.authUrl]);
 
