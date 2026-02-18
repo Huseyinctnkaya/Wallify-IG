@@ -105,10 +105,10 @@
                   data-media-type="{{ item.type }}"
                   data-permalink="{{ item.permalink }}"
                   data-caption="{{ item.caption }}"
-                  data-products="{{ item.products | json }}"
+                  data-products='{{ item.products | json }}'
                   data-username="{{ item.username }}"
                   data-has-carousel="{{ item.children.size | default: 0 }}"
-                  data-children="{{ item.children | json }}"
+                  data-children='{{ item.children | json }}'
                   style="border-radius: {{ radius_value }};"
                 >
                   {% if item.type == 'VIDEO' or item.type == 'REEL' %}
@@ -137,6 +137,7 @@
                         <span>{{ item.products.size }}</span>
                       </div>
                     {% endif %}
+
                   {% endunless %}
 
                   {% if show_author_profile %}
@@ -160,7 +161,9 @@
                         </a>
                       {% endfor %}
                       {% if item.products.size > 3 %}
-                        <span class="instagram-product-tag-more"> +{{ item.products.size | minus: 3 }} more </span>
+                        <span class="instagram-product-tag-more">
+                          +{{ item.products.size | minus: 3 }} more
+                        </span>
                       {% endif %}
                     </div>
                   {% endif %}
@@ -190,10 +193,10 @@
                 data-media-type="{{ item.type }}"
                 data-permalink="{{ item.permalink }}"
                 data-caption="{{ item.caption }}"
-                data-products="{{ item.products | json }}"
+                data-products='{{ item.products | json }}'
                 data-username="{{ item.username }}"
                 data-has-carousel="{{ item.children.size | default: 0 }}"
-                data-children="{{ item.children | json }}"
+                data-children='{{ item.children | json }}'
                 style="border-radius: {{ radius_value }};"
               >
                 {% if item.type == 'VIDEO' or item.type == 'REEL' %}
@@ -222,6 +225,7 @@
                       <span>{{ item.products.size }}</span>
                     </div>
                   {% endif %}
+
                 {% endunless %}
 
                 {% if show_author_profile %}
@@ -245,7 +249,9 @@
                       </a>
                     {% endfor %}
                     {% if item.products.size > 3 %}
-                      <span class="instagram-product-tag-more"> +{{ item.products.size | minus: 3 }} more </span>
+                      <span class="instagram-product-tag-more">
+                        +{{ item.products.size | minus: 3 }} more
+                      </span>
                     {% endif %}
                   </div>
                 {% endif %}
@@ -265,24 +271,12 @@
     {% endif %}
 
     {% comment %} Popup Modal {% endcomment %}
-    <div
-      class="instagram-popup-modal {% if clean_display %}instagram-popup-clean{% endif %}"
-      id="instagram-popup-{{ block.id }}"
-      style="display: none;"
-    >
+    <div class="instagram-popup-modal {% if clean_display %}instagram-popup-clean{% endif %}" id="instagram-popup-{{ block.id }}" style="display: none;">
       <div class="instagram-popup-overlay"></div>
       {% if clean_display %}
         {%- comment -%} Clean display: lightbox style like app preview {%- endcomment -%}
         <button class="instagram-popup-close instagram-popup-close-clean" aria-label="Close">
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="white"
-            stroke-width="2"
-            stroke-linecap="round"
-          >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
@@ -319,15 +313,7 @@
       {% else %}
         <div class="instagram-popup-content">
           <button class="instagram-popup-close" aria-label="Close">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
@@ -335,15 +321,7 @@
           <div class="instagram-popup-inner">
             <div class="instagram-popup-image">
               <img src="" alt="" class="popup-single-image">
-              <video
-                src=""
-                class="popup-single-video"
-                autoplay
-                loop
-                playsinline
-                controls
-                style="display: none;"
-              ></video>
+              <video src="" class="popup-single-video" autoplay loop playsinline controls style="display: none;"></video>
               <div class="popup-carousel-container" style="display: none;">
                 <div class="popup-carousel-track"></div>
                 <div class="popup-carousel-dots"></div>
@@ -471,9 +449,26 @@
           const totalSlides = slides.length;
           let maxIndex = Math.max(0, totalSlides - slidesToShow);
 
+          function getGapPx() {
+            const styles = window.getComputedStyle(track);
+            const gapValue = styles.columnGap || styles.gap || '0';
+            const parsedGap = parseFloat(gapValue);
+            return Number.isFinite(parsedGap) ? parsedGap : 0;
+          }
+
+          function getSlideWidthPx() {
+            if (!slides.length) return 0;
+            return slides[0].getBoundingClientRect().width;
+          }
+
+          function getSlideStep() {
+            return slidesToShow;
+          }
+
           function updateSlider() {
-            if (!slides[currentIndex]) return;
-            const offsetPx = slides[currentIndex].offsetLeft;
+            const slideWidthPx = getSlideWidthPx();
+            const gapPx = getGapPx();
+            const offsetPx = currentIndex * (slideWidthPx + gapPx);
             track.style.transform = `translateX(-${offsetPx}px)`;
 
             if (prevBtn) prevBtn.disabled = currentIndex === 0;
@@ -481,8 +476,7 @@
           }
 
           function moveSlider(direction) {
-            // Step size: 1 item at a time for smoother control on mobile/desktop
-            const step = 1;
+            const step = getSlideStep();
             if (direction < 0 && currentIndex > 0) {
               currentIndex = Math.max(0, currentIndex - step);
               updateSlider();
@@ -495,63 +489,60 @@
           }
 
           if (prevBtn) {
-            prevBtn.addEventListener('click', (e) => {
-              e.preventDefault();
+            prevBtn.addEventListener('click', () => {
               moveSlider(-1);
             });
           }
 
           if (nextBtn) {
-            nextBtn.addEventListener('click', (e) => {
-              e.preventDefault();
+            nextBtn.addEventListener('click', () => {
               moveSlider(1);
             });
           }
 
           let touchStartX = 0;
           let touchStartY = 0;
-          let isMoving = false;
+          let isTouchActive = false;
 
           wrapper.addEventListener('touchstart', (event) => {
             const touch = event.touches?.[0];
             if (!touch) return;
             touchStartX = touch.clientX;
             touchStartY = touch.clientY;
-            isMoving = true;
+            isTouchActive = true;
           }, { passive: true });
 
           wrapper.addEventListener('touchmove', (event) => {
-            if (!isMoving) return;
+            if (!isTouchActive) return;
             const touch = event.touches?.[0];
             if (!touch) return;
 
             const deltaX = touch.clientX - touchStartX;
             const deltaY = touch.clientY - touchStartY;
 
-            // Prevent page scroll only if swiping horizontally
-            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 5) {
-              if (event.cancelable) event.preventDefault();
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+              event.preventDefault();
             }
           }, { passive: false });
 
           wrapper.addEventListener('touchend', (event) => {
-            if (!isMoving) return;
+            if (!isTouchActive) return;
             const touch = event.changedTouches?.[0];
             if (!touch) return;
 
             const deltaX = touch.clientX - touchStartX;
             const deltaY = touch.clientY - touchStartY;
-            const swipeThreshold = 30;
+            const swipeThreshold = 40;
 
             if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > swipeThreshold) {
               moveSlider(deltaX > 0 ? -1 : 1);
             }
 
-            isMoving = false;
+            isTouchActive = false;
           }, { passive: true });
 
           wrapper.addEventListener('touchcancel', () => {
-            isMoving = false;
+            isTouchActive = false;
           }, { passive: true });
 
           updateSlider();
@@ -564,7 +555,7 @@
               maxIndex = Math.max(0, totalSlides - slidesToShow);
               currentIndex = Math.min(currentIndex, maxIndex);
               updateSlider();
-            }, 150);
+            }, 120);
           });
         }
       }
@@ -1608,9 +1599,7 @@
   {% if request.design_mode %}
     <div style="padding: 40px 20px; background: #f4f4f4; text-align: center; border-radius: 8px;">
       <p style="font-size: 16px; color: #666; margin-bottom: 10px;">📸 Instagram Feed App</p>
-      <p style="font-size: 14px; color: #999;">
-        No media found. Please connect your Instagram account in the App Settings and click "Sync Now".
-      </p>
+      <p style="font-size: 14px; color: #999;">No media found. Please connect your Instagram account in the App Settings and click "Sync Now".</p>
     </div>
   {% endif %}
 {% endif %}
