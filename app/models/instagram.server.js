@@ -87,14 +87,14 @@ export async function fetchInstagramMedia(instagramUserId, accessToken, limit = 
  * Use 'me' endpoint to get the authenticated user's profile
  */
 export async function fetchUserProfile(accessToken) {
-    const fields = "id,username,account_type,media_count,profile_picture_url";
+    const fields = "id,username,profile_picture_url";
     const url = `${INSTAGRAM_GRAPH_URL}/me?fields=${fields}&access_token=${accessToken}`;
 
     const response = await fetch(url);
 
     if (!response.ok) {
         const errorText = await response.text();
-        console.error("Instagram Profile Error:", errorText);
+        console.error("Instagram Profile Error:", response.status, errorText);
         throw new Error(`Failed to fetch profile: ${response.statusText}`);
     }
 
@@ -134,9 +134,28 @@ export async function getInstagramAccount(shop) {
 }
 
 /**
- * Disconnect Instagram account
+ * Revoke Instagram access token via Graph API
+ */
+async function revokeInstagramToken(accessToken) {
+    try {
+        const url = `${INSTAGRAM_GRAPH_URL}/me/permissions?access_token=${accessToken}`;
+        const response = await fetch(url, { method: "DELETE" });
+        if (!response.ok) {
+            console.error("Instagram token revocation failed:", response.status, await response.text());
+        }
+    } catch (error) {
+        console.error("Instagram token revocation error:", error);
+    }
+}
+
+/**
+ * Disconnect Instagram account and revoke token
  */
 export async function disconnectInstagramAccount(shop) {
+    const account = await prisma.instagramAccount.findUnique({ where: { shop } });
+    if (account?.accessToken) {
+        await revokeInstagramToken(account.accessToken);
+    }
     return prisma.instagramAccount.delete({
         where: { shop },
     });

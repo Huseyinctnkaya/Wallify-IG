@@ -46,18 +46,24 @@ export const loader = async ({ request }) => {
     }
 
     try {
+        console.log("Instagram callback: exchanging code for short-lived token...");
         const shortTokenData = await exchangeCodeForShortLivedToken(code);
         let accessToken = shortTokenData.access_token;
         let userId = String(shortTokenData.user_id || "");
+        console.log("Instagram callback: short-lived token obtained, userId:", userId);
 
         try {
+            console.log("Instagram callback: exchanging for long-lived token...");
             const longLived = await exchangeForLongLivedToken(accessToken);
             accessToken = longLived.access_token;
+            console.log("Instagram callback: long-lived token obtained");
         } catch (error) {
             console.error("Long-lived token exchange failed, using short-lived token:", error);
         }
 
+        console.log("Instagram callback: fetching user profile...");
         const profile = await fetchUserProfile(accessToken);
+        console.log("Instagram callback: profile fetched, username:", profile.username);
         userId = String(profile.id || userId);
         const existingAccount = await getInstagramAccount(shop);
         const accountChanged = !!(
