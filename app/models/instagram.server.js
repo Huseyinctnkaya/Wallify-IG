@@ -84,18 +84,19 @@ export async function fetchInstagramMedia(instagramUserId, accessToken, limit = 
 
 /**
  * Fetch Instagram user profile
- * Use 'me' endpoint to get the authenticated user's profile
+ * Uses /{user_id} endpoint for Business Login compatibility.
+ * Falls back to /me if no userId is provided.
  */
-export async function fetchUserProfile(accessToken) {
-    const fields = "id,username,profile_picture_url";
-    const url = `${INSTAGRAM_GRAPH_URL}/me?fields=${fields}&access_token=${accessToken}`;
+export async function fetchUserProfile(accessToken, userId) {
+    const fields = "user_id,username,name,profile_picture_url";
+    const node = userId ? `/${userId}` : "/me";
+    const url = `${INSTAGRAM_GRAPH_URL}${node}?fields=${fields}&access_token=${accessToken}`;
 
     const response = await fetch(url);
 
     if (!response.ok) {
         const errorText = await response.text();
         console.error("Instagram Profile Error:", response.status, errorText);
-        // Parse the actual Instagram error for better diagnostics
         let igError = response.statusText;
         try {
             const parsed = JSON.parse(errorText);
@@ -104,7 +105,12 @@ export async function fetchUserProfile(accessToken) {
         throw new Error(`Failed to fetch profile: ${igError}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    // Normalize: ensure 'id' field exists (new API returns 'user_id')
+    if (!data.id && data.user_id) {
+        data.id = data.user_id;
+    }
+    return data;
 }
 
 /**
@@ -179,7 +185,7 @@ export async function syncInstagramToMetafields(shop, admin) {
 
     // Always refresh profile picture
     try {
-        const profile = await fetchUserProfile(account.accessToken);
+        const profile = await fetchUserProfile(account.accessToken, account.userId);
         console.log("Instagram profile response:", JSON.stringify(profile));
         if (profile.profile_picture_url) {
             await saveInstagramAccount({

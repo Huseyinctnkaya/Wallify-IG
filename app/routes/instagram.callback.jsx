@@ -61,10 +61,10 @@ export const loader = async ({ request }) => {
             console.error("Long-lived token exchange failed, using short-lived token:", error);
         }
 
-        console.log("Instagram callback: fetching user profile...");
-        const profile = await fetchUserProfile(accessToken);
+        console.log("Instagram callback: fetching user profile for userId:", userId);
+        const profile = await fetchUserProfile(accessToken, userId);
         console.log("Instagram callback: profile fetched, username:", profile.username);
-        userId = String(profile.id || userId);
+        userId = String(profile.id || profile.user_id || userId);
         const existingAccount = await getInstagramAccount(shop);
         const accountChanged = !!(
             existingAccount?.userId &&
