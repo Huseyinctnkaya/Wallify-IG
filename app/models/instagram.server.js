@@ -95,7 +95,13 @@ export async function fetchUserProfile(accessToken) {
     if (!response.ok) {
         const errorText = await response.text();
         console.error("Instagram Profile Error:", response.status, errorText);
-        throw new Error(`Failed to fetch profile: ${response.statusText}`);
+        // Parse the actual Instagram error for better diagnostics
+        let igError = response.statusText;
+        try {
+            const parsed = JSON.parse(errorText);
+            igError = parsed?.error?.message || parsed?.error_message || igError;
+        } catch (_) {}
+        throw new Error(`Failed to fetch profile: ${igError}`);
     }
 
     return await response.json();
