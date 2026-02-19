@@ -46,31 +46,38 @@ export const loader = async ({ request }) => {
     }
 
     try {
+        // Step 1: Exchange code for short-lived token
         console.log("Instagram callback: exchanging code for short-lived token...");
         const shortTokenData = await exchangeCodeForShortLivedToken(code);
-        let accessToken = shortTokenData.access_token;
+        const shortLivedToken = shortTokenData.access_token;
         let userId = String(shortTokenData.user_id || "");
         console.log("Instagram callback: short-lived token obtained, userId:", userId);
 
+        // Step 2: Fetch profile with short-lived token FIRST (before long-lived exchange)
+        console.log("Instagram callback: fetching user profile with short-lived token...");
+        const profile = await fetchUserProfile(shortLivedToken, userId);
+        console.log("Instagram callback: profile fetched, username:", profile.username);
+        userId = String(profile.id || profile.user_id || userId);
+
+        // Step 3: Exchange for long-lived token (for storage)
+        let accessToken = shortLivedToken;
         try {
             console.log("Instagram callback: exchanging for long-lived token...");
-            const longLived = await exchangeForLongLivedToken(accessToken);
+            const longLived = await exchangeForLongLivedToken(shortLivedToken);
             accessToken = longLived.access_token;
             console.log("Instagram callback: long-lived token obtained");
         } catch (error) {
             console.error("Long-lived token exchange failed, using short-lived token:", error);
         }
 
-        console.log("Instagram callback: fetching user profile for userId:", userId);
-        const profile = await fetchUserProfile(accessToken, userId);
-        console.log("Instagram callback: profile fetched, username:", profile.username);
-        userId = String(profile.id || profile.user_id || userId);
+        // Step 4: Check if account changed
         const existingAccount = await getInstagramAccount(shop);
         const accountChanged = !!(
             existingAccount?.userId &&
             String(existingAccount.userId) !== String(userId)
         );
 
+        // Step 5: Save account with best available token
         await saveInstagramAccount({
             shop,
             accessToken,
