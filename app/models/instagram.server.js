@@ -4,7 +4,7 @@ import { getSettings } from "./settings.server";
 import { isPremiumShop } from "../utils/premium.server";
 
 // Instagram Graph API Endpoints
-const INSTAGRAM_GRAPH_URL = "https://graph.instagram.com";
+const INSTAGRAM_GRAPH_URL = "https://graph.instagram.com/v21.0";
 
 /**
  * Fetch carousel children for a media item
