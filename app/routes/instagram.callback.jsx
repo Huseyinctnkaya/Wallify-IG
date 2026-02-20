@@ -53,11 +53,17 @@ export const loader = async ({ request }) => {
         let userId = String(shortTokenData.user_id || "");
         console.log("Instagram callback: short-lived token obtained, userId:", userId);
 
-        // Step 2: Fetch profile with short-lived token FIRST (before long-lived exchange)
-        console.log("Instagram callback: fetching user profile with short-lived token...");
-        const profile = await fetchUserProfile(shortLivedToken, userId);
-        console.log("Instagram callback: profile fetched, username:", profile.username);
-        userId = String(profile.id || profile.user_id || userId);
+        // Step 2: Fetch profile (optional - may fail with Standard Access)
+        let profile = null;
+        try {
+            console.log("Instagram callback: fetching user profile...");
+            profile = await fetchUserProfile(shortLivedToken, userId);
+            console.log("Instagram callback: profile fetched, username:", profile.username);
+            userId = String(profile.id || profile.user_id || userId);
+        } catch (profileError) {
+            console.error("Instagram callback: profile fetch failed (may need Advanced Access):", profileError.message);
+            // Continue without profile - we still have userId from token exchange
+        }
 
         // Step 3: Exchange for long-lived token (for storage)
         let accessToken = shortLivedToken;
@@ -82,8 +88,8 @@ export const loader = async ({ request }) => {
             shop,
             accessToken,
             userId,
-            username: profile.username,
-            profilePictureUrl: profile.profile_picture_url || null,
+            username: profile?.username || null,
+            profilePictureUrl: profile?.profile_picture_url || null,
         });
 
         if (accountChanged) {
