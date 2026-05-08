@@ -33,10 +33,6 @@ export function buildInstagramAuthUrl({ shop }) {
 
     const url = new URL(authUrl);
     url.searchParams.set("client_id", clientId);
-    // Keep compatibility with Instagram Business Login where app_id is expected.
-    url.searchParams.set("app_id", appId);
-    // Some Instagram Business Login apps validate this explicitly.
-    url.searchParams.set("platform_app_id", appId);
     url.searchParams.set("redirect_uri", redirectUri);
     url.searchParams.set("scope", scope);
     url.searchParams.set("response_type", "code");
@@ -45,10 +41,13 @@ export function buildInstagramAuthUrl({ shop }) {
         "enable_fb_login",
         process.env.INSTAGRAM_ENABLE_FB_LOGIN || "1"
     );
+    // force_authentication: Instagram-native re-login parameter.
+    // auth_type=reauthorize: Facebook Business Login re-login parameter (required when enable_fb_login=1).
     url.searchParams.set(
         "force_authentication",
         process.env.INSTAGRAM_FORCE_AUTHENTICATION || "1"
     );
+    url.searchParams.set("auth_type", "reauthorize");
 
     return url.toString();
 }

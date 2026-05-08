@@ -1142,6 +1142,10 @@ export default function Dashboard() {
                                             </Text>
                                         </InlineStack>
 
+                                        <Text variant="bodySm" as="p" tone="subdued">
+                                            To connect a different account, disconnect first, then log into the new account in your browser before reconnecting.
+                                        </Text>
+
                                         <InlineStack gap="200">
                                             <Button
                                                 onClick={handleSync}
@@ -1163,6 +1167,12 @@ export default function Dashboard() {
                                         <Text variant="bodyMd" as="p" tone="subdued">
                                             Connect your Instagram business account to display your feed.
                                         </Text>
+                                        <Banner tone="info" title="Before connecting">
+                                            <BlockStack gap="100">
+                                                <Text as="p" variant="bodyMd">Make sure you are logged into the correct Instagram account in your browser before clicking Connect.</Text>
+                                                <Text as="p" variant="bodyMd">If you see a "not authorized" error, your Instagram account must be added as a Tester in the <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer">Meta App Dashboard</a> while the app is in Development mode.</Text>
+                                            </BlockStack>
+                                        </Banner>
                                         <div>
                                             <Button
                                                 variant="primary"
