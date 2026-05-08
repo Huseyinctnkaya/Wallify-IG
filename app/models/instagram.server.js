@@ -89,28 +89,39 @@ export async function fetchInstagramMedia(instagramUserId, accessToken, limit = 
  */
 export async function fetchUserProfile(accessToken, userId) {
     const fields = "user_id,username,name,profile_picture_url";
-    const node = userId ? `/${userId}` : "/me";
-    const url = `${INSTAGRAM_GRAPH_URL}${node}?fields=${fields}&access_token=${accessToken}`;
 
-    const response = await fetch(url);
+    // Try /me first — always resolves to the token owner regardless of ID type.
+    // Fall back to /{userId} for cases where /me is not supported.
+    const endpoints = [
+        `${INSTAGRAM_GRAPH_URL}/me?fields=${fields}&access_token=${accessToken}`,
+        ...(userId ? [`${INSTAGRAM_GRAPH_URL}/${userId}?fields=${fields}&access_token=${accessToken}`] : []),
+    ];
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Instagram Profile Error:", response.status, errorText);
-        let igError = response.statusText;
-        try {
-            const parsed = JSON.parse(errorText);
-            igError = parsed?.error?.message || parsed?.error_message || igError;
-        } catch (_) {}
-        throw new Error(`Failed to fetch profile: ${igError}`);
+    let lastError = null;
+    for (const url of endpoints) {
+        const response = await fetch(url);
+        if (!response.ok) {
+            const errorText = await response.text();
+            let igError = response.statusText;
+            try {
+                const parsed = JSON.parse(errorText);
+                igError = parsed?.error?.message || parsed?.error_message || igError;
+            } catch (_) {}
+            lastError = new Error(`Failed to fetch profile: ${igError}`);
+            console.error("Instagram Profile Error (trying next):", response.status, igError);
+            continue;
+        }
+
+        const data = await response.json();
+        if (!data.id && data.user_id) {
+            data.id = data.user_id;
+        }
+        if (data.username) return data;
+        // Response OK but no username — try next endpoint
+        lastError = new Error("Profile response missing username");
     }
 
-    const data = await response.json();
-    // Normalize: ensure 'id' field exists (new API returns 'user_id')
-    if (!data.id && data.user_id) {
-        data.id = data.user_id;
-    }
-    return data;
+    throw lastError || new Error("Failed to fetch profile");
 }
 
 /**
