@@ -4,238 +4,190 @@ import {
     Layout,
     Card,
     BlockStack,
+    InlineStack,
     Text,
     Button,
-    InlineStack,
+    Link,
+    Icon,
     Collapsible,
+    Divider,
     Box,
 } from "@shopify/polaris";
+import { ClockIcon, EmailIcon, GlobeIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
+
+const SUPPORT_EMAIL = "info@34devs.com";
+const WEBSITE = "landing.wallifyig.app";
 
 export const loader = async ({ request }) => {
     await authenticate.admin(request);
     return {};
 };
 
+// Kept in sync with the actual UI labels: the wording here is what a merchant
+// has to find on screen, so it should match the buttons exactly.
+const FAQS = [
+    {
+        question: "How do I connect my Instagram account?",
+        answer:
+            "Open the Dashboard and click “Connect Instagram account”. You will be sent to Instagram to authorize access. Note that Instagram only allows Business and Creator accounts to be connected — personal accounts will not work.",
+    },
+    {
+        question: "My feed is not showing on my storefront",
+        answer:
+            "Three things need to be in place. First, your Instagram account has to be connected on the Dashboard. Second, click “Sync Media” so your posts are pulled in. Third, open your theme editor and add the “Instagram Feed” block to the page where you want it — the app cannot place it for you. The Dashboard’s setup guide tracks all three and shows which step is still missing.",
+    },
+    {
+        question: "Where do I change how the feed looks?",
+        answer:
+            "Everything is on the Dashboard, below the setup guide: feed type (slider or grid), column counts for desktop and mobile, spacing, corner radius, button text and colors. The preview updates as you edit, and saving pushes the change to your storefront.",
+    },
+    {
+        question: "How do I manage individual posts?",
+        answer:
+            "The “Posts & Reels” page lists everything pulled in from Instagram. On the Premium plan you can pin a post so it appears first, hide one so it never reaches your storefront, and attach Shopify products to a post so shoppers can buy what they see.",
+    },
+    {
+        question: "What does Premium include, and what does it cost?",
+        answer:
+            "Premium is $2.99 per month and adds pinning, hiding, attaching products to posts, and the full analytics breakdown. Everything else — connecting Instagram, syncing, both feed layouts and all the styling options — works on the free plan. You can subscribe or cancel any time from the Plans page.",
+    },
+    {
+        question: "How do posts with multiple images behave?",
+        answer:
+            "A carousel post shows its first image in the feed. Clicking it opens a popup where shoppers can move through the rest with the arrows or the dots.",
+    },
+    {
+        question: "What does “Show pinned reels only” do?",
+        answer:
+            "It limits your storefront feed to the posts you have pinned, which is useful when you want to feature a specific set rather than your latest posts. It changes the storefront only — the “Posts & Reels” page still lists everything.",
+    },
+    {
+        question: "What is on the Analytics page?",
+        answer:
+            "Views, clicks and click-through rate for your feed, how each compares with the previous week, a chart of the last seven days, and a ranking of which posts are actually getting clicked.",
+    },
+];
+
+function ContactRow({ icon, label, children }) {
+    return (
+        <InlineStack gap="300" blockAlign="center" wrap={false}>
+            <Icon source={icon} tone="subdued" />
+            <BlockStack gap="050">
+                <Text variant="bodySm" as="h3" tone="subdued">
+                    {label}
+                </Text>
+                {children}
+            </BlockStack>
+        </InlineStack>
+    );
+}
+
+function FaqItem({ faq, index, isOpen, onToggle }) {
+    const contentId = `faq-panel-${index}`;
+
+    return (
+        <BlockStack gap="200">
+            {/* The heading wraps the button rather than sitting inside it: a
+                heading nested in a button is invalid, and screen readers need
+                the questions to show up in the document outline. */}
+            <Text as="h3" variant="headingSm">
+                <Button
+                    variant="tertiary"
+                    textAlign="left"
+                    fullWidth
+                    disclosure={isOpen ? "up" : "down"}
+                    ariaExpanded={isOpen}
+                    ariaControls={contentId}
+                    onClick={onToggle}
+                >
+                    {faq.question}
+                </Button>
+            </Text>
+
+            <Collapsible
+                open={isOpen}
+                id={contentId}
+                transition={{ duration: "200ms", timingFunction: "ease-in-out" }}
+            >
+                <Box paddingInlineStart="300" paddingBlockEnd="200">
+                    <Text variant="bodyMd" as="p" tone="subdued">
+                        {faq.answer}
+                    </Text>
+                </Box>
+            </Collapsible>
+        </BlockStack>
+    );
+}
+
 export default function Contact() {
     const [openFAQ, setOpenFAQ] = useState(null);
 
-    const toggleFAQ = (index) => {
-        setOpenFAQ(openFAQ === index ? null : index);
-    };
-
-    const faqs = [
-        {
-            question: "How do I connect my Instagram account?",
-            answer: "Go to the Dashboard and click 'Connect Instagram'. You will be redirected to Instagram Login to authorize your own account."
-        },
-        {
-            question: "My feed is not showing on the storefront, what should I do?",
-            answer: "1. Make sure you've connected your Instagram account. 2. Click 'Sync Media' on the Dashboard to sync your posts. 3. Go to your theme editor and add the Instagram Feed block to your desired page."
-        },
-        {
-            question: "How can I use Premium features?",
-            answer: "Premium features (Pin posts, Hide posts, Attach products, Advanced analytics) are currently disabled in the free plan. They will be available when you upgrade to the Premium plan."
-        },
-        {
-            question: "How do I manage my posts?",
-            answer: "Go to the 'Posts & Reels' page to see all your Instagram posts. With Premium, you can pin posts (to feature them), hide posts (to remove from storefront), and attach Shopify products to posts."
-        },
-        {
-            question: "How do carousel posts work?",
-            answer: "Carousel posts (posts with multiple images) show only the first image in the feed. When you click on them, a popup opens where you can navigate through all images using arrows and dots."
-        },
-        {
-            question: "Can I customize the feed appearance?",
-            answer: "Yes! Go to Settings to customize: feed type (slider/grid), colors, spacing, border radius, number of columns, and more. Changes are reflected in the preview and on your storefront."
-        },
-        {
-            question: "How does the 'Show pinned reels only' setting work?",
-            answer: "When enabled, only posts you've pinned will be displayed on the storefront. This is useful for featuring specific content. Note: This setting only affects the storefront, not the Posts management page."
-        },
-        {
-            question: "What analytics are available?",
-            answer: "The Analytics page shows: total views and clicks, click-through rate, total engagement, week-over-week changes, last 7 days activity chart, and top performing posts with detailed metrics."
-        }
-    ];
-
     return (
-        <Page title="Contact & Support" narrowWidth>
+        <Page title="Contact & support" narrowWidth>
             <Layout>
-                {/* Contact Support Card */}
                 <Layout.Section>
                     <Card>
-                        <BlockStack gap="500">
-                            <BlockStack gap="300">
-                                <Text variant="headingLg" as="h2">
-                                    Contact Support
+                        <BlockStack gap="400">
+                            <BlockStack gap="100">
+                                <Text variant="headingMd" as="h2">
+                                    Get in touch
                                 </Text>
                                 <Text variant="bodyMd" as="p" tone="subdued">
-                                    Need help? Our support team is here to assist you with any questions or issues.
+                                    Tell us your store URL and what you were doing when the
+                                    problem happened — it saves a round trip.
                                 </Text>
                             </BlockStack>
 
-                            <Box
-                                padding="400"
-                                background="bg-surface-secondary"
-                                borderRadius="300"
-                            >
-                                <BlockStack gap="400">
-                                    <InlineStack gap="300" blockAlign="center">
-                                        <div style={{
-                                            width: '40px',
-                                            height: '40px',
-                                            borderRadius: '8px',
-                                            background: '#f0f0f0',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}>
-                                            <Text variant="headingMd" as="span">📧</Text>
-                                        </div>
-                                        <BlockStack gap="100">
-                                            <Text variant="headingSm" as="h3">
-                                                Email
-                                            </Text>
-                                            <Text variant="bodyMd" as="p">
-                                                info@34devs.com
-                                            </Text>
-                                        </BlockStack>
-                                    </InlineStack>
+                            <BlockStack gap="400">
+                                <ContactRow icon={EmailIcon} label="Email">
+                                    <Link url={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</Link>
+                                </ContactRow>
 
-                                    <InlineStack gap="300" blockAlign="center">
-                                        <div style={{
-                                            width: '40px',
-                                            height: '40px',
-                                            borderRadius: '8px',
-                                            background: '#f0f0f0',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}>
-                                            <Text variant="headingMd" as="span">⏰</Text>
-                                        </div>
-                                        <BlockStack gap="100">
-                                            <Text variant="headingSm" as="h3">
-                                                Response time
-                                            </Text>
-                                            <Text variant="bodyMd" as="p">
-                                                Within 24 hours
-                                            </Text>
-                                        </BlockStack>
-                                    </InlineStack>
+                                <ContactRow icon={ClockIcon} label="Response time">
+                                    <Text variant="bodyMd" as="p">
+                                        Within 24 hours on business days
+                                    </Text>
+                                </ContactRow>
 
-                                    <InlineStack gap="300" blockAlign="center">
-                                        <div style={{
-                                            width: '40px',
-                                            height: '40px',
-                                            borderRadius: '8px',
-                                            background: '#f0f0f0',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}>
-                                            <Text variant="headingMd" as="span">🌐</Text>
-                                        </div>
-                                        <BlockStack gap="100">
-                                            <Text variant="headingSm" as="h3">
-                                                Website
-                                            </Text>
-                                            <Text variant="bodyMd" as="p">
-                                                <a href="https://landing.wallifyig.app/" target="_blank" rel="noopener noreferrer" style={{ color: '#005bd3', textDecoration: 'none' }}>
-                                                    landing.wallifyig.app
-                                                </a>
-                                            </Text>
-                                        </BlockStack>
-                                    </InlineStack>
+                                <ContactRow icon={GlobeIcon} label="Website">
+                                    <Link url={`https://${WEBSITE}/`} target="_blank">
+                                        {WEBSITE}
+                                    </Link>
+                                </ContactRow>
+                            </BlockStack>
 
-                                    <Box paddingBlockStart="200">
-                                        <Button
-                                            variant="primary"
-                                            url="mailto:info@34devs.com"
-                                            external
-                                            fullWidth
-                                        >
-                                            Send Email
-                                        </Button>
-                                    </Box>
-                                </BlockStack>
-                            </Box>
+                            <Button variant="primary" url={`mailto:${SUPPORT_EMAIL}`} external>
+                                Email support
+                            </Button>
                         </BlockStack>
                     </Card>
                 </Layout.Section>
 
-                {/* FAQ Section */}
                 <Layout.Section>
                     <Card>
-                        <BlockStack gap="500">
+                        <BlockStack gap="400">
+                            <Text variant="headingMd" as="h2">
+                                Frequently asked questions
+                            </Text>
+
                             <BlockStack gap="300">
-                                <Text variant="headingLg" as="h2">
-                                    Frequently Asked Questions
-                                </Text>
-                                <Text variant="bodyMd" as="p" tone="subdued">
-                                    Find answers to common questions about the Instagram Feed app.
-                                </Text>
-                            </BlockStack>
-
-                            <BlockStack gap="200">
-                                {faqs.map((faq, index) => (
-                                    <Box
-                                        key={index}
-                                        padding="400"
-                                        background="bg-surface-secondary"
-                                        borderRadius="200"
-                                    >
-                                        <BlockStack gap="300">
-                                            <Button
-                                                variant="plain"
-                                                textAlign="left"
-                                                onClick={() => toggleFAQ(index)}
-                                                fullWidth
-                                            >
-                                                <InlineStack align="space-between" blockAlign="center">
-                                                    <Text variant="headingSm" as="h3" fontWeight="semibold">
-                                                        {faq.question}
-                                                    </Text>
-                                                    <div style={{
-                                                        width: '24px',
-                                                        height: '24px',
-                                                        borderRadius: '50%',
-                                                        background: '#f0f0f0',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        flexShrink: 0
-                                                    }}>
-                                                        <Text variant="bodySm" as="span" fontWeight="semibold">
-                                                            {openFAQ === index ? "−" : "+"}
-                                                        </Text>
-                                                    </div>
-                                                </InlineStack>
-                                            </Button>
-
-                                            <Collapsible
-                                                open={openFAQ === index}
-                                                id={`faq-${index}`}
-                                                transition={{ duration: "200ms", timingFunction: "ease-in-out" }}
-                                            >
-                                                <Box paddingBlockStart="100">
-                                                    <Text variant="bodyMd" as="p" tone="subdued">
-                                                        {faq.answer}
-                                                    </Text>
-                                                </Box>
-                                            </Collapsible>
-                                        </BlockStack>
-                                    </Box>
+                                {FAQS.map((faq, index) => (
+                                    <BlockStack key={faq.question} gap="300">
+                                        {index > 0 && <Divider />}
+                                        <FaqItem
+                                            faq={faq}
+                                            index={index}
+                                            isOpen={openFAQ === index}
+                                            onToggle={() =>
+                                                setOpenFAQ(openFAQ === index ? null : index)
+                                            }
+                                        />
+                                    </BlockStack>
                                 ))}
                             </BlockStack>
                         </BlockStack>
                     </Card>
-                </Layout.Section>
-
-                {/* Bottom Spacing */}
-                <Layout.Section>
-                    <Box paddingBlockEnd="800" />
                 </Layout.Section>
             </Layout>
         </Page>
