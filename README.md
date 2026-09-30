@@ -20,6 +20,20 @@ Goal: increase social proof, improve product discovery, and keep your storefront
 - Click and view tracking (Analytics)
 - Advanced capabilities with the Premium plan
 
+## Running it locally
+
+Requires Node >= 22.12 and a PostgreSQL database.
+
+```bash
+cp .env.example .env          # then fill in DATABASE_URL and the Meta app keys
+npm install
+npx prisma migrate deploy     # creates the schema
+npm run dev                   # shopify app dev
+```
+
+`DATABASE_URL` is required — there is no SQLite fallback. For a throwaway local
+database: `createdb wallify_ig_dev`.
+
 ## Quick setup flow
 
 1. Open the app and connect your Instagram account.

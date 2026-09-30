@@ -2,6 +2,7 @@ import { prisma } from "../db.server";
 import { getPosts } from "./post.server";
 import { getSettings } from "./settings.server";
 import { isPremiumShop } from "../utils/premium.server";
+import { setShopMetafields } from "./shopify-metafields.server";
 
 // Instagram Graph API Endpoints
 const INSTAGRAM_GRAPH_URL = "https://graph.instagram.com/v21.0";
@@ -272,78 +273,21 @@ export async function syncInstagramToMetafields(shop, admin) {
         return 0;
     });
 
-    const jsonValue = JSON.stringify(enrichedMedia);
-
-    // Get shop ID for metafield owner
-    const shopIdResponse = await admin.graphql(`
-        query {
-            shop {
-                id
-            }
-        }
-    `);
-    const shopIdData = await shopIdResponse.json();
-    const shopId = shopIdData.data.shop.id;
-
-    const metafieldsPayload = [
+    const metafields = [
         {
-            namespace: "instagram_feed",
             key: "media",
             type: "json",
-            value: jsonValue,
-            ownerId: shopId
-        }
+            value: JSON.stringify(enrichedMedia),
+        },
     ];
 
     if (account.profilePictureUrl) {
-        metafieldsPayload.push({
-            namespace: "instagram_feed",
+        metafields.push({
             key: "profile_picture_url",
             type: "single_line_text_field",
             value: account.profilePictureUrl,
-            ownerId: shopId
         });
     }
 
-    const appUrl = process.env.SHOPIFY_APP_URL?.replace(/\/$/, "");
-    if (appUrl) {
-        metafieldsPayload.push({
-            namespace: "instagram_feed",
-            key: "tracking_url",
-            type: "single_line_text_field",
-            value: `${appUrl}/api/track`,
-            ownerId: shopId
-        });
-    }
-
-    // Save to metafields
-    const response = await admin.graphql(
-        `#graphql
-        mutation MetafieldsSet($metafields: [MetafieldsSetInput!]!) {
-            metafieldsSet(metafields: $metafields) {
-                metafields {
-                    key
-                    namespace
-                    value
-                }
-                userErrors {
-                    field
-                    message
-                }
-            }
-        }`,
-        {
-            variables: {
-                metafields: metafieldsPayload
-            },
-        }
-    );
-
-    const result = await response.json();
-
-    if (result.data.metafieldsSet.userErrors.length > 0) {
-        throw new Error(result.data.metafieldsSet.userErrors[0].message);
-    }
-
-    return result.data.metafieldsSet;
+    return setShopMetafields(admin, metafields);
 }

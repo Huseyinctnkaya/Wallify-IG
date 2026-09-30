@@ -3,6 +3,15 @@ import { Form, useLoaderData } from "@remix-run/react";
 import { login } from "../../shopify.server";
 import styles from "./styles.module.css";
 
+export const meta = () => [
+  { title: "Wallify IG — Instagram Feed for Shopify" },
+  {
+    name: "description",
+    content:
+      "Display your Instagram posts and reels on your Shopify storefront as a modern, customizable feed. No code required.",
+  },
+];
+
 export const loader = async ({ request }) => {
   const url = new URL(request.url);
 
@@ -19,9 +28,11 @@ export default function App() {
   return (
     <div className={styles.index}>
       <div className={styles.content}>
-        <h1 className={styles.heading}>A short heading about [your app]</h1>
+        <h1 className={styles.heading}>Your Instagram, on your storefront</h1>
         <p className={styles.text}>
-          A tagline about [your app] that describes your value proposition.
+          Wallify IG brings your Instagram posts and reels into your Shopify
+          store as a modern feed — so visitors see the social proof that turns
+          browsers into buyers.
         </p>
         {showForm && (
           <Form className={styles.form} method="post" action="/auth/login">
@@ -37,16 +48,19 @@ export default function App() {
         )}
         <ul className={styles.list}>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Set up without code</strong>. Connect your Instagram
+            Business or Creator account, sync your media, and drop the feed into
+            any section from the Shopify theme editor.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Match your storefront</strong>. Choose a slider or grid
+            layout, set column counts per device, and tune spacing, corners, and
+            colors until the feed looks like it was always part of your theme.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>See what converts</strong>. Track views and clicks per post,
+            pin the content you want first, hide what you do not, and attach
+            products to the posts that sell them.
           </li>
         </ul>
       </div>

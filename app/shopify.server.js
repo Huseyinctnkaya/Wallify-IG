@@ -8,13 +8,18 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import { prisma } from "./db.server";
 
+// Admin API version. Keep in sync with the two other consumers:
+//   - shopify.app.toml -> [webhooks] api_version
+//   - .graphqlrc.js    -> shopifyApiProject({ apiVersion })
+export const API_VERSION = ApiVersion.July26;
+
 export const PREMIUM_PLAN = "Premium";
 export const BILLING_IS_TEST = process.env.BILLING_TEST_MODE === "true";
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
-  apiVersion: ApiVersion.January25,
+  apiVersion: API_VERSION,
   scopes: process.env.SCOPES?.split(","),
   appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
@@ -41,7 +46,7 @@ const shopify = shopifyApp({
 });
 
 export default shopify;
-export const apiVersion = ApiVersion.January25;
+export const apiVersion = API_VERSION;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
 export const authenticate = shopify.authenticate;
 export const unauthenticated = shopify.unauthenticated;

@@ -6,7 +6,6 @@
 {% assign show_arrows = settings_metafield.showArrows | default: true %}
 {% assign post_spacing = settings_metafield.postSpacing | default: 'medium' %}
 {% assign border_radius = settings_metafield.borderRadius | default: 'medium' %}
-{% assign tracking_url = shop.metafields.instagram_feed.tracking_url.value %}
 {% assign profile_picture_url = shop.metafields.instagram_feed.profile_picture_url.value %}
 {% assign clean_display_raw = settings_metafield.cleanDisplay %}
 {% assign button_text = settings_metafield.buttonText | default: 'Open in Instagram' %}
@@ -70,34 +69,32 @@
     data-on-click="{{ on_click }}"
     data-desktop-cols="{{ desktop_cols }}"
     data-mobile-cols="{{ mobile_cols }}"
-    data-shop-domain="{{ shop.permanent_domain | escape }}"
-    data-direct-tracking-url="{{ tracking_url | default: '' | escape }}"
     style="
       --if-desktop-cols: {{ desktop_cols }};
       --if-mobile-cols: {{ mobile_cols }};
       --if-spacing: {{ spacing_value }}px;
-      --if-arrow-bg: {{ settings_metafield.arrowBackgroundColor | default: 'rgba(255, 255, 255, 0.9)' }};
-      --if-arrow-color: {{ settings_metafield.arrowColor | default: '#000' }};
-      --if-card-username-color: {{ settings_metafield.cardUserNameColor | default: '#ffffff' }};
-      --if-card-badge-bg: {{ settings_metafield.cardBadgeBackgroundColor | default: 'rgba(255, 255, 255, 0.95)' }};
-      --if-card-badge-icon-color: {{ settings_metafield.cardBadgeIconColor | default: '#000' }};
+      --if-arrow-bg: {{ settings_metafield.arrowBackgroundColor | default: 'rgba(255, 255, 255, 0.9)' | escape }};
+      --if-arrow-color: {{ settings_metafield.arrowColor | default: '#000' | escape }};
+      --if-card-username-color: {{ settings_metafield.cardUserNameColor | default: '#ffffff' | escape }};
+      --if-card-badge-bg: {{ settings_metafield.cardBadgeBackgroundColor | default: 'rgba(255, 255, 255, 0.95)' | escape }};
+      --if-card-badge-icon-color: {{ settings_metafield.cardBadgeIconColor | default: '#000' | escape }};
     "
   >
     {% if settings_metafield.title and settings_metafield.title != blank %}
       <h2
         class="instagram-feed-title"
-        style="text-align: center; color: {{ settings_metafield.titleColor | default: '#000000' }}; margin-bottom: 10px;"
+        style="text-align: center; color: {{ settings_metafield.titleColor | default: '#000000' | escape }}; margin-bottom: 10px;"
       >
-        {{ settings_metafield.title }}
+        {{ settings_metafield.title | escape }}
       </h2>
     {% endif %}
 
     {% if settings_metafield.subheading and settings_metafield.subheading != blank %}
       <p
         class="instagram-feed-subheading"
-        style="text-align: center; color: {{ settings_metafield.subheadingColor | default: '#666666' }}; margin-bottom: 30px;"
+        style="text-align: center; color: {{ settings_metafield.subheadingColor | default: '#666666' | escape }}; margin-bottom: 30px;"
       >
-        {{ settings_metafield.subheading }}
+        {{ settings_metafield.subheading | escape }}
       </p>
     {% endif %}
 
@@ -118,22 +115,22 @@
               <div class="instagram-slide" data-slide-index="{{ forloop.index0 }}">
                 <div
                   class="instagram-feed-item"
-                  data-media-id="{{ item.id }}"
-                  data-media-url="{{ item.thumbnail }}"
-                  data-video-url="{{ item.url }}"
-                  data-media-type="{{ item.type }}"
-                  data-permalink="{{ item.permalink }}"
-                  data-caption="{{ item.caption }}"
-                  data-products='{{ item.products | json }}'
-                  data-username="{{ item.username }}"
+                  data-media-id="{{ item.id | escape }}"
+                  data-media-url="{{ item.thumbnail | escape }}"
+                  data-video-url="{{ item.url | escape }}"
+                  data-media-type="{{ item.type | escape }}"
+                  data-permalink="{{ item.permalink | escape }}"
+                  data-caption="{{ item.caption | escape }}"
+                  data-products='{{ item.products | json | escape }}'
+                  data-username="{{ item.username | escape }}"
                   data-has-carousel="{{ item.children.size | default: 0 }}"
-                  data-children='{{ item.children | json }}'
+                  data-children='{{ item.children | json | escape }}'
                   style="border-radius: {{ radius_value }};"
                 >
                   {% if item.type == 'VIDEO' or item.type == 'REEL' %}
-                    <video src="{{ item.url }}" poster="{{ item.thumbnail }}" muted loop playsinline preload="none"></video>
+                    <video src="{{ item.url | escape }}" poster="{{ item.thumbnail | escape }}" muted loop playsinline preload="none"></video>
                   {% else %}
-                    <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy">
+                    <img src="{{ item.thumbnail | escape }}" alt="{{ item.caption | escape }}" loading="lazy">
                   {% endif %}
 
                   {% unless clean_display %}
@@ -165,7 +162,7 @@
                         {% if profile_picture_url %}
                           <img src="{{ profile_picture_url }}" alt="" class="instagram-feed-avatar">
                         {% endif %}
-                        <span class="instagram-icon">@{{ item.username }}</span>
+                        <span class="instagram-icon">@{{ item.username | escape }}</span>
                       </div>
                     </div>
                   {% endif %}
@@ -206,22 +203,22 @@
             <div class="instagram-grid-item">
               <div
                 class="instagram-feed-item"
-                data-media-id="{{ item.id }}"
-                data-media-url="{{ item.thumbnail }}"
-                data-video-url="{{ item.url }}"
-                data-media-type="{{ item.type }}"
-                data-permalink="{{ item.permalink }}"
-                data-caption="{{ item.caption }}"
-                data-products='{{ item.products | json }}'
-                data-username="{{ item.username }}"
+                data-media-id="{{ item.id | escape }}"
+                data-media-url="{{ item.thumbnail | escape }}"
+                data-video-url="{{ item.url | escape }}"
+                data-media-type="{{ item.type | escape }}"
+                data-permalink="{{ item.permalink | escape }}"
+                data-caption="{{ item.caption | escape }}"
+                data-products='{{ item.products | json | escape }}'
+                data-username="{{ item.username | escape }}"
                 data-has-carousel="{{ item.children.size | default: 0 }}"
-                data-children='{{ item.children | json }}'
+                data-children='{{ item.children | json | escape }}'
                 style="border-radius: {{ radius_value }};"
               >
                 {% if item.type == 'VIDEO' or item.type == 'REEL' %}
-                  <video src="{{ item.url }}" poster="{{ item.thumbnail }}" muted loop playsinline preload="none"></video>
+                  <video src="{{ item.url | escape }}" poster="{{ item.thumbnail | escape }}" muted loop playsinline preload="none"></video>
                 {% else %}
-                  <img src="{{ item.thumbnail }}" alt="{{ item.caption }}" loading="lazy">
+                  <img src="{{ item.thumbnail | escape }}" alt="{{ item.caption | escape }}" loading="lazy">
                 {% endif %}
 
                 {% unless clean_display %}
@@ -253,7 +250,7 @@
                       {% if profile_picture_url %}
                         <img src="{{ profile_picture_url }}" alt="" class="instagram-feed-avatar">
                       {% endif %}
-                      <span class="instagram-icon">@{{ item.username }}</span>
+                      <span class="instagram-icon">@{{ item.username | escape }}</span>
                     </div>
                   </div>
                 {% endif %}

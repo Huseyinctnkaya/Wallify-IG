@@ -414,7 +414,19 @@ export async function action({ request }) {
             cardBadgeIconColor: formData.get("cardBadgeIconColor"),
         };
 
-        await saveSettings(shop, settings, admin);
+        try {
+            await saveSettings(shop, settings, admin);
+        } catch (error) {
+            console.error("Settings save failed:", error);
+            return json(
+                { error: "Could not save your settings. Please try again." },
+                { status: 500 },
+            );
+        }
+
+        // The feed metafield embeds the settings, so it has to be rewritten for
+        // the storefront to pick up the change. A failure here is non-fatal:
+        // the settings are saved, and the next Sync Media will catch it up.
         try {
             const account = await getInstagramAccount(shop);
             if (account) {
@@ -423,6 +435,7 @@ export async function action({ request }) {
         } catch (error) {
             console.error("Media resync after settings update failed:", error);
         }
+
         return json({ success: true, message: "Settings saved successfully!" });
     }
 

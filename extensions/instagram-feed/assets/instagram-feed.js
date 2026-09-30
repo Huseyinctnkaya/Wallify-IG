@@ -1,26 +1,12 @@
 (function () {
-  const PROXY_CANDIDATES = ["/apps/instagram-feed-track", "/a/instagram-feed-track"];
-  const PROXY_STORAGE_KEY = "wallify_proxy_path";
+  // App Proxy path. Shopify signs every request it forwards here, which is what
+  // lets the server trust the shop identity (see authenticate.public.appProxy).
+  // Must match [app_proxy] prefix + subpath in shopify.app.toml.
+  const TRACKING_ENDPOINT = "/apps/instagram-feed-track";
 
   function toInt(value, fallback) {
     const parsed = Number.parseInt(value, 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-  }
-
-  function readSessionStorage(key) {
-    try {
-      return sessionStorage.getItem(key);
-    } catch (error) {
-      return null;
-    }
-  }
-
-  function writeSessionStorage(key, value) {
-    try {
-      sessionStorage.setItem(key, value);
-    } catch (error) {
-      // ignore storage failures in private mode
-    }
   }
 
   function scheduleIdle(callback) {
@@ -32,62 +18,40 @@
     window.setTimeout(callback, 0);
   }
 
-  function createTracker(wrapper) {
-    const shopDomain = wrapper.dataset.shopDomain || "";
-    const directTrackingUrl = wrapper.dataset.directTrackingUrl || "";
-
-    return async function track(data) {
-      const params = new URLSearchParams();
+  function createTracker() {
+    return function track(data) {
+      const payload = {};
       Object.entries(data || {}).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== "") {
-          params.set(key, String(value));
+          payload[key] = String(value);
         }
       });
 
-      if (directTrackingUrl) {
-        const directParams = new URLSearchParams(params);
-        directParams.set("shop", shopDomain);
-        const separator = directTrackingUrl.includes("?") ? "&" : "?";
-        const directUrl = `${directTrackingUrl}${separator}${directParams.toString()}`;
+      const body = JSON.stringify(payload);
 
+      // Click tracking races the navigation away from the page. sendBeacon is
+      // queued by the browser and survives unload; fetch+keepalive does not do
+      // so reliably across browsers. Neither exposes a response, and that is
+      // fine here - tracking must never block or break the storefront.
+      if (typeof navigator.sendBeacon === "function") {
         try {
-          await fetch(directUrl, { method: "GET", mode: "no-cors", keepalive: true });
-          return;
-        } catch (directError) {
-          console.debug("Direct tracking failed, falling back to proxy:", directError);
-        }
-      }
-
-      const preferredProxy = readSessionStorage(PROXY_STORAGE_KEY);
-      const endpointCandidates = preferredProxy
-        ? [preferredProxy, ...PROXY_CANDIDATES.filter((path) => path !== preferredProxy)]
-        : PROXY_CANDIDATES;
-
-      for (const endpoint of endpointCandidates) {
-        const fallbackUrl = `${endpoint}?${params.toString()}`;
-
-        try {
-          const response = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data),
-            keepalive: true,
-          });
-
-          if (response.ok) {
-            writeSessionStorage(PROXY_STORAGE_KEY, endpoint);
-            return;
-          }
-
-          const getResponse = await fetch(fallbackUrl, { method: "GET", keepalive: true });
-          if (getResponse.ok) {
-            writeSessionStorage(PROXY_STORAGE_KEY, endpoint);
+          const blob = new Blob([body], { type: "application/json" });
+          if (navigator.sendBeacon(TRACKING_ENDPOINT, blob)) {
             return;
           }
         } catch (error) {
-          console.debug(`Tracking proxy failed on ${endpoint}:`, error);
+          console.debug("sendBeacon tracking failed, falling back to fetch:", error);
         }
       }
+
+      fetch(TRACKING_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        keepalive: true,
+      }).catch((error) => {
+        console.debug("Tracking request failed:", error);
+      });
     };
   }
 
@@ -468,7 +432,7 @@
     if (!wrapper || wrapper.dataset.wallifyInitialized === "true") return;
     wrapper.dataset.wallifyInitialized = "true";
 
-    const track = createTracker(wrapper);
+    const track = createTracker();
     const onClick = wrapper.dataset.onClick || "popup";
 
     scheduleIdle(() => {

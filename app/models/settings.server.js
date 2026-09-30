@@ -1,187 +1,78 @@
-// Last Sync: 2026-02-14 23:25
 import { prisma } from "../db.server";
+import { setShopMetafields } from "./shopify-metafields.server";
+
+/**
+ * Shape and defaults for a shop that has never saved settings.
+ * Mirrors the `@default` values on the Settings model in schema.prisma.
+ */
+export const DEFAULT_SETTINGS = {
+    title: "INSTAGRAM'DA BİZ",
+    subheading: "Daha Fazlası İçin Bizi Takip Edebilirsiniz",
+    buttonText: "Open in Instagram",
+    feedType: "slider",
+    showPinnedReels: false,
+    gridDesktopColumns: 4,
+    gridMobileColumns: 2,
+    sliderDesktopColumns: 4,
+    sliderMobileColumns: 2,
+    showArrows: true,
+    mediaLimit: 12,
+    onClick: "popup",
+    postSpacing: "medium",
+    borderRadius: "medium",
+    playVideoOnHover: false,
+    showThumbnail: false,
+    showViewsCount: false,
+    showAuthorProfile: true,
+    showAttachedProducts: true,
+    cleanDisplay: false,
+    titleColor: "#000000",
+    subheadingColor: "#6d7175",
+    arrowColor: "#000000",
+    arrowBackgroundColor: "#ffffff",
+    cardUserNameColor: "#ffffff",
+    cardBadgeBackgroundColor: "rgba(0,0,0,0.5)",
+    cardBadgeIconColor: "#ffffff",
+};
 
 export async function getSettings(shop) {
+    // Reads are on the dashboard's critical path: fall back to defaults so a
+    // database blip renders an unconfigured feed rather than an error page.
+    // Writes deliberately do NOT swallow errors - see saveSettings.
     try {
-        const settings = await prisma.settings.findUnique({
-            where: { shop },
-        });
-
-        if (!settings) {
-            return {
-                title: "INSTAGRAM'DA BİZ",
-                subheading: "Daha Fazlası İçin Bizi Takip Edebilirsiniz",
-                buttonText: "Open in Instagram",
-                feedType: "slider",
-                showPinnedReels: false,
-                gridDesktopColumns: 4,
-                gridMobileColumns: 2,
-                sliderDesktopColumns: 4,
-                sliderMobileColumns: 2,
-                showArrows: true,
-                mediaLimit: 12,
-                onClick: "popup",
-                postSpacing: "medium",
-                borderRadius: "medium",
-                playVideoOnHover: false,
-                showThumbnail: false,
-                showViewsCount: false,
-                showAuthorProfile: true,
-                showAttachedProducts: true,
-                cleanDisplay: false,
-                titleColor: "#000000",
-                subheadingColor: "#6d7175",
-                arrowColor: "#000000",
-                arrowBackgroundColor: "#ffffff",
-                cardUserNameColor: "#ffffff",
-                cardBadgeBackgroundColor: "rgba(0,0,0,0.5)",
-                cardBadgeIconColor: "#ffffff",
-            };
-        }
-
-        return settings;
+        const settings = await prisma.settings.findUnique({ where: { shop } });
+        return settings ?? { ...DEFAULT_SETTINGS };
     } catch (error) {
-        console.error("Settings fetch failed (likely schema mismatch):", error);
-        // Return defaults as fallback to prevent app crash
-        return {
-            title: "INSTAGRAM'DA BİZ",
-            subheading: "Daha Fazlası İçin Bizi Takip Edebilirsiniz",
-            buttonText: "Open in Instagram",
-            feedType: "slider",
-            showPinnedReels: false,
-            gridDesktopColumns: 4,
-            gridMobileColumns: 2,
-            sliderDesktopColumns: 4,
-            sliderMobileColumns: 2,
-            showArrows: true,
-            mediaLimit: 12,
-            onClick: "popup",
-            postSpacing: "medium",
-            borderRadius: "medium",
-            playVideoOnHover: false,
-            showThumbnail: false,
-            showViewsCount: false,
-            showAuthorProfile: true,
-            showAttachedProducts: true,
-            titleColor: "#000000",
-            subheadingColor: "#6d7175",
-            arrowColor: "#000000",
-            arrowBackgroundColor: "#ffffff",
-            cardUserNameColor: "#ffffff",
-            cardBadgeBackgroundColor: "rgba(0,0,0,0.5)",
-            cardBadgeIconColor: "#ffffff",
-        };
+        console.error("Settings fetch failed, serving defaults:", error);
+        return { ...DEFAULT_SETTINGS };
     }
 }
 
 export async function saveSettings(shop, settings, admin = null) {
-    let updatedSettings;
-    try {
-        updatedSettings = await prisma.settings.upsert({
-            where: { shop },
-            update: {
-                ...settings,
-                updatedAt: new Date(),
-            },
-            create: {
-                shop,
-                ...settings,
-            },
-        });
-    } catch (error) {
-        console.error("Critical: Prisma save failed with full object:", error.message);
+    const updatedSettings = await prisma.settings.upsert({
+        where: { shop },
+        update: settings,
+        create: { shop, ...settings },
+    });
 
-        // Fallback: If prisma client is stale, retry by stripping unknown fields.
-        if (
-            error.message.includes("Unknown argument `mediaLimit`") ||
-            error.message.includes("Unknown argument `buttonText`")
-        ) {
-            console.log("Retrying save without unsupported fields due to client mismatch...");
-            const { mediaLimit, buttonText, ...safeSettings } = settings;
-            updatedSettings = await prisma.settings.upsert({
-                where: { shop },
-                update: {
-                    ...safeSettings,
-                    updatedAt: new Date(),
-                },
-                create: {
-                    shop,
-                    ...safeSettings,
-                },
-            });
-        } else {
-            throw error;
-        }
-    }
-
-    if (admin && updatedSettings) {
-        try {
-            await syncSettingsToMetafields(shop, admin, updatedSettings);
-        } catch (error) {
-            console.error("Failed to sync settings to metafields:", error);
-        }
+    if (admin) {
+        await syncSettingsToMetafields(shop, admin, updatedSettings);
     }
 
     return updatedSettings;
 }
 
 export async function syncSettingsToMetafields(shop, admin, settings) {
-    // If settings not provided, fetch them
-    const currentSettings = settings || await getSettings(shop);
+    const currentSettings = settings || (await getSettings(shop));
 
-    // Remove database specific fields
-    const { id, shop: _, createdAt, updatedAt, ...cleanSettings } = currentSettings;
+    // Strip database bookkeeping columns; the storefront only needs the config.
+    const { id, shop: _shop, createdAt, updatedAt, ...cleanSettings } = currentSettings;
 
-    const jsonValue = JSON.stringify(cleanSettings);
-
-    // Get shop ID for metafield owner
-    const shopIdResponse = await admin.graphql(`
-        query {
-            shop {
-                id
-            }
-        }
-    `);
-    const shopIdData = await shopIdResponse.json();
-    const shopId = shopIdData.data.shop.id;
-
-    // Save to metafield
-    const response = await admin.graphql(
-        `#graphql
-        mutation MetafieldsSet($metafields: [MetafieldsSetInput!]!) {
-            metafieldsSet(metafields: $metafields) {
-                metafields {
-                    id
-                    key
-                    namespace
-                    value
-                }
-                userErrors {
-                    field
-                    message
-                }
-            }
-        }`,
+    return setShopMetafields(admin, [
         {
-            variables: {
-                metafields: [
-                    {
-                        namespace: "instagram_feed",
-                        key: "settings",
-                        type: "json",
-                        value: jsonValue,
-                        ownerId: shopId
-                    }
-                ]
-            },
-        }
-    );
-
-    const result = await response.json();
-
-    if (result.data.metafieldsSet.userErrors.length > 0) {
-        throw new Error(result.data.metafieldsSet.userErrors[0].message);
-    }
-
-    return result.data.metafieldsSet;
+            key: "settings",
+            type: "json",
+            value: JSON.stringify(cleanSettings),
+        },
+    ]);
 }

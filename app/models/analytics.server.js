@@ -1,8 +1,16 @@
 import { prisma } from "../db.server";
 
-function getStartOfDay(date) {
+/**
+ * Midnight UTC for the calendar day containing `date`.
+ *
+ * Deliberately UTC and not the server's local time: the day bucket is the unique
+ * key on Analytics, so a container redeployed to a different region would
+ * otherwise start writing into a different row for the same real-world day.
+ * Pairs with `@db.Date` on Analytics.date in schema.prisma.
+ */
+function getStartOfDayUTC(date) {
     const day = new Date(date);
-    day.setHours(0, 0, 0, 0);
+    day.setUTCHours(0, 0, 0, 0);
     return day;
 }
 
@@ -16,12 +24,12 @@ function calculateChange(current, previous) {
 export async function getAnalytics(shop, days = 30) {
     const safeDays = Math.max(1, Number(days) || 30);
     const now = new Date();
-    const startDate = getStartOfDay(now);
-    startDate.setDate(startDate.getDate() - (safeDays - 1));
+    const startDate = getStartOfDayUTC(now);
+    startDate.setUTCDate(startDate.getUTCDate() - (safeDays - 1));
 
     // Keep at least 14 days of source data for week-over-week comparison.
-    const comparisonWindowStart = getStartOfDay(now);
-    comparisonWindowStart.setDate(comparisonWindowStart.getDate() - 13);
+    const comparisonWindowStart = getStartOfDayUTC(now);
+    comparisonWindowStart.setUTCDate(comparisonWindowStart.getUTCDate() - 13);
 
     const queryStartDate = comparisonWindowStart < startDate
         ? comparisonWindowStart
@@ -51,11 +59,11 @@ export async function getAnalytics(shop, days = 30) {
     const ctr = totals.views > 0 ? (totals.clicks / totals.views) * 100 : 0;
 
     // Calculate week-over-week changes from the last 14 days.
-    const currentWeekStart = getStartOfDay(now);
-    currentWeekStart.setDate(currentWeekStart.getDate() - 6);
+    const currentWeekStart = getStartOfDayUTC(now);
+    currentWeekStart.setUTCDate(currentWeekStart.getUTCDate() - 6);
 
-    const previousWeekStart = getStartOfDay(now);
-    previousWeekStart.setDate(previousWeekStart.getDate() - 13);
+    const previousWeekStart = getStartOfDayUTC(now);
+    previousWeekStart.setUTCDate(previousWeekStart.getUTCDate() - 13);
 
     const currentWeekStats = rawStats.filter(stat => {
         const statDate = new Date(stat.date);
@@ -140,8 +148,7 @@ export async function getTopPostsAnalytics(shop, limit = 5) {
 }
 
 export async function trackMetric(shop, type, { mediaId = null, mediaUrl = null, permalink = null } = {}) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getStartOfDayUTC(new Date());
 
     // Global daily stats
     await prisma.analytics.upsert({

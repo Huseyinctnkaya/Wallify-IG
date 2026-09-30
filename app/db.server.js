@@ -1,23 +1,11 @@
 import { PrismaClient } from "@prisma/client";
-// Sync: 2026-02-14 23:09
 
-if (process.env.NODE_ENV !== "production") {
-  if (!global.prismaGlobal) {
-    global.prismaGlobal = new PrismaClient();
-  }
+// In development the module graph is re-evaluated on every HMR pass, so a plain
+// module-level client would leak a new connection pool each time. Stash it on
+// globalThis instead. Production loads this module once, so a bare client is fine.
+if (process.env.NODE_ENV !== "production" && !global.prismaGlobal) {
+  global.prismaGlobal = new PrismaClient();
 }
 
 export const prisma = global.prismaGlobal ?? new PrismaClient();
 export default prisma;
-
-if (process.env.NODE_ENV !== "production") {
-  // Debug: Log available models to console to verify Client is up to date
-  const dmmf = prisma._dmmf;
-  if (dmmf && dmmf.modelMap) {
-    console.log("✅ Prisma Client Initialized. Available Models:", Object.keys(dmmf.modelMap));
-  } else {
-    // Fallback check
-    console.log("⚠️ Prisma Client Initialized. Checking keys:", Object.keys(prisma));
-  }
-}
-
