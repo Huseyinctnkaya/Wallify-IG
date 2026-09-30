@@ -1,4 +1,4 @@
-import { data, useFetcher, useLoaderData } from "react-router";
+import { data, useFetcher, useLoaderData, useLocation } from "react-router";
 import {
     Page,
     Layout,
@@ -80,6 +80,12 @@ export async function action({ request }) {
 
 export default function Plans() {
     const { isPremium, billingError } = useLoaderData();
+    // Carry the admin's own query string across to the billing route. It holds
+    // embedded=1 and host, and the SDK reads those to decide how to leave the
+    // iframe: without them it treats the request as non-embedded and returns a
+    // plain redirect the iframe cannot act on, which is what rendered a bare
+    // "200" instead of Shopify's charge screen.
+    const { search } = useLocation();
     const fetcher = useFetcher();
     const isLoading = fetcher.state === "submitting";
 
@@ -188,7 +194,7 @@ export default function Plans() {
                                             {isPremium ? (
                                                 <Button variant="primary" fullWidth disabled>Current Plan</Button>
                                             ) : (
-                                                <Button variant="primary" fullWidth url="/app/plans/subscribe">
+                                                <Button variant="primary" fullWidth url={`/app/plans/subscribe${search}`}>
                                                     Upgrade to Premium
                                                 </Button>
                                             )}
