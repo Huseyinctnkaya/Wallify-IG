@@ -1,4 +1,4 @@
-import { redirect } from "@remix-run/node";
+import { redirect } from "react-router";
 import { authenticate } from "../shopify.server";
 import { buildInstagramAuthUrl } from "../utils/instagram-oauth.server";
 

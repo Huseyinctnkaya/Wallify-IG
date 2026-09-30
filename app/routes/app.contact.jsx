@@ -1,4 +1,3 @@
-import { json } from "@remix-run/node";
 import { useState } from "react";
 import {
     Page,
@@ -15,7 +14,7 @@ import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }) => {
     await authenticate.admin(request);
-    return json({});
+    return {};
 };
 
 export default function Contact() {

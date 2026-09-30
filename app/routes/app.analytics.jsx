@@ -1,5 +1,4 @@
-import { json } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { useLoaderData } from "react-router";
 import {
     Page,
     Layout,
@@ -71,7 +70,7 @@ export const loader = async ({ request }) => {
             }
             : null;
 
-        return json({
+        return {
             allTimeTotals: emptyTotals,
             weeklyAnalytics: empty,
             detailedRanges: emptyDetailedRanges,
@@ -79,7 +78,7 @@ export const loader = async ({ request }) => {
             isPremium: premium,
             shop,
             hasRealData: false
-        });
+        };
     }
 
     const [allTimeTotals, weeklyAnalytics] = await Promise.all([
@@ -109,7 +108,7 @@ export const loader = async ({ request }) => {
         topPosts = topPostsData.length > 0 ? topPostsData : null;
     }
 
-    return json({
+    return {
         allTimeTotals,
         weeklyAnalytics: displayWeeklyAnalytics,
         detailedRanges,
@@ -117,7 +116,7 @@ export const loader = async ({ request }) => {
         isPremium: premium,
         shop,
         hasRealData
-    });
+    };
 };
 
 export default function AnalyticsPage() {

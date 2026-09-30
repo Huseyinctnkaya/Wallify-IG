@@ -230,13 +230,13 @@
 
       try {
         products = JSON.parse(item.dataset.products || "[]");
-      } catch (error) {
+      } catch {
         products = [];
       }
 
       try {
         children = JSON.parse(item.dataset.children || "[]");
-      } catch (error) {
+      } catch {
         children = [];
       }
 

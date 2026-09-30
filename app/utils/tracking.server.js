@@ -1,4 +1,4 @@
-import { json } from "@remix-run/node";
+import { data } from "react-router";
 import { authenticate } from "../shopify.server";
 import { trackMetric } from "../models/analytics.server";
 
@@ -73,7 +73,7 @@ export async function handleTrackingRequest(request) {
     // untouched so the caller gets the correct status instead of a 500.
     if (error instanceof Response) throw error;
     console.error("App Proxy authentication failed:", error);
-    return json({ error: "Unauthorized" }, { status: 401 });
+    return data({ error: "Unauthorized" }, { status: 401 });
   }
 
   // `session` is undefined when no offline session exists for the shop. The
@@ -83,13 +83,13 @@ export async function handleTrackingRequest(request) {
 
   if (!SHOP_DOMAIN_PATTERN.test(shop ?? "")) {
     console.error("Tracking API: could not resolve shop from signed request");
-    return json({ error: "Unauthorized" }, { status: 401 });
+    return data({ error: "Unauthorized" }, { status: 401 });
   }
 
   const payload = await extractTrackingPayload(request);
 
   if (!VALID_METRIC_TYPES.has(payload.type)) {
-    return json({ error: "Invalid type" }, { status: 400 });
+    return data({ error: "Invalid type" }, { status: 400 });
   }
 
   try {
@@ -101,8 +101,8 @@ export async function handleTrackingRequest(request) {
   } catch (error) {
     // Never leak internals to the storefront.
     console.error("Tracking write failed:", { shop, type: payload.type, error });
-    return json({ error: "Could not record event" }, { status: 500 });
+    return data({ error: "Could not record event" }, { status: 500 });
   }
 
-  return json({ success: true });
+  return { success: true };
 }

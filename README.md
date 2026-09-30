@@ -46,6 +46,38 @@ database: `createdb wallify_ig_dev`.
 - **Free:** ideal for basic feed usage and getting started.
 - **Premium:** advanced display, filtering, analytics, and additional features.
 
+## Stack
+
+| | |
+|---|---|
+| Framework | React Router 7 (the project migrated off Remix v2) |
+| Shopify SDK | `@shopify/shopify-app-react-router` |
+| Admin API | 2026-07 — set once as `API_VERSION` in `app/shopify.server.js`; `shopify.app.toml` and `.graphqlrc.js` must match |
+| UI | Polaris React 13 + App Bridge 4 |
+| Database | PostgreSQL via Prisma |
+| Build | Vite 8 |
+
+Version ceilings are set by Shopify's own peer dependencies, not by choice:
+`@shopify/shopify-app-react-router` pins `react-router@^7`, Polaris 13 pins
+`react@^18`, and `@shopify/shopify-app-session-storage-prisma@11` pins
+`prisma@^6`. React 19, React Router 8 and Prisma 7 are all blocked until
+Shopify moves.
+
+## Known issues
+
+- **Polaris React is deprecated.** Shopify has stopped maintaining it in favour
+  of Polaris web components. 13.9.5 is the end of the line; a future UI rewrite
+  is unavoidable.
+- **`npm audit` reports 9 high advisories**, all in the `@graphql-codegen`
+  chain under `@shopify/api-codegen-preset`. That is a devDependency: it never
+  ships, and it only runs on a manual `npm run graphql-codegen`. It is kept for
+  GraphQL autocomplete in the editor via `.graphqlrc.js`. Nothing in the app
+  imports generated types — the project is plain JavaScript — so the preset can
+  be dropped outright if the editor support is not wanted.
+- **Four `react-hooks/set-state-in-effect` warnings** on the auto-dismissing
+  banners in `app._index.jsx` and `app.posts.jsx`. Pre-existing; fixing them
+  changes the fade animation, so it is tracked rather than rushed.
+
 ## Support
 
 You can contact support from the **Contact** page inside the app.

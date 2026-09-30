@@ -82,7 +82,7 @@ export function verifyAndExtractInstagramState(state, secret) {
     let payload;
     try {
         payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8"));
-    } catch (_) {
+    } catch {
         return false;
     }
 

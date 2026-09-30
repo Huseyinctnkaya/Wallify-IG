@@ -1,6 +1,5 @@
+import { data, useFetcher, useLoaderData } from "react-router";
 import { useEffect, useRef, useState } from "react";
-import { json } from "@remix-run/node";
-import { useLoaderData, useFetcher } from "@remix-run/react";
 import {
     Page,
     Layout,
@@ -338,7 +337,7 @@ export async function loader({ request }) {
         };
     }
 
-    return json({
+    return {
         instagramAccount,
         media,
         settings,
@@ -347,7 +346,7 @@ export async function loader({ request }) {
         isPremium,
         oauthNotice,
         themeBlockStatus,
-    });
+    };
 }
 
 // ... imports
@@ -375,7 +374,7 @@ export async function action({ request }) {
             "Theme block status check"
         );
 
-        return json({ themeBlockStatus, mode });
+        return { themeBlockStatus, mode };
     }
 
     if (actionType === "saveSettings") {
@@ -418,7 +417,7 @@ export async function action({ request }) {
             await saveSettings(shop, settings, admin);
         } catch (error) {
             console.error("Settings save failed:", error);
-            return json(
+            return data(
                 { error: "Could not save your settings. Please try again." },
                 { status: 500 },
             );
@@ -436,16 +435,16 @@ export async function action({ request }) {
             console.error("Media resync after settings update failed:", error);
         }
 
-        return json({ success: true, message: "Settings saved successfully!" });
+        return { success: true, message: "Settings saved successfully!" };
     }
 
     if (actionType === "connect") {
         try {
             const authUrl = buildInstagramAuthUrl({ shop });
-            return json({ authUrl });
+            return { authUrl };
         } catch (error) {
             console.error("Instagram auth URL build failed:", error);
-            return json({ error: "Failed to start Instagram connection" }, { status: 500 });
+            return data({ error: "Failed to start Instagram connection" }, { status: 500 });
         }
     }
 
@@ -456,23 +455,23 @@ export async function action({ request }) {
         } catch (error) {
             console.error("Analytics reset after disconnect failed:", error);
         }
-        return json({ success: true, message: "Instagram disconnected" });
+        return { success: true, message: "Instagram disconnected" };
     }
 
     if (actionType === "sync") {
         try {
             const account = await getInstagramAccount(shop);
             if (!account) {
-                return json({ error: "No Instagram account connected" }, { status: 400 });
+                return data({ error: "No Instagram account connected" }, { status: 400 });
             }
 
             // Sync Instagram media to metafields
             await syncInstagramToMetafields(shop, admin);
 
-            return json({ success: true, message: "Media synced successfully!" });
+            return { success: true, message: "Media synced successfully!" };
         } catch (error) {
             console.error("Sync error:", error);
-            return json({ error: error.message || "Failed to sync media" }, { status: 500 });
+            return data({ error: error.message || "Failed to sync media" }, { status: 500 });
         }
     }
 
@@ -1183,7 +1182,7 @@ export default function Dashboard() {
                                         <Banner tone="info" title="Before connecting">
                                             <BlockStack gap="100">
                                                 <Text as="p" variant="bodyMd">Make sure you are logged into the correct Instagram account in your browser before clicking Connect.</Text>
-                                                <Text as="p" variant="bodyMd">If you see a "not authorized" error, your Instagram account must be added as a Tester in the <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer">Meta App Dashboard</a> while the app is in Development mode.</Text>
+                                                <Text as="p" variant="bodyMd">If you see a &quot;not authorized&quot; error, your Instagram account must be added as a Tester in the <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer">Meta App Dashboard</a> while the app is in Development mode.</Text>
                                             </BlockStack>
                                         </Banner>
                                         <div>

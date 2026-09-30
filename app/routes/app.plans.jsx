@@ -1,5 +1,4 @@
-import { json } from "@remix-run/node";
-import { useLoaderData, useFetcher } from "@remix-run/react";
+import { data, useFetcher, useLoaderData } from "react-router";
 import {
     Page,
     Layout,
@@ -23,7 +22,7 @@ export const loader = async ({ request }) => {
     const isPremium = await isPremiumShop(shop, admin);
     const billingError = requestUrl.searchParams.get("billing_error");
 
-    return json({ isPremium, billingError });
+    return { isPremium, billingError };
 };
 
 export async function action({ request }) {
@@ -69,10 +68,10 @@ export async function action({ request }) {
                 );
             }
 
-            return json({ success: true, cancelled: true });
+            return { success: true, cancelled: true };
         } catch (error) {
             console.error("Billing cancel failed:", error);
-            return json({ error: "Could not cancel subscription. Please try again." }, { status: 500 });
+            return data({ error: "Could not cancel subscription. Please try again." }, { status: 500 });
         }
     }
 

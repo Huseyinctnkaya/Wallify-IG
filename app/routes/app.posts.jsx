@@ -1,5 +1,4 @@
-import { json } from "@remix-run/node";
-import { useLoaderData, useFetcher } from "@remix-run/react";
+import { data, useFetcher, useLoaderData } from "react-router";
 import { useEffect, useState } from "react";
 import {
     Page,
@@ -82,11 +81,11 @@ export const loader = async ({ request }) => {
         }
     }
 
-    return json({
+    return {
         posts,
         isPremium,
         instagramConnected,
-    });
+    };
 };
 
 export async function action({ request }) {
@@ -100,7 +99,7 @@ export async function action({ request }) {
 
     // Premium feature gate
     if (!isPremium && ["togglePin", "toggleHide", "updateProducts"].includes(actionType)) {
-        return json({
+        return data({
             error: "This is a premium feature. Upgrade to unlock pin, hide, and product attachment features.",
             showUpgrade: true
         }, { status: 403 });
@@ -114,7 +113,7 @@ export async function action({ request }) {
             // Trigger metafield sync to update theme
             await syncInstagramToMetafields(shop, admin);
 
-            return json({ success: true, message: "Post pin status updated" });
+            return { success: true, message: "Post pin status updated" };
         }
 
         if (actionType === "toggleHide") {
@@ -124,7 +123,7 @@ export async function action({ request }) {
             // Trigger metafield sync to update theme
             await syncInstagramToMetafields(shop, admin);
 
-            return json({ success: true, message: "Post hide status updated" });
+            return { success: true, message: "Post hide status updated" };
         }
 
         if (actionType === "updateProducts") {
@@ -137,13 +136,13 @@ export async function action({ request }) {
             // Trigger metafield sync to update theme
             await syncInstagramToMetafields(shop, admin);
 
-            return json({ success: true, message: "Products updated successfully" });
+            return { success: true, message: "Products updated successfully" };
         }
 
-        return json({ error: "Unknown action type" }, { status: 400 });
+        return data({ error: "Unknown action type" }, { status: 400 });
     } catch (error) {
         console.error("Action error:", error);
-        return json({ error: error.message || "An error occurred" }, { status: 500 });
+        return data({ error: error.message || "An error occurred" }, { status: 500 });
     }
 }
 

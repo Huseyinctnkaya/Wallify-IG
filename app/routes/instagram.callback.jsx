@@ -1,4 +1,4 @@
-import { redirect } from "@remix-run/node";
+import { redirect } from "react-router";
 import { fetchUserProfile, saveInstagramAccount, getInstagramAccount } from "../models/instagram.server";
 import { resetAnalyticsForShop } from "../models/analytics.server";
 import {

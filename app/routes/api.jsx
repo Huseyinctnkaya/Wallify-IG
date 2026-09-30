@@ -1,4 +1,3 @@
-import { json } from "@remix-run/node";
 import { handleTrackingRequest } from "../utils/tracking.server";
 
 export const action = async ({ request }) => {
@@ -13,5 +12,5 @@ export const loader = async ({ request }) => {
     return handleTrackingRequest(request);
   }
 
-  return json({ message: "Tracking API is active" });
+  return { message: "Tracking API is active" };
 };

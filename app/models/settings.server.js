@@ -66,7 +66,8 @@ export async function syncSettingsToMetafields(shop, admin, settings) {
     const currentSettings = settings || (await getSettings(shop));
 
     // Strip database bookkeeping columns; the storefront only needs the config.
-    const { id, shop: _shop, createdAt, updatedAt, ...cleanSettings } = currentSettings;
+    const { id: _id, shop: _shop, createdAt: _createdAt, updatedAt: _updatedAt, ...cleanSettings } =
+        currentSettings;
 
     return setShopMetafields(admin, [
         {
