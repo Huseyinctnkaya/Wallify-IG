@@ -55,6 +55,15 @@ export default [
   },
 
   {
+    // CommonJS config files (PM2 ecosystem), where __dirname and module exist.
+    files: ["**/*.cjs"],
+    languageOptions: {
+      sourceType: "commonjs",
+      globals: globals.node,
+    },
+  },
+
+  {
     // Storefront bundle: plain browser script, no modules or Node globals.
     files: ["extensions/**/assets/*.js"],
     languageOptions: {
