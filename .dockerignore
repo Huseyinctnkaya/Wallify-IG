@@ -1,6 +1,5 @@
 .cache
 .git
-.github
 .shopify
 build
 node_modules
