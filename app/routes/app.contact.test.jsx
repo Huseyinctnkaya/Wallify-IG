@@ -18,6 +18,18 @@ describe("contact page", () => {
     expect(html.length).toBeGreaterThan(500);
   });
 
+  it("puts the FAQ and the contact card in two columns", () => {
+    // Layout.Section has min-width: 51%, so two default sections can never sit
+    // together -- the sidebar has to be the oneThird variant or the page falls
+    // back to a single stacked column.
+    expect(html).toContain("Polaris-Layout__Section--oneThird");
+    // The FAQ is the primary section, so it comes first in the DOM and lands
+    // on the left.
+    expect(html.indexOf("Frequently asked questions")).toBeLessThan(
+      html.indexOf("Get in touch"),
+    );
+  });
+
   it("shows the support email and website", () => {
     expect(html).toContain("info@34devs.com");
     expect(html).toContain("landing.wallifyig.app");

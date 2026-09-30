@@ -130,9 +130,39 @@ export default function Contact() {
     const [openFAQ, setOpenFAQ] = useState(null);
 
     return (
-        <Page title="Contact & support" narrowWidth>
+        // Two columns: the FAQ carries the bulk of the page, so it takes the
+        // primary section, and the contact details sit in the sidebar. Polaris
+        // Layout wraps them back into one column when the viewport is too
+        // narrow, so no breakpoint handling is needed here.
+        <Page title="Contact & support">
             <Layout>
                 <Layout.Section>
+                    <Card>
+                        <BlockStack gap="400">
+                            <Text variant="headingMd" as="h2">
+                                Frequently asked questions
+                            </Text>
+
+                            <BlockStack gap="300">
+                                {FAQS.map((faq, index) => (
+                                    <BlockStack key={faq.question} gap="300">
+                                        {index > 0 && <Divider />}
+                                        <FaqItem
+                                            faq={faq}
+                                            index={index}
+                                            isOpen={openFAQ === index}
+                                            onToggle={() =>
+                                                setOpenFAQ(openFAQ === index ? null : index)
+                                            }
+                                        />
+                                    </BlockStack>
+                                ))}
+                            </BlockStack>
+                        </BlockStack>
+                    </Card>
+                </Layout.Section>
+
+                <Layout.Section variant="oneThird">
                     <Card>
                         <BlockStack gap="400">
                             <BlockStack gap="100">
@@ -166,32 +196,6 @@ export default function Contact() {
                             <Button variant="primary" url={`mailto:${SUPPORT_EMAIL}`} external>
                                 Email support
                             </Button>
-                        </BlockStack>
-                    </Card>
-                </Layout.Section>
-
-                <Layout.Section>
-                    <Card>
-                        <BlockStack gap="400">
-                            <Text variant="headingMd" as="h2">
-                                Frequently asked questions
-                            </Text>
-
-                            <BlockStack gap="300">
-                                {FAQS.map((faq, index) => (
-                                    <BlockStack key={faq.question} gap="300">
-                                        {index > 0 && <Divider />}
-                                        <FaqItem
-                                            faq={faq}
-                                            index={index}
-                                            isOpen={openFAQ === index}
-                                            onToggle={() =>
-                                                setOpenFAQ(openFAQ === index ? null : index)
-                                            }
-                                        />
-                                    </BlockStack>
-                                ))}
-                            </BlockStack>
                         </BlockStack>
                     </Card>
                 </Layout.Section>
