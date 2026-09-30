@@ -46,6 +46,50 @@ database: `createdb wallify_ig_dev`.
 - **Free:** ideal for basic feed usage and getting started.
 - **Premium:** advanced display, filtering, analytics, and additional features.
 
+## Deployment
+
+Runs on an IONOS VPS (`curved-london`) that also hosts several other apps, so
+nothing here should assume exclusive use of the machine.
+
+| | |
+|---|---|
+| Process manager | PM2, under the `huseyin` daemon (`pm2-huseyin.service`) |
+| Config | `ecosystem.config.cjs` — no secrets; Node's `--env-file` reads `.env` (mode 0600) |
+| Port | 3000, proxied by nginx from `wallifyig.app` |
+| TLS | Let's Encrypt, renewed by `certbot.timer` |
+| Database | PostgreSQL 14 on `127.0.0.1:5432`, database `wallifyig` |
+
+**Build locally, not on the server.** The host has ~1.8 GB of RAM shared with
+nine other apps and is already into swap; a Vite build there risks pushing the
+box over. Deploy looks like this:
+
+```bash
+# On your machine
+npm run build
+rsync -az --delete --stats build/ volera:/home/huseyin/wallifyig-app/build/
+
+# On the server
+ssh volera
+cd /home/huseyin/wallifyig-app
+sudo -u huseyin git pull origin main
+sudo -u huseyin npm ci --omit=dev          # only if dependencies changed
+sudo -u huseyin npx prisma generate
+sudo -u huseyin npx prisma migrate deploy  # only if migrations were added
+sudo -u huseyin -H env HOME=/home/huseyin pm2 restart wallifyig
+```
+
+Check `rsync --stats` actually reports transferred files. A filtered or silent
+rsync that copies nothing looks identical to success from the file listing
+afterwards, and the app will keep serving the previous build.
+
+Config and extension changes need a separate `shopify app deploy` — updating
+the server does not touch what merchants' storefronts load.
+
+Logs: `pm2 logs wallifyig`, or `~/.pm2/logs/wallifyig-{out,error}-<id>.log`.
+Note the id suffix changes every time the process is recreated, so check
+`pm2 describe wallifyig` for the current paths rather than reading the
+unsuffixed files, which are stale.
+
 ## Migrating an existing SQLite database
 
 The app used to run on a SQLite file and now requires PostgreSQL. If a
