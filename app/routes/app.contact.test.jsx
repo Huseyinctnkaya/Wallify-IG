@@ -35,6 +35,20 @@ describe("contact page", () => {
     expect(html).not.toContain("Go to Settings");
   });
 
+  it("boxes each icon so it cannot absorb the row's free space", () => {
+    // .Polaris-Icon sets `margin: auto`. Left as a bare flex child of the row
+    // it eats all the slack and throws the text to the opposite edge, with the
+    // icon landing in a different spot on every row. A fixed-width wrapper
+    // gives the auto margins nothing to take.
+    const rows = [...html.matchAll(/<div class="Polaris-InlineStack"[^>]*>(.*?)<\/div><\/div>/gs)];
+    expect(rows.length).toBeGreaterThan(0);
+    for (const [row] of rows) {
+      const iconAt = row.indexOf("Polaris-Icon");
+      if (iconAt === -1) continue;
+      expect(row.slice(0, iconAt)).toMatch(/min-width:\s*1\.25rem|width:\s*1\.25rem/);
+    }
+  });
+
   it("uses Polaris icons rather than emoji glyphs", () => {
     for (const emoji of ["📧", "⏰", "🌐"]) {
       expect(html).not.toContain(emoji);

@@ -71,8 +71,14 @@ const FAQS = [
 
 function ContactRow({ icon, label, children }) {
     return (
-        <InlineStack gap="300" blockAlign="center" wrap={false}>
-            <Icon source={icon} tone="subdued" />
+        <InlineStack gap="300" blockAlign="center" wrap={false} align="start">
+            {/* Icon carries `margin: auto`, which as a bare flex child absorbs
+                all the free space in the row and shoves the text to the far
+                edge. Polaris uses it inside components that already box the
+                icon in; here it needs an explicit box of its own. */}
+            <Box width="1.25rem">
+                <Icon source={icon} tone="subdued" />
+            </Box>
             <BlockStack gap="050">
                 <Text variant="bodySm" as="h3" tone="subdued">
                     {label}
