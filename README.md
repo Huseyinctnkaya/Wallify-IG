@@ -46,6 +46,37 @@ database: `createdb wallify_ig_dev`.
 - **Free:** ideal for basic feed usage and getting started.
 - **Premium:** advanced display, filtering, analytics, and additional features.
 
+## Migrating an existing SQLite database
+
+The app used to run on a SQLite file and now requires PostgreSQL. If a
+deployment has live data, copy it over before cutting traffic across, otherwise
+every merchant loses their Instagram connection, settings and analytics.
+
+```bash
+# 1. Point at the new database and create the schema.
+export DATABASE_URL="postgresql://..."
+npx prisma migrate deploy
+
+# 2. Check what would move, without writing.
+node scripts/migrate-sqlite-to-postgres.js ./prisma/dev.sqlite \
+  --source-timezone Europe/Istanbul --dry-run
+
+# 3. Run it for real.
+node scripts/migrate-sqlite-to-postgres.js ./prisma/dev.sqlite \
+  --source-timezone Europe/Istanbul
+```
+
+**`--source-timezone` is the timezone the OLD server ran in, and getting it
+wrong shifts every daily total by a day.** `Analytics.date` used to be written
+as local midnight, so its meaning depends on the writer's timezone: a row from
+a UTC+3 container reads as 21:00 the previous day if interpreted as UTC. The
+default is `UTC`; pass the real zone if the old deployment used anything else.
+
+The script is idempotent — every write is an upsert on the same unique keys the
+app uses — so a partial run can simply be repeated. Rows that collapse onto one
+UTC day after conversion are summed, not overwritten, and it reports when that
+happens.
+
 ## Stack
 
 | | |
