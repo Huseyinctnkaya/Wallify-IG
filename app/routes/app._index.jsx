@@ -758,7 +758,10 @@ export default function Dashboard() {
     const [successMessage, setSuccessMessage] = useState("");
     const [showOauthNotice, setShowOauthNotice] = useState(Boolean(oauthNotice));
     const [isOauthNoticeClosing, setIsOauthNoticeClosing] = useState(false);
-    const [isSetupGuideOpen, setIsSetupGuideOpen] = useState(true);
+    // Collapsed on arrival: the guide is a reference to open when needed, not
+    // something to scroll past on every visit. The step counter in its header
+    // still shows progress while it is shut.
+    const [isSetupGuideOpen, setIsSetupGuideOpen] = useState(false);
     const [openSetupSteps, setOpenSetupSteps] = useState({
         1: true,
         2: false,
