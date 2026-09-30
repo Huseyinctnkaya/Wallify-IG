@@ -13,7 +13,6 @@ export default [
       "public/build/**",
       "node_modules/**",
       ".shopify/**",
-      "app/types/**",
       "extensions/*/dist/**",
     ],
   },

@@ -4,6 +4,8 @@
   "scripts": {
     "build": "react-router build",
     "dev": "shopify app dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",
     "deploy": "shopify app deploy",
@@ -15,7 +17,6 @@
     "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint .",
     "shopify": "shopify",
     "prisma": "prisma",
-    "graphql-codegen": "graphql-codegen",
     "vite": "vite"
   },
   "type": "module",
@@ -40,7 +41,6 @@
   "devDependencies": {
     "@eslint/js": "^9.39.0",
     "@react-router/dev": "^7.18.4",
-    "@shopify/api-codegen-preset": "^3.0.0",
     "@types/eslint": "^9.6.1",
     "@types/node": "^22.2.0",
     "@types/react": "^18.2.31",
@@ -52,7 +52,8 @@
     "globals": "^16.5.0",
     "prettier": "^3.2.4",
     "typescript": "^5.2.2",
-    "vite": "^8.3.1"
+    "vite": "^8.3.1",
+    "vitest": "^5.0.3"
   },
   "workspaces": [
     "extensions/*"
